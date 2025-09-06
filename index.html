@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presentations and Papers Timetable</title>
+    <title>Presentations and Papers Timetable (Multi-Attachment)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -84,6 +84,22 @@
             max-width: 60px;
             vertical-align: middle;
         }
+        .attachment-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .attachment-list li {
+            margin-bottom: 4px;
+        }
+        .remove-attachment-btn {
+            margin-left: 8px;
+            color: #f44336;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
     </style>
 </head>
 <body>
@@ -98,7 +114,7 @@
         <label>Type: <input type="text" id="newType" placeholder="e.g., Presentation or Paper"></label>
         <label>Content: <input type="text" id="newContent" placeholder="e.g., SSW 502 Family Influence"></label>
         <label>Notes: <textarea id="newNotes" placeholder="e.g., Prepare slides, APA citations"></textarea></label>
-        <label>Attachment: <input type="file" id="newFile"></label>
+        <label>Attachment(s): <input type="file" id="newFiles" multiple></label>
         <button onclick="addAssignment()">Add Assignment</button>
     </div>
     <div id="errorMessage" class="error-message"></div>
@@ -110,7 +126,7 @@
                 <th onclick="sortTable('type')">Type <span id="sort-type" class="sort-indicator"></span></th>
                 <th onclick="sortTable('content')">Content <span id="sort-content" class="sort-indicator"></span></th>
                 <th onclick="sortTable('notes')">Notes <span id="sort-notes" class="sort-indicator"></span></th>
-                <th>Attachment</th>
+                <th>Attachment(s)</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -221,7 +237,7 @@
                     assignments.forEach(a => {
                         addRowToTable(
                             a.id, a.date, a.type, a.content, a.notes, a.completed,
-                            a.attachment, a.attachmentName
+                            a.attachments || [] // Array of {name, data}
                         );
                     });
                 }
@@ -232,20 +248,29 @@
             }
         }
 
-        function addRowToTable(id, date, type, content, notes, completed = false, attachment = null, attachmentName = null) {
+        function renderAttachmentCell(attachments) {
+            if (!attachments || attachments.length === 0) return "";
+            let html = '<ul class="attachment-list">';
+            attachments.forEach(att => {
+                if (!att || !att.data) return;
+                let name = att.name || "attachment";
+                if (att.data.startsWith("data:image")) {
+                    html += `<li><a href="${att.data}" target="_blank"><img src="${att.data}" alt="Attachment" class="attachment-thumb"></a> ${name}</li>`;
+                } else if (att.data.startsWith("data:application/pdf")) {
+                    html += `<li><a href="${att.data}" target="_blank" download="${name}">PDF: ${name}</a></li>`;
+                } else {
+                    html += `<li><a href="${att.data}" download="${name}">${name}</a></li>`;
+                }
+            });
+            html += '</ul>';
+            return html;
+        }
+
+        function addRowToTable(id, date, type, content, notes, completed = false, attachments = []) {
             const tableBody = document.getElementById("tableBody");
             const row = document.createElement("tr");
             row.setAttribute("data-id", id);
-            let attachmentCell = "";
-            if (attachment) {
-                if (attachment.startsWith("data:image")) {
-                    attachmentCell = `<a href="${attachment}" target="_blank"><img src="${attachment}" alt="Attachment" class="attachment-thumb"></a>`;
-                } else if (attachment.startsWith("data:application/pdf")) {
-                    attachmentCell = `<a href="${attachment}" target="_blank" download="${attachmentName || "attachment.pdf"}">PDF</a>`;
-                } else {
-                    attachmentCell = `<a href="${attachment}" download="${attachmentName || "attachment"}">${attachmentName || "View File"}</a>`;
-                }
-            }
+            let attachmentCell = renderAttachmentCell(attachments);
             row.innerHTML = `
                 <td><input type="checkbox" ${completed ? "checked" : ""} onchange="updateCompletion(${id}, this.checked)"></td>
                 <td>
@@ -265,7 +290,11 @@
                     <textarea class="edit-input">${notes}</textarea>
                 </td>
                 <td>
-                    ${attachmentCell}
+                    <span class="view-text">${attachmentCell}</span>
+                    <div class="edit-input" style="min-width:160px;">
+                        <div id="edit-attachments-${id}"></div>
+                        <input type="file" multiple id="editFiles-${id}">
+                    </div>
                 </td>
                 <td>
                     <button onclick="editRow(${id}, this)">Edit</button>
@@ -276,39 +305,37 @@
             tableBody.appendChild(row);
         }
 
-        async function addAssignment() {
-            const dateInput = document.getElementById("newDate").value;
-            const typeInput = document.getElementById("newType").value;
-            const contentInput = document.getElementById("newContent").value;
-            const notesInput = document.getElementById("newNotes").value;
-            const fileInput = document.getElementById("newFile");
-            const file = fileInput.files[0];
-
-            function readFileAsBase64(file) {
-                return new Promise((resolve, reject) => {
+        async function filesInputToAttachments(input) {
+            const files = input.files;
+            const result = [];
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const data = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result);
                     reader.onerror = reject;
                     reader.readAsDataURL(file);
                 });
+                result.push({ name: file.name, data });
             }
+            return result;
+        }
 
-            let fileData = null;
-            let fileName = null;
-            if (file) {
-                try {
-                    fileData = await readFileAsBase64(file);
-                    fileName = file.name;
-                } catch (e) {
-                    showError("Failed to read file.");
-                    return;
-                }
-            }
+        async function addAssignment() {
+            const dateInput = document.getElementById("newDate").value;
+            const typeInput = document.getElementById("newType").value;
+            const contentInput = document.getElementById("newContent").value;
+            const notesInput = document.getElementById("newNotes").value;
+            const filesInput = document.getElementById("newFiles");
 
             if (dateInput && typeInput && contentInput) {
                 try {
                     const id = Date.now();
                     const assignments = JSON.parse(localStorage.getItem("assignmentsTimetable") || "[]");
+                    let attachments = [];
+                    if (filesInput.files && filesInput.files.length > 0) {
+                        attachments = await filesInputToAttachments(filesInput);
+                    }
                     assignments.push({
                         id,
                         date: dateInput,
@@ -316,8 +343,7 @@
                         content: contentInput,
                         notes: notesInput,
                         completed: false,
-                        attachment: fileData,
-                        attachmentName: fileName
+                        attachments
                     });
                     localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
                     loadTimetable();
@@ -325,7 +351,7 @@
                     document.getElementById("newType").value = "";
                     document.getElementById("newContent").value = "";
                     document.getElementById("newNotes").value = "";
-                    fileInput.value = "";
+                    filesInput.value = "";
                     showError("");
                     await syncToGitHub();
                 } catch (e) {
@@ -338,30 +364,88 @@
         }
 
         function editRow(id, button) {
+            // Enter edit mode
             const row = button.closest("tr");
             row.classList.add("edit-mode");
+
+            // Render editable attachments list
+            const savedData = localStorage.getItem("assignmentsTimetable");
+            let assignments = savedData ? JSON.parse(savedData) : [];
+            const assignment = assignments.find(a => a.id === id);
+            const editDiv = document.getElementById(`edit-attachments-${id}`);
+            if (editDiv) {
+                editDiv.innerHTML = "";
+                if (assignment && assignment.attachments && assignment.attachments.length > 0) {
+                    assignment.attachments.forEach((att, i) => {
+                        const span = document.createElement("span");
+                        let name = att.name || "attachment";
+                        if (att.data.startsWith("data:image")) {
+                            span.innerHTML = `<a href="${att.data}" target="_blank"><img src="${att.data}" class="attachment-thumb" alt="Attachment"></a> ${name}`;
+                        } else if (att.data.startsWith("data:application/pdf")) {
+                            span.innerHTML = `<a href="${att.data}" target="_blank" download="${name}">PDF: ${name}</a>`;
+                        } else {
+                            span.innerHTML = `<a href="${att.data}" download="${name}">${name}</a>`;
+                        }
+                        // Remove button
+                        const btn = document.createElement("button");
+                        btn.textContent = "✕";
+                        btn.className = "remove-attachment-btn";
+                        btn.title = "Remove this attachment";
+                        btn.onclick = function() {
+                            removeEditAttachment(id, i);
+                        };
+                        span.appendChild(btn);
+                        editDiv.appendChild(span);
+                        editDiv.appendChild(document.createElement("br"));
+                    });
+                }
+            }
         }
 
-        function saveRow(id, button) {
+        function removeEditAttachment(id, attIndex) {
+            // Remove attachment at attIndex for assignment id
+            const savedData = localStorage.getItem("assignmentsTimetable");
+            let assignments = savedData ? JSON.parse(savedData) : [];
+            assignments = assignments.map(a => {
+                if (a.id === id && a.attachments) {
+                    a.attachments.splice(attIndex, 1);
+                }
+                return a;
+            });
+            localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
+            loadTimetable();
+            // Re-enter edit mode for this row
+            const editButton = document.querySelector(`tr[data-id="${id}"] button`);
+            if (editButton) editButton.click();
+        }
+
+        async function saveRow(id, button) {
             const row = button.closest("tr");
             const inputs = row.querySelectorAll(".edit-input");
             const date = inputs[0].value;
             const type = inputs[1].value;
             const content = inputs[2].value;
             const notes = inputs[3].value;
+            const filesInput = row.querySelector('input[type="file"]');
 
             if (date && type && content) {
                 try {
                     const savedData = localStorage.getItem("assignmentsTimetable");
                     let assignments = savedData ? JSON.parse(savedData) : [];
+                    let newAttachments = [];
+                    if (filesInput && filesInput.files && filesInput.files.length > 0) {
+                        newAttachments = await filesInputToAttachments(filesInput);
+                    }
                     assignments = assignments.map(a => {
                         if (a.id === id) {
-                            return {
+                            let existingAttachments = Array.isArray(a.attachments) ? a.attachments : [];
+                            a = {
                                 ...a,
                                 date,
                                 type,
                                 content,
-                                notes
+                                notes,
+                                attachments: existingAttachments.concat(newAttachments)
                             };
                         }
                         return a;
