@@ -79,6 +79,11 @@
             margin-left: 5px;
             font-size: 0.9em;
         }
+        .attachment-thumb {
+            max-height: 40px;
+            max-width: 60px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -93,6 +98,7 @@
         <label>Type: <input type="text" id="newType" placeholder="e.g., Presentation or Paper"></label>
         <label>Content: <input type="text" id="newContent" placeholder="e.g., SSW 502 Family Influence"></label>
         <label>Notes: <textarea id="newNotes" placeholder="e.g., Prepare slides, APA citations"></textarea></label>
+        <label>Attachment: <input type="file" id="newFile"></label>
         <button onclick="addAssignment()">Add Assignment</button>
     </div>
     <div id="errorMessage" class="error-message"></div>
@@ -104,6 +110,7 @@
                 <th onclick="sortTable('type')">Type <span id="sort-type" class="sort-indicator"></span></th>
                 <th onclick="sortTable('content')">Content <span id="sort-content" class="sort-indicator"></span></th>
                 <th onclick="sortTable('notes')">Notes <span id="sort-notes" class="sort-indicator"></span></th>
+                <th>Attachment</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -122,7 +129,7 @@
 
         // ========== Sorting Logic ==========
         let sortState = {
-            column: "date", // default sort by date
+            column: "date",
             ascending: true
         };
 
@@ -212,7 +219,10 @@
                     let assignments = JSON.parse(savedData);
                     assignments = sortAssignments(assignments);
                     assignments.forEach(a => {
-                        addRowToTable(a.id, a.date, a.type, a.content, a.notes, a.completed);
+                        addRowToTable(
+                            a.id, a.date, a.type, a.content, a.notes, a.completed,
+                            a.attachment, a.attachmentName
+                        );
                     });
                 }
                 setSortIndicator();
@@ -222,10 +232,20 @@
             }
         }
 
-        function addRowToTable(id, date, type, content, notes, completed = false) {
+        function addRowToTable(id, date, type, content, notes, completed = false, attachment = null, attachmentName = null) {
             const tableBody = document.getElementById("tableBody");
             const row = document.createElement("tr");
             row.setAttribute("data-id", id);
+            let attachmentCell = "";
+            if (attachment) {
+                if (attachment.startsWith("data:image")) {
+                    attachmentCell = `<a href="${attachment}" target="_blank"><img src="${attachment}" alt="Attachment" class="attachment-thumb"></a>`;
+                } else if (attachment.startsWith("data:application/pdf")) {
+                    attachmentCell = `<a href="${attachment}" target="_blank" download="${attachmentName || "attachment.pdf"}">PDF</a>`;
+                } else {
+                    attachmentCell = `<a href="${attachment}" download="${attachmentName || "attachment"}">${attachmentName || "View File"}</a>`;
+                }
+            }
             row.innerHTML = `
                 <td><input type="checkbox" ${completed ? "checked" : ""} onchange="updateCompletion(${id}, this.checked)"></td>
                 <td>
@@ -245,6 +265,9 @@
                     <textarea class="edit-input">${notes}</textarea>
                 </td>
                 <td>
+                    ${attachmentCell}
+                </td>
+                <td>
                     <button onclick="editRow(${id}, this)">Edit</button>
                     <button class="edit-input" onclick="saveRow(${id}, this)">Save</button>
                     <button onclick="deleteRow(${id})">Delete</button>
@@ -258,20 +281,53 @@
             const typeInput = document.getElementById("newType").value;
             const contentInput = document.getElementById("newContent").value;
             const notesInput = document.getElementById("newNotes").value;
+            const fileInput = document.getElementById("newFile");
+            const file = fileInput.files[0];
+
+            function readFileAsBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            let fileData = null;
+            let fileName = null;
+            if (file) {
+                try {
+                    fileData = await readFileAsBase64(file);
+                    fileName = file.name;
+                } catch (e) {
+                    showError("Failed to read file.");
+                    return;
+                }
+            }
 
             if (dateInput && typeInput && contentInput) {
                 try {
                     const id = Date.now();
                     const assignments = JSON.parse(localStorage.getItem("assignmentsTimetable") || "[]");
-                    assignments.push({ id, date: dateInput, type: typeInput, content: contentInput, notes: notesInput, completed: false });
+                    assignments.push({
+                        id,
+                        date: dateInput,
+                        type: typeInput,
+                        content: contentInput,
+                        notes: notesInput,
+                        completed: false,
+                        attachment: fileData,
+                        attachmentName: fileName
+                    });
                     localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
                     loadTimetable();
                     document.getElementById("newDate").value = "";
                     document.getElementById("newType").value = "";
                     document.getElementById("newContent").value = "";
                     document.getElementById("newNotes").value = "";
+                    fileInput.value = "";
                     showError("");
-                    await syncToGitHub(); // Sync after adding
+                    await syncToGitHub();
                 } catch (e) {
                     console.error("Error adding assignment:", e);
                     showError("Failed to add assignment. Please try again.");
@@ -300,7 +356,13 @@
                     let assignments = savedData ? JSON.parse(savedData) : [];
                     assignments = assignments.map(a => {
                         if (a.id === id) {
-                            return { id, date, type, content, notes, completed: a.completed };
+                            return {
+                                ...a,
+                                date,
+                                type,
+                                content,
+                                notes
+                            };
                         }
                         return a;
                     });
@@ -308,7 +370,7 @@
                     row.classList.remove("edit-mode");
                     loadTimetable();
                     showError("");
-                    syncToGitHub(); // Sync after editing
+                    syncToGitHub();
                 } catch (e) {
                     console.error("Error saving row:", e);
                     showError("Failed to save changes. Please try again.");
@@ -330,8 +392,8 @@
                 });
                 localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
                 showError("");
-                syncToGitHub(); // Sync after checking/unchecking
-                loadTimetable(); // Needed to update sort if sorted by completed
+                syncToGitHub();
+                loadTimetable();
             } catch (e) {
                 console.error("Error updating completion:", e);
                 showError("Failed to update completion status. Please try again.");
@@ -348,7 +410,7 @@
                     loadTimetable();
                     showError("");
                     alert("Assignment deleted successfully!");
-                    syncToGitHub(); // Sync after deleting
+                    syncToGitHub();
                 } catch (e) {
                     console.error("Error deleting assignment:", e);
                     showError("Failed to delete assignment. Please try again.");
@@ -363,7 +425,7 @@
                     document.getElementById("tableBody").innerHTML = "";
                     showError("");
                     alert("Timetable cleared successfully!");
-                    syncToGitHub(); // Sync after clearing
+                    syncToGitHub();
                 } catch (e) {
                     console.error("Error clearing timetable:", e);
                     showError("Failed to clear timetable. Please try again.");
@@ -375,7 +437,7 @@
             try {
                 const savedData = localStorage.getItem("assignmentsTimetable");
                 if (savedData) {
-                    JSON.parse(savedData); // Validate JSON
+                    JSON.parse(savedData);
                     alert("Timetable saved successfully!");
                     showError("");
                 } else {
