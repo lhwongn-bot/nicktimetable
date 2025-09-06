@@ -1,96 +1,45 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Assignments Timetable</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentations and Papers Timetable</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f4f4f9;
-            font-size: 16px;
-            -webkit-text-size-adjust: 100%; /* Prevent font scaling in iOS */
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
-            overflow-x: auto; /* Allow horizontal scrolling on small screens */
         }
         th, td {
             border: 1px solid #ddd;
             padding: 10px;
             text-align: left;
-            min-width: 80px; /* Ensure columns are readable */
         }
         th {
             background-color: #2196F3;
             color: white;
         }
-        input[type="text"], input[type="date"], textarea, select {
+        input[type="text"], input[type="date"], textarea {
             width: 100%;
-            padding: 8px;
+            padding: 5px;
             box-sizing: border-box;
-            font-size: 16px; /* Larger font for touch */
-            border-radius: 4px;
         }
         textarea {
-            height: 80px;
+            height: 60px;
             resize: vertical;
         }
-        select {
-            padding: 8px;
-            margin-right: 10px;
-        }
         button {
-            padding: 12px 20px; /* Larger tap area */
+            padding: 10px 20px;
             background-color: #2196F3;
             color: white;
             border: none;
             cursor: pointer;
-            border-radius: 4px;
-            font-size: 16px;
-            touch-action: manipulation; /* Prevent double-tap zoom */
+            margin-right: 10px;
         }
         button:hover {
             background-color: #1976D2;
@@ -100,14 +49,10 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            align-items: center;
         }
         .input-row label {
             flex: 1;
-            min-width: 100px;
-            display: flex;
-            flex-direction: column;
-            font-size: 14px;
+            min-width: 120px;
         }
         .edit-mode {
             background-color: #e3f2fd;
@@ -121,61 +66,28 @@
         .edit-mode .view-text {
             display: none;
         }
-        .urgent {
-            color: red;
-        }
         .error-message {
             color: red;
             margin-top: 10px;
-            font-size: 14px;
         }
-        /* Responsive adjustments for iPhone */
-        @media screen and (max-width: 600px) {
-            body {
-                margin: 10px;
-                font-size: 14px;
-            }
-            th, td {
-                padding: 8px;
-                font-size: 12px;
-                min-width: 60px;
-            }
-            input[type="text"], input[type="date"], textarea, select {
-                font-size: 14px;
-                padding: 6px;
-            }
-            button {
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-            .input-row label {
-                min-width: 100%;
-                margin-bottom: 10px;
-            }
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
+        .token-row {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Assignments Timetable</h1>
+    <h1>Presentations and Papers Timetable</h1>
+    <div class="token-row">
+        <label>GitHub Token: <input type="password" id="githubToken" placeholder="Enter GitHub PAT"></label>
+        <button onclick="saveToken()">Save Token</button>
+        <button onclick="clearToken()">Clear Token</button>
+    </div>
     <div class="input-row">
         <label>Date: <input type="date" id="newDate"></label>
         <label>Type: <input type="text" id="newType" placeholder="e.g., Presentation or Paper"></label>
         <label>Content: <input type="text" id="newContent" placeholder="e.g., SSW 502 Family Influence"></label>
         <label>Notes: <textarea id="newNotes" placeholder="e.g., Prepare slides, APA citations"></textarea></label>
         <button onclick="addAssignment()">Add Assignment</button>
-    </div>
-    <div class="input-row">
-        <label>Sort by Date:
-            <select id="sortOrder" onchange="loadTimetable()">
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-            </select>
-        </label>
     </div>
     <div id="errorMessage" class="error-message"></div>
     <table id="timetable">
@@ -191,41 +103,52 @@
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
-    <button onclick="saveTimetable()">Save Timetable</button>
+    <button onclick="saveTimetable()">Save Timetable (Local)</button>
     <button onclick="clearTimetable()">Clear Timetable</button>
+    <button onclick="syncToGitHub()">Sync with GitHub</button>
+    <button onclick="loadFromGitHub()">Reload from GitHub</button>
 
     <script>
+        // ========== GitHub Sync Settings ==========
+        const GITHUB_USER = "lhwongn-bot";
+        const GITHUB_REPO = "nicktimetable";
+        const GITHUB_FILEPATH = "assignments.json";
+
+        // ========== GitHub Token Handling ==========
+        function getToken() {
+            return localStorage.getItem("githubToken") || "";
+        }
+        function saveToken() {
+            const t = document.getElementById("githubToken").value.trim();
+            if (t) {
+                localStorage.setItem("githubToken", t);
+                alert("Token saved!");
+            } else {
+                alert("Please enter a token.");
+            }
+        }
+        function clearToken() {
+            localStorage.removeItem("githubToken");
+            document.getElementById("githubToken").value = "";
+            alert("Token cleared!");
+        }
+        document.getElementById("githubToken").value = getToken();
+
+        // ========== Timetable Logic ==========
         function showError(message) {
             const errorDiv = document.getElementById("errorMessage");
             errorDiv.textContent = message;
             setTimeout(() => errorDiv.textContent = "", 5000);
         }
 
-        function testLocalStorage() {
-            try {
-                localStorage.setItem('test', 'test');
-                localStorage.removeItem('test');
-                return true;
-            } catch (e) {
-                showError('localStorage is not available. This may be because the file is opened directly from the Files app. Please host the file on a web server to enable saving.');
-                return false;
-            }
-        }
-
         function loadTimetable() {
-            if (!testLocalStorage()) return;
             try {
                 const savedData = localStorage.getItem("assignmentsTimetable");
                 const tableBody = document.getElementById("tableBody");
                 tableBody.innerHTML = "";
-                const sortOrder = document.getElementById("sortOrder").value;
                 if (savedData) {
-                    let assignments = JSON.parse(savedData);
-                    assignments.sort((a, b) => {
-                        const dateA = new Date(a.date);
-                        const dateB = new Date(b.date);
-                        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-                    });
+                    const assignments = JSON.parse(savedData);
+                    assignments.sort((a, b) => new Date(a.date) - new Date(b.date));
                     assignments.forEach(a => {
                         addRowToTable(a.id, a.date, a.type, a.content, a.notes, a.completed);
                     });
@@ -240,17 +163,9 @@
             const tableBody = document.getElementById("tableBody");
             const row = document.createElement("tr");
             row.setAttribute("data-id", id);
-
-            const currentDate = new Date();
-            currentDate.setHours(0, 0, 0, 0); // Reset time for comparison
-            const dueDate = new Date(date);
-            dueDate.setHours(0, 0, 0, 0);
-            const daysDiff = (dueDate - currentDate) / (1000 * 60 * 60 * 24);
-            const isUrgent = daysDiff <= 7 && daysDiff >= 0;
-
             row.innerHTML = `
                 <td><input type="checkbox" ${completed ? "checked" : ""} onchange="updateCompletion(${id}, this.checked)"></td>
-                <td class="${isUrgent ? 'urgent' : ''}">
+                <td>
                     <span class="view-text">${date}</span>
                     <input type="date" class="edit-input" value="${date}">
                 </td>
@@ -276,7 +191,6 @@
         }
 
         function addAssignment() {
-            if (!testLocalStorage()) return;
             const dateInput = document.getElementById("newDate").value;
             const typeInput = document.getElementById("newType").value;
             const contentInput = document.getElementById("newContent").value;
@@ -296,7 +210,7 @@
                     showError("");
                 } catch (e) {
                     console.error("Error adding assignment:", e);
-                    showError("Failed to add assignment. Please try again or check localStorage availability.");
+                    showError("Failed to add assignment. Please try again.");
                 }
             } else {
                 showError("Please fill in Date, Type, and Content fields.");
@@ -332,7 +246,7 @@
                     showError("");
                 } catch (e) {
                     console.error("Error saving row:", e);
-                    showError("Failed to save changes. Please try again or check localStorage availability.");
+                    showError("Failed to save changes. Please try again.");
                 }
             } else {
                 showError("Please fill in Date, Type, and Content fields.");
@@ -353,7 +267,7 @@
                 showError("");
             } catch (e) {
                 console.error("Error updating completion:", e);
-                showError("Failed to update completion status. Please try again or check localStorage availability.");
+                showError("Failed to update completion status. Please try again.");
             }
         }
 
@@ -369,7 +283,7 @@
                     alert("Assignment deleted successfully!");
                 } catch (e) {
                     console.error("Error deleting assignment:", e);
-                    showError("Failed to delete assignment. Please try again or check localStorage availability.");
+                    showError("Failed to delete assignment. Please try again.");
                 }
             }
         }
@@ -383,7 +297,7 @@
                     alert("Timetable cleared successfully!");
                 } catch (e) {
                     console.error("Error clearing timetable:", e);
-                    showError("Failed to clear timetable. Please try again or check localStorage availability.");
+                    showError("Failed to clear timetable. Please try again.");
                 }
             }
         }
@@ -400,12 +314,84 @@
                 }
             } catch (e) {
                 console.error("Error saving timetable:", e);
-                showError("Failed to save timetable. Please try again or check localStorage availability.");
+                showError("Failed to save timetable. Please try again.");
             }
         }
 
-        window.onload = function() {
-            testLocalStorage();
+        // ========== GitHub Sync Logic ==========
+
+        // Load assignments from GitHub (assignments.json)
+        async function loadFromGitHub() {
+            try {
+                showError("Loading from GitHub...");
+                const url = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/${GITHUB_FILEPATH}`;
+                const resp = await fetch(url, { cache: "no-store" });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    localStorage.setItem("assignmentsTimetable", JSON.stringify(data));
+                    loadTimetable();
+                    showError("Loaded from GitHub!");
+                } else {
+                    showError("assignments.json not found in repo. Start by syncing your first timetable!");
+                }
+            } catch (e) {
+                console.error(e);
+                showError("Failed to load from GitHub.");
+            }
+        }
+
+        // Save assignments to GitHub (assignments.json)
+        async function syncToGitHub() {
+            const token = getToken();
+            if (!token) {
+                showError("GitHub token missing! Please enter and save it above.");
+                return;
+            }
+            const assignments = JSON.parse(localStorage.getItem("assignmentsTimetable") || "[]");
+            if (assignments.length === 0) {
+                showError("Nothing to sync.");
+                return;
+            }
+            showError("Syncing to GitHub...");
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILEPATH}`;
+                // Get the SHA of the existing file (if any)
+                let sha = null;
+                const getResp = await fetch(url, { headers: { Authorization: `token ${token}` }});
+                if (getResp.ok) {
+                    const json = await getResp.json();
+                    sha = json.sha;
+                }
+                // Prepare put data
+                const putData = {
+                    message: "Update assignments.json",
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(assignments, null, 2)))),
+                };
+                if (sha) putData.sha = sha;
+                const putResp = await fetch(url, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `token ${token}`,
+                        "Accept": "application/vnd.github.v3+json",
+                    },
+                    body: JSON.stringify(putData)
+                });
+                if (putResp.ok) {
+                    showError("Synced to GitHub!");
+                    alert("Assignments uploaded to GitHub!");
+                } else {
+                    const err = await putResp.json();
+                    showError("GitHub sync failed: " + (err.message || "Unknown error"));
+                }
+            } catch (e) {
+                console.error(e);
+                showError("Failed to sync to GitHub.");
+            }
+        }
+
+        // Load timetable from GitHub on first load (optional, comment out if you want to only load local)
+        window.onload = async function() {
+            await loadFromGitHub();
             loadTimetable();
         };
     </script>
