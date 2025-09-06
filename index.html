@@ -23,6 +23,8 @@
         th {
             background-color: #2196F3;
             color: white;
+            cursor: pointer;
+            user-select: none;
         }
         input[type="text"], input[type="date"], textarea {
             width: 100%;
@@ -73,6 +75,10 @@
         .token-row {
             margin-bottom: 10px;
         }
+        .sort-indicator {
+            margin-left: 5px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -93,11 +99,11 @@
     <table id="timetable">
         <thead>
             <tr>
-                <th>Completed</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Content</th>
-                <th>Notes</th>
+                <th onclick="sortTable('completed')">Completed <span id="sort-completed" class="sort-indicator"></span></th>
+                <th onclick="sortTable('date')">Date <span id="sort-date" class="sort-indicator"></span></th>
+                <th onclick="sortTable('type')">Type <span id="sort-type" class="sort-indicator"></span></th>
+                <th onclick="sortTable('content')">Content <span id="sort-content" class="sort-indicator"></span></th>
+                <th onclick="sortTable('notes')">Notes <span id="sort-notes" class="sort-indicator"></span></th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -113,6 +119,36 @@
         const GITHUB_USER = "lhwongn-bot";
         const GITHUB_REPO = "nicktimetable";
         const GITHUB_FILEPATH = "assignments.json";
+
+        // ========== Sorting Logic ==========
+        let sortState = {
+            column: "date", // default sort by date
+            ascending: true
+        };
+
+        function setSortIndicator() {
+            const columns = ["completed", "date", "type", "content", "notes"];
+            columns.forEach(col => {
+                const indicator = document.getElementById("sort-" + col);
+                if (!indicator) return;
+                if (sortState.column === col) {
+                    indicator.textContent = sortState.ascending ? "▲" : "▼";
+                } else {
+                    indicator.textContent = "";
+                }
+            });
+        }
+
+        function sortTable(column) {
+            if (sortState.column === column) {
+                sortState.ascending = !sortState.ascending;
+            } else {
+                sortState.column = column;
+                sortState.ascending = true;
+            }
+            setSortIndicator();
+            loadTimetable();
+        }
 
         // ========== GitHub Token Handling ==========
         function getToken() {
@@ -141,18 +177,45 @@
             setTimeout(() => errorDiv.textContent = "", 5000);
         }
 
+        function sortAssignments(assignments) {
+            const col = sortState.column;
+            const asc = sortState.ascending ? 1 : -1;
+            return assignments.slice().sort((a, b) => {
+                let vA, vB;
+                switch (col) {
+                    case "date":
+                        vA = new Date(a.date);
+                        vB = new Date(b.date);
+                        return (vA - vB) * asc;
+                    case "completed":
+                        vA = !!a.completed;
+                        vB = !!b.completed;
+                        return (vA === vB ? 0 : vA ? 1 : -1) * asc;
+                    case "type":
+                    case "content":
+                    case "notes":
+                        vA = (a[col] || "").toLowerCase();
+                        vB = (b[col] || "").toLowerCase();
+                        return (vA > vB ? 1 : vA < vB ? -1 : 0) * asc;
+                    default:
+                        return 0;
+                }
+            });
+        }
+
         function loadTimetable() {
             try {
                 const savedData = localStorage.getItem("assignmentsTimetable");
                 const tableBody = document.getElementById("tableBody");
                 tableBody.innerHTML = "";
                 if (savedData) {
-                    const assignments = JSON.parse(savedData);
-                    assignments.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    let assignments = JSON.parse(savedData);
+                    assignments = sortAssignments(assignments);
                     assignments.forEach(a => {
                         addRowToTable(a.id, a.date, a.type, a.content, a.notes, a.completed);
                     });
                 }
+                setSortIndicator();
             } catch (e) {
                 console.error("Error loading timetable:", e);
                 showError("Failed to load timetable. Please try clearing the timetable.");
@@ -268,6 +331,7 @@
                 localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
                 showError("");
                 syncToGitHub(); // Sync after checking/unchecking
+                loadTimetable(); // Needed to update sort if sorted by completed
             } catch (e) {
                 console.error("Error updating completion:", e);
                 showError("Failed to update completion status. Please try again.");
