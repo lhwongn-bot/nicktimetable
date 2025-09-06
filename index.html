@@ -190,7 +190,7 @@
             tableBody.appendChild(row);
         }
 
-        function addAssignment() {
+        async function addAssignment() {
             const dateInput = document.getElementById("newDate").value;
             const typeInput = document.getElementById("newType").value;
             const contentInput = document.getElementById("newContent").value;
@@ -208,6 +208,7 @@
                     document.getElementById("newContent").value = "";
                     document.getElementById("newNotes").value = "";
                     showError("");
+                    await syncToGitHub(); // Sync after adding
                 } catch (e) {
                     console.error("Error adding assignment:", e);
                     showError("Failed to add assignment. Please try again.");
@@ -244,6 +245,7 @@
                     row.classList.remove("edit-mode");
                     loadTimetable();
                     showError("");
+                    syncToGitHub(); // Sync after editing
                 } catch (e) {
                     console.error("Error saving row:", e);
                     showError("Failed to save changes. Please try again.");
@@ -265,6 +267,7 @@
                 });
                 localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
                 showError("");
+                syncToGitHub(); // Sync after checking/unchecking
             } catch (e) {
                 console.error("Error updating completion:", e);
                 showError("Failed to update completion status. Please try again.");
@@ -281,6 +284,7 @@
                     loadTimetable();
                     showError("");
                     alert("Assignment deleted successfully!");
+                    syncToGitHub(); // Sync after deleting
                 } catch (e) {
                     console.error("Error deleting assignment:", e);
                     showError("Failed to delete assignment. Please try again.");
@@ -295,6 +299,7 @@
                     document.getElementById("tableBody").innerHTML = "";
                     showError("");
                     alert("Timetable cleared successfully!");
+                    syncToGitHub(); // Sync after clearing
                 } catch (e) {
                     console.error("Error clearing timetable:", e);
                     showError("Failed to clear timetable. Please try again.");
@@ -348,10 +353,6 @@
                 return;
             }
             const assignments = JSON.parse(localStorage.getItem("assignmentsTimetable") || "[]");
-            if (assignments.length === 0) {
-                showError("Nothing to sync.");
-                return;
-            }
             showError("Syncing to GitHub...");
             try {
                 const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILEPATH}`;
@@ -378,7 +379,6 @@
                 });
                 if (putResp.ok) {
                     showError("Synced to GitHub!");
-                    alert("Assignments uploaded to GitHub!");
                 } else {
                     const err = await putResp.json();
                     showError("GitHub sync failed: " + (err.message || "Unknown error"));
@@ -389,7 +389,7 @@
             }
         }
 
-        // Load timetable from GitHub on first load (optional, comment out if you want to only load local)
+        // Load timetable from GitHub on first load (optional)
         window.onload = async function() {
             await loadFromGitHub();
             loadTimetable();
