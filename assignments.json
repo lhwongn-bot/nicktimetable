@@ -1,1 +1,74 @@
-[]
+[
+  {
+    "id": 1757141323349,
+    "date": "2025-12-05",
+    "type": "present",
+    "content": "ssw501community",
+    "notes": "",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141351652,
+    "date": "2025-10-24",
+    "type": "case present ",
+    "content": "ssw 504 skill lab",
+    "notes": "1100-1130",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141421613,
+    "date": "2025-11-14",
+    "type": "grp present ",
+    "content": "ssw 504 skil lab",
+    "notes": "0930-1015",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141457052,
+    "date": "2025-10-30",
+    "type": "individal paper",
+    "content": "ssw 502 family",
+    "notes": "",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141507548,
+    "date": "2025-10-19",
+    "type": "individal paper",
+    "content": "ssw 503 grp",
+    "notes": "",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141541988,
+    "date": "2025-11-17",
+    "type": "mid term test",
+    "content": "gel 504",
+    "notes": "",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141584267,
+    "date": "2025-12-01",
+    "type": "present (solo? grp?)",
+    "content": "gel 504 pop cult",
+    "notes": "",
+    "completed": false,
+    "attachments": []
+  },
+  {
+    "id": 1757141803771,
+    "date": "2025-11-01",
+    "type": "individal paper",
+    "content": "ssw 409 Legal",
+    "notes": "",
+    "completed": false,
+    "attachments": []
+  }
+]
