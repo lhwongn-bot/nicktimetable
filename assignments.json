@@ -106,5 +106,14 @@
     "notes": "",
     "completed": false,
     "attachments": []
+  },
+  {
+    "id": 1759454058110,
+    "date": "2025-10-17",
+    "type": "case study",
+    "content": "skill lab",
+    "notes": "case plan \nfirst encounter",
+    "completed": false,
+    "attachments": []
   }
 ]
