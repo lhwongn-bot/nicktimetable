@@ -122,7 +122,7 @@
     "type": "ref ppr",
     "content": "skill lab",
     "notes": "",
-    "completed": false,
+    "completed": true,
     "attachments": []
   }
 ]
