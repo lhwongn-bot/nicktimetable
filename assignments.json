@@ -23,7 +23,7 @@
     "type": "present (grp)",
     "content": "ssw 504 skill lab",
     "notes": "0930-1015\nshowcase grp skills, choose/create a section of grp",
-    "completed": false,
+    "completed": true,
     "attachments": []
   },
   {
