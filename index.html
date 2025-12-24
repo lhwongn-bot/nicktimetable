@@ -336,15 +336,19 @@
                 try {
                     const token = getToken();
                     if (token) {
-                        showError("Migrating data to new semester format...");
+                        updateSyncStatus('Migrating...', 'syncing');
                         await syncSemesterToGitHub(1, JSON.parse(oldData));
+                        updateSyncStatus('Migration complete', 'synced');
+                        setTimeout(() => updateSyncStatus('', ''), 3000);
                     }
                 } catch (e) {
                     console.error("Migration error:", e);
                 }
                 
-                showError("Data migrated to Semester 1 successfully!");
-                setTimeout(() => showError(""), 3000);
+                // Show success message to user
+                setTimeout(() => {
+                    alert("Your data has been migrated to the new semester system! It's now in Semester 1.");
+                }, 1000);
             }
         }
 
@@ -532,6 +536,11 @@
                     reader.readAsDataURL(file);
                 });
                 result.push({ name: file.name, data });
+            }
+            
+            // Validate cumulative uploaded file size
+            if (totalSize > MAX_FILE_SIZE * 5) { // Allow up to 5 files at max size
+                throw new Error(`Total upload size (${(totalSize / 1024 / 1024).toFixed(2)}MB) is too large. Please reduce the number or size of attachments.`);
             }
             
             return result;
