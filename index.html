@@ -10,6 +10,94 @@
             margin: 20px;
             background-color: #f4f4f9;
         }
+        .semester-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .semester-btn {
+            padding: 12px 24px;
+            background-color: #e0e0e0;
+            color: #333;
+            border: 2px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .semester-btn:hover {
+            background-color: #d0d0d0;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .semester-btn.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #45a049;
+            font-weight: 600;
+        }
+        .semester-info {
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .sync-status {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .sync-status.syncing {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .sync-status.synced {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .sync-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -103,7 +191,25 @@
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div id="loadingMessage">Loading...</div>
+        </div>
+    </div>
+    
     <h1>Presentations and Papers Timetable</h1>
+    <div class="semester-info">
+        <span id="semesterTitle">Semester 1</span>
+        <span id="syncStatus" class="sync-status"></span>
+    </div>
+    <div id="semesterButtons" class="semester-buttons">
+        <button class="semester-btn active" onclick="switchSemester(1)">Semester 1</button>
+        <button class="semester-btn" onclick="switchSemester(2)">Semester 2</button>
+        <button class="semester-btn" onclick="switchSemester(3)">Semester 3</button>
+        <button class="semester-btn" onclick="switchSemester(4)">Semester 4</button>
+        <button class="semester-btn" onclick="switchSemester(5)">Semester 5</button>
+    </div>
     <div class="token-row">
         <label>GitHub Token: <input type="password" id="githubToken" placeholder="Enter GitHub PAT"></label>
         <button onclick="saveToken()">Save Token</button>
@@ -136,12 +242,111 @@
     <button onclick="clearTimetable()">Clear Timetable</button>
     <button onclick="syncToGitHub()">Sync with GitHub</button>
     <button onclick="loadFromGitHub()">Reload from GitHub</button>
+    <button onclick="syncAllSemesters()">Sync All Semesters</button>
 
     <script>
         // ========== GitHub Sync Settings ==========
         const GITHUB_USER = "lhwongn-bot";
         const GITHUB_REPO = "nicktimetable";
-        const GITHUB_FILEPATH = "assignments.json";
+        
+        // File size limits
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
+        
+        // Current semester state
+        let currentSemester = 1;
+        let isSyncing = false;
+        let syncDebounceTimer = null;
+
+        // ========== Semester Management ==========
+        function getCurrentSemesterKey() {
+            return `semester${currentSemester}_timetable`;
+        }
+        
+        function getCurrentGitHubFilePath() {
+            return `semester${currentSemester}.json`;
+        }
+        
+        function switchSemester(semesterNum) {
+            // Check for unsaved changes
+            if (isSyncing) {
+                showError("Please wait for current sync operation to complete.");
+                return;
+            }
+            
+            if (semesterNum === currentSemester) {
+                return;
+            }
+            
+            // Confirm switch if there might be unsaved changes
+            const currentData = localStorage.getItem(getCurrentSemesterKey());
+            if (currentData && !confirm(`Switch to Semester ${semesterNum}? Make sure you've synced any changes.`)) {
+                return;
+            }
+            
+            currentSemester = semesterNum;
+            localStorage.setItem("currentSemester", semesterNum);
+            
+            // Update UI
+            updateSemesterUI();
+            loadTimetable();
+        }
+        
+        function updateSemesterUI() {
+            // Update buttons
+            document.querySelectorAll('.semester-btn').forEach((btn, index) => {
+                if (index + 1 === currentSemester) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Update title
+            document.getElementById('semesterTitle').textContent = `Semester ${currentSemester}`;
+            updateSyncStatus('');
+        }
+        
+        function updateSyncStatus(message, type = '') {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = message;
+            statusEl.className = 'sync-status ' + type;
+        }
+        
+        function showLoading(message = 'Loading...') {
+            const overlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingMessage').textContent = message;
+            overlay.classList.add('active');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // ========== Data Migration ==========
+        async function migrateOldData() {
+            const oldData = localStorage.getItem("assignmentsTimetable");
+            const semester1Data = localStorage.getItem("semester1_timetable");
+            
+            if (oldData && !semester1Data) {
+                console.log("Migrating old data to semester1...");
+                localStorage.setItem("semester1_timetable", oldData);
+                
+                // Try to migrate to GitHub as well
+                try {
+                    const token = getToken();
+                    if (token) {
+                        showError("Migrating data to new semester format...");
+                        await syncSemesterToGitHub(1, JSON.parse(oldData));
+                    }
+                } catch (e) {
+                    console.error("Migration error:", e);
+                }
+                
+                showError("Data migrated to Semester 1 successfully!");
+                setTimeout(() => showError(""), 3000);
+            }
+        }
 
         // ========== Sorting Logic ==========
         let sortState = {
@@ -228,7 +433,7 @@
 
         function loadTimetable() {
             try {
-                const savedData = localStorage.getItem("assignmentsTimetable");
+                const savedData = localStorage.getItem(getCurrentSemesterKey());
                 const tableBody = document.getElementById("tableBody");
                 tableBody.innerHTML = "";
                 if (savedData) {
@@ -308,17 +513,42 @@
         async function filesInputToAttachments(input) {
             const files = input.files;
             const result = [];
+            let totalSize = 0;
+            
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
+                
+                // Validate individual file size
+                if (file.size > MAX_FILE_SIZE) {
+                    throw new Error(`File "${file.name}" exceeds 5MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                }
+                
+                totalSize += file.size;
+                
                 const data = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
+                    reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
                     reader.readAsDataURL(file);
                 });
                 result.push({ name: file.name, data });
             }
+            
             return result;
+        }
+        
+        function calculateTotalDataSize(assignments) {
+            const jsonStr = JSON.stringify(assignments);
+            // Estimate size in bytes (UTF-8)
+            return new Blob([jsonStr]).size;
+        }
+        
+        function validateTotalSize(assignments) {
+            const size = calculateTotalDataSize(assignments);
+            if (size > MAX_TOTAL_SIZE) {
+                throw new Error(`Total data size exceeds 50MB limit (${(size / 1024 / 1024).toFixed(2)}MB). Please remove some attachments.`);
+            }
+            return size;
         }
 
         async function addAssignment() {
@@ -331,12 +561,13 @@
             if (dateInput && typeInput && contentInput) {
                 try {
                     const id = Date.now();
-                    const assignments = JSON.parse(localStorage.getItem("assignmentsTimetable") || "[]");
+                    const assignments = JSON.parse(localStorage.getItem(getCurrentSemesterKey()) || "[]");
                     let attachments = [];
                     if (filesInput.files && filesInput.files.length > 0) {
                         attachments = await filesInputToAttachments(filesInput);
                     }
-                    assignments.push({
+                    
+                    const newAssignment = {
                         id,
                         date: dateInput,
                         type: typeInput,
@@ -344,8 +575,14 @@
                         notes: notesInput,
                         completed: false,
                         attachments
-                    });
-                    localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
+                    };
+                    
+                    assignments.push(newAssignment);
+                    
+                    // Validate total size before saving
+                    validateTotalSize(assignments);
+                    
+                    localStorage.setItem(getCurrentSemesterKey(), JSON.stringify(assignments));
                     loadTimetable();
                     document.getElementById("newDate").value = "";
                     document.getElementById("newType").value = "";
@@ -353,10 +590,10 @@
                     document.getElementById("newNotes").value = "";
                     filesInput.value = "";
                     showError("");
-                    await syncToGitHub();
+                    debouncedSync();
                 } catch (e) {
                     console.error("Error adding assignment:", e);
-                    showError("Failed to add assignment. Please try again.");
+                    showError(e.message || "Failed to add assignment. Please try again.");
                 }
             } else {
                 showError("Please fill in Date, Type, and Content fields.");
@@ -369,7 +606,7 @@
             row.classList.add("edit-mode");
 
             // Render editable attachments list
-            const savedData = localStorage.getItem("assignmentsTimetable");
+            const savedData = localStorage.getItem(getCurrentSemesterKey());
             let assignments = savedData ? JSON.parse(savedData) : [];
             const assignment = assignments.find(a => a.id === id);
             const editDiv = document.getElementById(`edit-attachments-${id}`);
@@ -404,7 +641,7 @@
 
         function removeEditAttachment(id, attIndex) {
             // Remove attachment at attIndex for assignment id
-            const savedData = localStorage.getItem("assignmentsTimetable");
+            const savedData = localStorage.getItem(getCurrentSemesterKey());
             let assignments = savedData ? JSON.parse(savedData) : [];
             assignments = assignments.map(a => {
                 if (a.id === id && a.attachments) {
@@ -412,7 +649,7 @@
                 }
                 return a;
             });
-            localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
+            localStorage.setItem(getCurrentSemesterKey(), JSON.stringify(assignments));
             loadTimetable();
             // Re-enter edit mode for this row
             const editButton = document.querySelector(`tr[data-id="${id}"] button`);
@@ -430,7 +667,7 @@
 
             if (date && type && content) {
                 try {
-                    const savedData = localStorage.getItem("assignmentsTimetable");
+                    const savedData = localStorage.getItem(getCurrentSemesterKey());
                     let assignments = savedData ? JSON.parse(savedData) : [];
                     let newAttachments = [];
                     if (filesInput && filesInput.files && filesInput.files.length > 0) {
@@ -450,14 +687,18 @@
                         }
                         return a;
                     });
-                    localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
+                    
+                    // Validate total size before saving
+                    validateTotalSize(assignments);
+                    
+                    localStorage.setItem(getCurrentSemesterKey(), JSON.stringify(assignments));
                     row.classList.remove("edit-mode");
                     loadTimetable();
                     showError("");
-                    syncToGitHub();
+                    debouncedSync();
                 } catch (e) {
                     console.error("Error saving row:", e);
-                    showError("Failed to save changes. Please try again.");
+                    showError(e.message || "Failed to save changes. Please try again.");
                 }
             } else {
                 showError("Please fill in Date, Type, and Content fields.");
@@ -466,7 +707,7 @@
 
         function updateCompletion(id, isChecked) {
             try {
-                const savedData = localStorage.getItem("assignmentsTimetable");
+                const savedData = localStorage.getItem(getCurrentSemesterKey());
                 let assignments = savedData ? JSON.parse(savedData) : [];
                 assignments = assignments.map(a => {
                     if (a.id === id) {
@@ -474,9 +715,9 @@
                     }
                     return a;
                 });
-                localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
+                localStorage.setItem(getCurrentSemesterKey(), JSON.stringify(assignments));
                 showError("");
-                syncToGitHub();
+                debouncedSync();
                 loadTimetable();
             } catch (e) {
                 console.error("Error updating completion:", e);
@@ -487,14 +728,14 @@
         function deleteRow(id) {
             if (confirm("Are you sure you want to delete this assignment?")) {
                 try {
-                    const savedData = localStorage.getItem("assignmentsTimetable");
+                    const savedData = localStorage.getItem(getCurrentSemesterKey());
                     let assignments = savedData ? JSON.parse(savedData) : [];
                     assignments = assignments.filter(a => a.id !== id);
-                    localStorage.setItem("assignmentsTimetable", JSON.stringify(assignments));
+                    localStorage.setItem(getCurrentSemesterKey(), JSON.stringify(assignments));
                     loadTimetable();
                     showError("");
                     alert("Assignment deleted successfully!");
-                    syncToGitHub();
+                    debouncedSync();
                 } catch (e) {
                     console.error("Error deleting assignment:", e);
                     showError("Failed to delete assignment. Please try again.");
@@ -503,13 +744,13 @@
         }
 
         function clearTimetable() {
-            if (confirm("Are you sure you want to clear the entire timetable?")) {
+            if (confirm("Are you sure you want to clear the entire timetable for the current semester?")) {
                 try {
-                    localStorage.removeItem("assignmentsTimetable");
+                    localStorage.removeItem(getCurrentSemesterKey());
                     document.getElementById("tableBody").innerHTML = "";
                     showError("");
                     alert("Timetable cleared successfully!");
-                    syncToGitHub();
+                    debouncedSync();
                 } catch (e) {
                     console.error("Error clearing timetable:", e);
                     showError("Failed to clear timetable. Please try again.");
@@ -519,7 +760,7 @@
 
         function saveTimetable() {
             try {
-                const savedData = localStorage.getItem("assignmentsTimetable");
+                const savedData = localStorage.getItem(getCurrentSemesterKey());
                 if (savedData) {
                     JSON.parse(savedData);
                     alert("Timetable saved successfully!");
@@ -534,51 +775,112 @@
         }
 
         // ========== GitHub Sync Logic ==========
-
-        // Load assignments from GitHub (assignments.json)
-        async function loadFromGitHub() {
+        
+        // Debounced sync to prevent rapid consecutive syncs
+        function debouncedSync() {
+            if (syncDebounceTimer) {
+                clearTimeout(syncDebounceTimer);
+            }
+            syncDebounceTimer = setTimeout(() => {
+                syncToGitHub();
+            }, 2000); // Wait 2 seconds after last change
+        }
+        
+        // Improved Base64 encoding for UTF-8
+        function encodeBase64(str) {
             try {
-                showError("Loading from GitHub...");
-                const url = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/${GITHUB_FILEPATH}`;
-                const resp = await fetch(url, { cache: "no-store" });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    localStorage.setItem("assignmentsTimetable", JSON.stringify(data));
-                    loadTimetable();
-                    showError("Loaded from GitHub!");
-                } else {
-                    showError("assignments.json not found in repo. Start by syncing your first timetable!");
-                }
+                // Use TextEncoder for proper UTF-8 encoding
+                const bytes = new TextEncoder().encode(str);
+                let binary = '';
+                bytes.forEach(byte => binary += String.fromCharCode(byte));
+                return btoa(binary);
             } catch (e) {
-                console.error(e);
-                showError("Failed to load from GitHub.");
+                console.error("Base64 encoding error:", e);
+                // Fallback to old method
+                return btoa(unescape(encodeURIComponent(str)));
             }
         }
-
-        // Save assignments to GitHub (assignments.json)
-        async function syncToGitHub() {
-            const token = getToken();
-            if (!token) {
-                showError("GitHub token missing! Please enter and save it above.");
+        
+        // Load assignments from GitHub for current semester
+        async function loadFromGitHub() {
+            if (isSyncing) {
+                showError("Please wait for current sync operation to complete.");
                 return;
             }
-            const assignments = JSON.parse(localStorage.getItem("assignmentsTimetable") || "[]");
-            showError("Syncing to GitHub...");
+            
             try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILEPATH}`;
+                isSyncing = true;
+                updateSyncStatus('Loading...', 'syncing');
+                showLoading('Loading from GitHub...');
+                
+                const filepath = getCurrentGitHubFilePath();
+                const url = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/${filepath}`;
+                
+                const resp = await fetch(url, { cache: "no-store" });
+                
+                if (resp.ok) {
+                    const data = await resp.json();
+                    localStorage.setItem(getCurrentSemesterKey(), JSON.stringify(data));
+                    loadTimetable();
+                    updateSyncStatus('Loaded from GitHub', 'synced');
+                    setTimeout(() => updateSyncStatus('', ''), 3000);
+                } else if (resp.status === 404) {
+                    showError(`${filepath} not found in repo. Start by syncing your first timetable!`);
+                    updateSyncStatus('', '');
+                } else {
+                    throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+                }
+            } catch (e) {
+                console.error("GitHub load error:", e);
+                updateSyncStatus('Load failed', 'error');
+                showError(`Failed to load from GitHub: ${e.message}`);
+                setTimeout(() => updateSyncStatus('', ''), 5000);
+            } finally {
+                isSyncing = false;
+                hideLoading();
+            }
+        }
+        
+        // Sync a specific semester to GitHub
+        async function syncSemesterToGitHub(semesterNum, assignments, retryCount = 0) {
+            const token = getToken();
+            if (!token) {
+                throw new Error("GitHub token missing!");
+            }
+            
+            const filepath = `semester${semesterNum}.json`;
+            const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${filepath}`;
+            
+            try {
+                // Validate total size before syncing
+                validateTotalSize(assignments);
+                
                 // Get the SHA of the existing file (if any)
                 let sha = null;
-                const getResp = await fetch(url, { headers: { Authorization: `token ${token}` }});
+                const getResp = await fetch(url, { 
+                    headers: { Authorization: `token ${token}` },
+                    cache: "no-store"
+                });
+                
                 if (getResp.ok) {
                     const json = await getResp.json();
                     sha = json.sha;
+                } else if (getResp.status === 401) {
+                    throw new Error("Invalid GitHub token. Please update your token.");
+                } else if (getResp.status === 403) {
+                    throw new Error("GitHub API rate limit exceeded or permission denied.");
+                } else if (getResp.status !== 404) {
+                    console.warn(`Unexpected status getting file: ${getResp.status}`);
                 }
+                
                 // Prepare put data
+                const content = JSON.stringify(assignments, null, 2);
                 const putData = {
-                    message: "Update assignments.json",
-                    content: btoa(unescape(encodeURIComponent(JSON.stringify(assignments, null, 2)))),
+                    message: `Update ${filepath}`,
+                    content: encodeBase64(content),
                 };
                 if (sha) putData.sha = sha;
+                
                 const putResp = await fetch(url, {
                     method: "PUT",
                     headers: {
@@ -587,20 +889,137 @@
                     },
                     body: JSON.stringify(putData)
                 });
+                
                 if (putResp.ok) {
-                    showError("Synced to GitHub!");
+                    return true;
+                } else if (putResp.status === 409 && retryCount < 2) {
+                    // Conflict - retry with fresh SHA
+                    console.log(`Conflict detected, retrying (attempt ${retryCount + 1})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return await syncSemesterToGitHub(semesterNum, assignments, retryCount + 1);
                 } else {
-                    const err = await putResp.json();
-                    showError("GitHub sync failed: " + (err.message || "Unknown error"));
+                    const err = await putResp.json().catch(() => ({}));
+                    throw new Error(err.message || `HTTP ${putResp.status}: ${putResp.statusText}`);
                 }
             } catch (e) {
-                console.error(e);
-                showError("Failed to sync to GitHub.");
+                // Retry on network errors
+                if (retryCount < 2 && (e.message.includes('fetch') || e.message.includes('network'))) {
+                    console.log(`Network error, retrying (attempt ${retryCount + 1})...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    return await syncSemesterToGitHub(semesterNum, assignments, retryCount + 1);
+                }
+                throw e;
+            }
+        }
+        
+        // Save assignments to GitHub for current semester
+        async function syncToGitHub() {
+            if (isSyncing) {
+                console.log("Sync already in progress, skipping...");
+                return;
+            }
+            
+            const token = getToken();
+            if (!token) {
+                showError("GitHub token missing! Please enter and save it above.");
+                return;
+            }
+            
+            try {
+                isSyncing = true;
+                const assignments = JSON.parse(localStorage.getItem(getCurrentSemesterKey()) || "[]");
+                
+                updateSyncStatus('Syncing...', 'syncing');
+                showLoading('Syncing to GitHub...');
+                
+                await syncSemesterToGitHub(currentSemester, assignments);
+                
+                updateSyncStatus('Synced', 'synced');
+                setTimeout(() => updateSyncStatus('', ''), 3000);
+            } catch (e) {
+                console.error("GitHub sync error:", e);
+                updateSyncStatus('Sync failed', 'error');
+                showError(`GitHub sync failed: ${e.message}`);
+                setTimeout(() => updateSyncStatus('', ''), 5000);
+            } finally {
+                isSyncing = false;
+                hideLoading();
+            }
+        }
+        
+        // Sync all semesters to GitHub
+        async function syncAllSemesters() {
+            const token = getToken();
+            if (!token) {
+                showError("GitHub token missing! Please enter and save it above.");
+                return;
+            }
+            
+            if (isSyncing) {
+                showError("Please wait for current sync operation to complete.");
+                return;
+            }
+            
+            if (!confirm("This will sync all 5 semesters to GitHub. Continue?")) {
+                return;
+            }
+            
+            try {
+                isSyncing = true;
+                showLoading('Syncing all semesters...');
+                
+                let successCount = 0;
+                let errors = [];
+                
+                for (let i = 1; i <= 5; i++) {
+                    try {
+                        const key = `semester${i}_timetable`;
+                        const assignments = JSON.parse(localStorage.getItem(key) || "[]");
+                        
+                        document.getElementById('loadingMessage').textContent = `Syncing Semester ${i}...`;
+                        await syncSemesterToGitHub(i, assignments);
+                        successCount++;
+                    } catch (e) {
+                        console.error(`Error syncing semester ${i}:`, e);
+                        errors.push(`Semester ${i}: ${e.message}`);
+                    }
+                }
+                
+                hideLoading();
+                
+                if (errors.length === 0) {
+                    alert(`Successfully synced all ${successCount} semesters!`);
+                    updateSyncStatus('All synced', 'synced');
+                    setTimeout(() => updateSyncStatus('', ''), 3000);
+                } else {
+                    alert(`Synced ${successCount} semesters.\nErrors:\n${errors.join('\n')}`);
+                    updateSyncStatus('Partial sync', 'error');
+                    setTimeout(() => updateSyncStatus('', ''), 5000);
+                }
+            } catch (e) {
+                console.error("Sync all error:", e);
+                showError(`Failed to sync all semesters: ${e.message}`);
+                updateSyncStatus('Sync failed', 'error');
+                setTimeout(() => updateSyncStatus('', ''), 5000);
+            } finally {
+                isSyncing = false;
+                hideLoading();
             }
         }
 
         // Load timetable from GitHub on first load (optional)
         window.onload = async function() {
+            // Restore last selected semester
+            const savedSemester = localStorage.getItem("currentSemester");
+            if (savedSemester) {
+                currentSemester = parseInt(savedSemester);
+            }
+            
+            // Migrate old data if needed
+            await migrateOldData();
+            
+            // Update UI and load data
+            updateSemesterUI();
             await loadFromGitHub();
             loadTimetable();
         };
