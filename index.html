@@ -361,6 +361,17 @@
             }
         }
 
+        // ========== Security Functions ==========
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         // ========== Sorting Logic ==========
         let sortState = {
             column: "date",
@@ -471,13 +482,20 @@
             let html = '<ul class="attachment-list">';
             attachments.forEach(att => {
                 if (!att || !att.data) return;
-                let name = att.name || "attachment";
-                if (att.data.startsWith("data:image")) {
-                    html += `<li><a href="${att.data}" target="_blank"><img src="${att.data}" alt="Attachment" class="attachment-thumb"></a> ${name}</li>`;
-                } else if (att.data.startsWith("data:application/pdf")) {
-                    html += `<li><a href="${att.data}" target="_blank" download="${name}">PDF: ${name}</a></li>`;
+                let name = escapeHtml(att.name || "attachment");
+                // Validate data URL format to prevent javascript: URLs
+                const data = att.data;
+                if (!data.startsWith("data:")) {
+                    console.warn("Invalid attachment data URL detected, skipping");
+                    return;
+                }
+                
+                if (data.startsWith("data:image")) {
+                    html += `<li><a href="${escapeHtml(data)}" target="_blank"><img src="${escapeHtml(data)}" alt="Attachment" class="attachment-thumb"></a> ${name}</li>`;
+                } else if (data.startsWith("data:application/pdf")) {
+                    html += `<li><a href="${escapeHtml(data)}" target="_blank" download="${name}">PDF: ${name}</a></li>`;
                 } else {
-                    html += `<li><a href="${att.data}" download="${name}">${name}</a></li>`;
+                    html += `<li><a href="${escapeHtml(data)}" download="${name}">${name}</a></li>`;
                 }
             });
             html += '</ul>';
@@ -492,20 +510,20 @@
             row.innerHTML = `
                 <td><input type="checkbox" ${completed ? "checked" : ""} onchange="updateCompletion(${id}, this.checked)"></td>
                 <td>
-                    <span class="view-text">${date}</span>
-                    <input type="date" class="edit-input" value="${date}">
+                    <span class="view-text">${escapeHtml(date)}</span>
+                    <input type="date" class="edit-input" value="${escapeHtml(date)}">
                 </td>
                 <td>
-                    <span class="view-text">${type}</span>
-                    <input type="text" class="edit-input" value="${type}">
+                    <span class="view-text">${escapeHtml(type)}</span>
+                    <input type="text" class="edit-input" value="${escapeHtml(type)}">
                 </td>
                 <td>
-                    <span class="view-text">${content}</span>
-                    <input type="text" class="edit-input" value="${content}">
+                    <span class="view-text">${escapeHtml(content)}</span>
+                    <input type="text" class="edit-input" value="${escapeHtml(content)}">
                 </td>
                 <td>
-                    <span class="view-text">${notes.replace(/\n/g, "<br>")}</span>
-                    <textarea class="edit-input">${notes}</textarea>
+                    <span class="view-text">${escapeHtml(notes).replace(/\n/g, "<br>")}</span>
+                    <textarea class="edit-input">${escapeHtml(notes)}</textarea>
                 </td>
                 <td>
                     <span class="view-text">${attachmentCell}</span>
@@ -633,13 +651,21 @@
                 if (assignment && assignment.attachments && assignment.attachments.length > 0) {
                     assignment.attachments.forEach((att, i) => {
                         const span = document.createElement("span");
-                        let name = att.name || "attachment";
-                        if (att.data.startsWith("data:image")) {
-                            span.innerHTML = `<a href="${att.data}" target="_blank"><img src="${att.data}" class="attachment-thumb" alt="Attachment"></a> ${name}`;
-                        } else if (att.data.startsWith("data:application/pdf")) {
-                            span.innerHTML = `<a href="${att.data}" target="_blank" download="${name}">PDF: ${name}</a>`;
+                        let name = escapeHtml(att.name || "attachment");
+                        const data = att.data;
+                        
+                        // Validate data URL format
+                        if (!data.startsWith("data:")) {
+                            console.warn("Invalid attachment data URL detected, skipping");
+                            return;
+                        }
+                        
+                        if (data.startsWith("data:image")) {
+                            span.innerHTML = `<a href="${escapeHtml(data)}" target="_blank"><img src="${escapeHtml(data)}" class="attachment-thumb" alt="Attachment"></a> ${name}`;
+                        } else if (data.startsWith("data:application/pdf")) {
+                            span.innerHTML = `<a href="${escapeHtml(data)}" target="_blank" download="${name}">PDF: ${name}</a>`;
                         } else {
-                            span.innerHTML = `<a href="${att.data}" download="${name}">${name}</a>`;
+                            span.innerHTML = `<a href="${escapeHtml(data)}" download="${name}">${name}</a>`;
                         }
                         // Remove button
                         const btn = document.createElement("button");
