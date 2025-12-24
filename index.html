@@ -483,8 +483,13 @@
             attachments.forEach(att => {
                 if (!att || !att.data) return;
                 let name = escapeHtml(att.name || "attachment");
-                // Validate data URL format to prevent javascript: URLs
+                // Validate data URL format to prevent javascript: URLs and other attacks
                 const data = att.data;
+                const dataLower = data.toLowerCase();
+                if (dataLower.startsWith("javascript:") || dataLower.startsWith("data:text/html")) {
+                    console.warn("Potentially malicious attachment data URL detected, skipping");
+                    return;
+                }
                 if (!data.startsWith("data:")) {
                     console.warn("Invalid attachment data URL detected, skipping");
                     return;
@@ -659,7 +664,12 @@
                         let name = escapeHtml(att.name || "attachment");
                         const data = att.data;
                         
-                        // Validate data URL format
+                        // Validate data URL format to prevent javascript: URLs and other attacks
+                        const dataLower = data.toLowerCase();
+                        if (dataLower.startsWith("javascript:") || dataLower.startsWith("data:text/html")) {
+                            console.warn("Potentially malicious attachment data URL detected, skipping");
+                            return;
+                        }
                         if (!data.startsWith("data:")) {
                             console.warn("Invalid attachment data URL detected, skipping");
                             return;
@@ -1053,7 +1063,7 @@
                 const successCount = results.filter(r => r.success).length;
                 const errors = results
                     .filter(r => !r.success)
-                    .map(r => `Semester ${r.semester}: ${r.error}`);
+                    .map(r => `Semester ${r.semester}: ${r.error || 'Unknown error'}`);
                 
                 hideLoading();
                 
