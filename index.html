@@ -546,6 +546,11 @@
             const result = [];
             let totalSize = 0;
             
+            // Validate file count
+            if (files.length > MAX_FILES_COUNT) {
+                throw new Error(`Too many files selected. Maximum ${MAX_FILES_COUNT} files allowed per upload.`);
+            }
+            
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 
@@ -902,7 +907,10 @@
                 // Get the SHA of the existing file (if any)
                 let sha = null;
                 const getResp = await fetch(url, { 
-                    headers: { Authorization: `token ${token}` },
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/vnd.github.v3+json"
+                    },
                     cache: "no-store"
                 });
                 
@@ -928,7 +936,7 @@
                 const putResp = await fetch(url, {
                     method: "PUT",
                     headers: {
-                        "Authorization": `token ${token}`,
+                        "Authorization": `Bearer ${token}`,
                         "Accept": "application/vnd.github.v3+json",
                     },
                     body: JSON.stringify(putData)
@@ -1026,22 +1034,26 @@
                 isSyncing = true;
                 showLoading('Syncing all semesters...');
                 
-                let successCount = 0;
-                let errors = [];
-                
+                // Prepare all sync promises
+                const syncPromises = [];
                 for (let i = 1; i <= 5; i++) {
-                    try {
-                        const key = `semester${i}_timetable`;
-                        const assignments = JSON.parse(localStorage.getItem(key) || "[]");
-                        
-                        document.getElementById('loadingMessage').textContent = `Syncing Semester ${i}...`;
-                        await syncSemesterToGitHub(i, assignments);
-                        successCount++;
-                    } catch (e) {
-                        console.error(`Error syncing semester ${i}:`, e);
-                        errors.push(`Semester ${i}: ${e.message}`);
-                    }
+                    const key = `semester${i}_timetable`;
+                    const assignments = JSON.parse(localStorage.getItem(key) || "[]");
+                    syncPromises.push(
+                        syncSemesterToGitHub(i, assignments)
+                            .then(() => ({ semester: i, success: true }))
+                            .catch(e => ({ semester: i, success: false, error: e.message }))
+                    );
                 }
+                
+                // Sync all semesters in parallel
+                const results = await Promise.all(syncPromises);
+                
+                // Process results
+                const successCount = results.filter(r => r.success).length;
+                const errors = results
+                    .filter(r => !r.success)
+                    .map(r => `Semester ${r.semester}: ${r.error}`);
                 
                 hideLoading();
                 
