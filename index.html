@@ -250,9 +250,10 @@
         const GITHUB_REPO = "nicktimetable";
         
         // File size limits
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-        const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
-        const MAX_FILES_COUNT = 5;
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+        const MAX_FILES_COUNT = 5; // Maximum number of files in a single upload
+        const MAX_UPLOAD_SIZE = MAX_FILE_SIZE * MAX_FILES_COUNT; // 25MB total per upload
+        const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total data size for entire semester
         
         // Sync and retry settings
         const SYNC_DEBOUNCE_DELAY = 2000; // 2 seconds
@@ -547,8 +548,8 @@
             }
             
             // Validate cumulative uploaded file size
-            if (totalSize > MAX_FILE_SIZE * MAX_FILES_COUNT) {
-                throw new Error(`Total upload size (${(totalSize / 1024 / 1024).toFixed(2)}MB) is too large. Please reduce the number or size of attachments.`);
+            if (totalSize > MAX_UPLOAD_SIZE) {
+                throw new Error(`Total upload size (${(totalSize / 1024 / 1024).toFixed(2)}MB) exceeds limit of ${MAX_UPLOAD_SIZE / 1024 / 1024}MB. Please reduce the number or size of attachments.`);
             }
             
             return result;
@@ -808,9 +809,9 @@
             try {
                 // Use TextEncoder for proper UTF-8 encoding
                 const bytes = new TextEncoder().encode(str);
-                let binary = '';
-                bytes.forEach(byte => binary += String.fromCharCode(byte));
-                return btoa(binary);
+                const chars = [];
+                bytes.forEach(byte => chars.push(String.fromCharCode(byte)));
+                return btoa(chars.join(''));
             } catch (e) {
                 console.error("Base64 encoding error:", e);
                 // Fallback to old method
@@ -920,7 +921,13 @@
                 }
             } catch (e) {
                 // Retry on network errors
-                if (retryCount < MAX_RETRY_COUNT && (e.message.includes('fetch') || e.message.includes('network'))) {
+                // Network errors are typically TypeErrors or have specific keywords
+                const isNetworkError = e instanceof TypeError || 
+                                      e.message.toLowerCase().includes('fetch') || 
+                                      e.message.toLowerCase().includes('network') ||
+                                      e.message.toLowerCase().includes('failed to fetch');
+                
+                if (retryCount < MAX_RETRY_COUNT && isNetworkError) {
                     console.log(`Network error, retrying (attempt ${retryCount + 1})...`);
                     await new Promise(resolve => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
                     return await syncSemesterToGitHub(semesterNum, assignments, retryCount + 1);
