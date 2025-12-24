@@ -252,6 +252,13 @@
         // File size limits
         const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
         const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
+        const MAX_FILES_COUNT = 5;
+        
+        // Sync and retry settings
+        const SYNC_DEBOUNCE_DELAY = 2000; // 2 seconds
+        const MAX_RETRY_COUNT = 2;
+        const RETRY_DELAY_MS = 1000; // 1 second for conflict retry
+        const NETWORK_RETRY_DELAY_MS = 2000; // 2 seconds for network retry
         
         // Current semester state
         let currentSemester = 1;
@@ -343,6 +350,7 @@
                     }
                 } catch (e) {
                     console.error("Migration error:", e);
+                    showError(`Data migration failed: ${e.message}. Your local data is still saved.`);
                 }
                 
                 // Show success message to user
@@ -539,7 +547,7 @@
             }
             
             // Validate cumulative uploaded file size
-            if (totalSize > MAX_FILE_SIZE * 5) { // Allow up to 5 files at max size
+            if (totalSize > MAX_FILE_SIZE * MAX_FILES_COUNT) {
                 throw new Error(`Total upload size (${(totalSize / 1024 / 1024).toFixed(2)}MB) is too large. Please reduce the number or size of attachments.`);
             }
             
@@ -792,7 +800,7 @@
             }
             syncDebounceTimer = setTimeout(() => {
                 syncToGitHub();
-            }, 2000); // Wait 2 seconds after last change
+            }, SYNC_DEBOUNCE_DELAY);
         }
         
         // Improved Base64 encoding for UTF-8
@@ -901,10 +909,10 @@
                 
                 if (putResp.ok) {
                     return true;
-                } else if (putResp.status === 409 && retryCount < 2) {
+                } else if (putResp.status === 409 && retryCount < MAX_RETRY_COUNT) {
                     // Conflict - retry with fresh SHA
                     console.log(`Conflict detected, retrying (attempt ${retryCount + 1})...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
                     return await syncSemesterToGitHub(semesterNum, assignments, retryCount + 1);
                 } else {
                     const err = await putResp.json().catch(() => ({}));
@@ -912,9 +920,9 @@
                 }
             } catch (e) {
                 // Retry on network errors
-                if (retryCount < 2 && (e.message.includes('fetch') || e.message.includes('network'))) {
+                if (retryCount < MAX_RETRY_COUNT && (e.message.includes('fetch') || e.message.includes('network'))) {
                     console.log(`Network error, retrying (attempt ${retryCount + 1})...`);
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
                     return await syncSemesterToGitHub(semesterNum, assignments, retryCount + 1);
                 }
                 throw e;
@@ -930,7 +938,11 @@
             
             const token = getToken();
             if (!token) {
-                showError("GitHub token missing! Please enter and save it above.");
+                updateSyncStatus('Token required', 'error');
+                setTimeout(() => {
+                    showError("Please enter and save your GitHub token above to enable sync.");
+                    updateSyncStatus('', '');
+                }, 100);
                 return;
             }
             
@@ -960,7 +972,11 @@
         async function syncAllSemesters() {
             const token = getToken();
             if (!token) {
-                showError("GitHub token missing! Please enter and save it above.");
+                updateSyncStatus('Token required', 'error');
+                setTimeout(() => {
+                    showError("Please enter and save your GitHub token above to enable sync.");
+                    updateSyncStatus('', '');
+                }, 100);
                 return;
             }
             
