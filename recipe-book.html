@@ -319,8 +319,8 @@ img{max-width:100%;display:block}
       <input type="hidden" id="fId">
       <div class="field" id="pastePanel">
         <label for="fPasteRaw">貼連結 → 整理 → 套用排版</label>
-        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜／IG／TikTok 連結，撳「整理連結」&#10;② 複製回覆返嚟，撳「貼上剪貼簿並排版」（或手動貼再「套用排版」）&#10;圖片＋文字可撳「用圖片整理」開 Gemini 上載圖；返嚟貼上剪貼簿並排版"></textarea>
-        <p class="hint">流程：貼單一 https 連結，撳「整理連結」。一般食譜網頁仍用 Google AI Mode 抽出純文字；IG／TikTok／YouTube Shorts 等短片會開 Gemini（請上載短片或貼 caption／說明），因為登入牆同片內內容 Google 未必讀到。圖片＋文字可撳「用圖片整理」開 Gemini 上載圖（可加文字）；返嚟貼上剪貼簿並排版。複製回覆後返嚟撳「貼上剪貼簿並排版」（Safari 需要你撳一下）。亦可手動貼純文字後撳「套用排版」。支援「名稱／材料／步驟／烹調時間／份量／備註」。套用排版唔會再自動讀取網頁。</p>
+        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜／IG／TikTok 連結，撳「整理連結」&#10;② 複製回覆返嚟，撳「貼上剪貼簿並排版」（或手動貼再「套用排版」）&#10;圖片＋文字可撳「用圖片整理」開 Grok 上載圖；返嚟貼上剪貼簿並排版"></textarea>
+        <p class="hint">流程：貼單一 https 連結，撳「整理連結」。一般食譜網頁仍用 Google AI Mode 抽出純文字；IG／TikTok／YouTube Shorts 等短片會開 Grok（多數可直接睇到連結內容，再整理成純文字；睇唔到就上載短片或貼 caption）。圖片＋文字可撳「用圖片整理」開 Grok 上載圖（可加文字）；返嚟貼上剪貼簿並排版。複製回覆後返嚟撳「貼上剪貼簿並排版」（Safari 需要你撳一下）。亦可手動貼純文字後撳「套用排版」。支援「名稱／材料／步驟／烹調時間／份量／備註」。套用排版唔會再自動讀取網頁。</p>
         <div id="pasteAwaitBanner" class="paste-await-banner" role="status">返嚟後：先複製回覆，再撳下面掣</div>
         <div class="field-actions">
           <button type="button" class="btn btn-primary" id="btnPasteViaGoogle" onclick="RecipeBook&&RecipeBook.pasteViaGoogle(event)">整理連結</button>
@@ -399,6 +399,7 @@ img{max-width:100%;display:block}
   var MAX_EDGE = 1200;
   var JPEG_QUALITY = 0.7;
   var GEMINI_WEB = 'https://gemini.google.com/app';
+  var GROK_WEB = 'https://grok.com/';
   var GOOGLE_AI_MODE = 'https://www.google.com/search?udm=50&q=';
   var PLACEHOLDER_COLORS = ['#6b7c6a','#7a6b5d','#5d6b7a','#7a5d66','#5d7a72','#6b5d7a'];
 
@@ -1290,7 +1291,7 @@ img{max-width:100%;display:block}
     }
   }
 
-  /** Short-video / social video URLs → Gemini (not Google AI Mode). */
+  /** Short-video / social video URLs → Grok (not Google AI Mode). */
   function isSocialVideoUrl(url) {
     if (!url) return false;
     try {
@@ -1319,24 +1320,8 @@ img{max-width:100%;display:block}
     }
   }
 
-  function buildGeminiVideoRecipePrompt(url) {
+  function recipeFormatRules() {
     return [
-      '請根據我稍後上載嘅短片（或我貼上嘅 IG caption／說明文字）整理成純文字食譜。',
-      '必須包含以下標籤段落（用呢啲標籤開頭）：',
-      '名稱：',
-      '材料：（每行一種材料）',
-      '步驟：（用數字編號）',
-      '烹調時間：',
-      '份量：',
-      '備註：（可選）',
-      '唔好用 markdown、唔好加廣告或額外說明，淨係輸出食譜純文字。',
-      '參考連結（頁面可能有登入牆，請以我上載嘅短片／caption 為準）：' + url
-    ].join('\n');
-  }
-
-  function buildGeminiImageRecipePrompt(optionalText) {
-    var lines = [
-      '請根據我上載嘅食譜圖片／截圖／手寫食譜（以及下面我提供嘅任何文字）整理成純文字食譜。',
       '必須包含以下標籤段落（用呢啲標籤開頭）：',
       '名稱：',
       '材料：（每行一種材料）',
@@ -1346,27 +1331,52 @@ img{max-width:100%;display:block}
       '備註：（可選）',
       '唔好用 markdown、唔好加廣告或額外說明，淨係輸出食譜純文字。'
     ];
+  }
+
+  function buildGrokVideoRecipePrompt(url) {
+    return [
+      '請睇呢個 IG／短片連結入面嘅內容（片、畫面同 caption／說明），整理成純文字食譜。',
+      '如果連結可以直接睇到，請直接根據連結內容輸出；如果睇唔到或要登入，請講一聲，我可以再上載短片或貼 caption。'
+    ].concat(recipeFormatRules()).concat([
+      '連結：' + url
+    ]).join('\n');
+  }
+
+  function buildGrokImageRecipePrompt(optionalText) {
+    var lines = [
+      '請根據我上載嘅食譜圖片／截圖／手寫食譜（以及下面我提供嘅任何文字）整理成純文字食譜。'
+    ].concat(recipeFormatRules());
     var t = optionalText == null ? '' : String(optionalText).trim();
     if (t && !isSingleRecipeUrl(t)) {
       lines.push('以下係我提供嘅文字：');
       lines.push(t);
     } else {
-      lines.push('我會上載食譜圖片／截圖。');
+      lines.push('我會喺 Grok 上載食譜圖片／截圖。');
     }
     return lines.join('\n');
   }
 
+  /** Prefill Grok chat with ?q=; also copy prompt as backup for Safari. */
+  function openGrokForRecipe(prompt, toastOk, toastFail) {
+    var p = String(prompt || '').trim();
+    var url = GROK_WEB + '?q=' + encodeURIComponent(p);
+    setAwaitingGoogleClipboard(true);
+    copyText(p).then(function () {
+      showToast(toastOk);
+      setTimeout(function () { openUrl(url); }, 350);
+    }).catch(function () {
+      showToast(toastFail);
+      setTimeout(function () { openUrl(url); }, 350);
+    });
+  }
+
   function pasteViaImage() {
     var raw = $('fPasteRaw') ? $('fPasteRaw').value : '';
-    var geminiPrompt = buildGeminiImageRecipePrompt(raw);
-    setAwaitingGoogleClipboard(true);
-    copyText(geminiPrompt).then(function () {
-      showToast('已複製說明並開啟 Gemini：請上載圖片（可加文字），再複製回覆返嚟');
-      setTimeout(function () { openUrl(GEMINI_WEB); }, 350);
-    }).catch(function () {
-      showToast('未能自動複製；已開啟 Gemini，請手動貼上說明後上載圖片');
-      setTimeout(function () { openUrl(GEMINI_WEB); }, 350);
-    });
+    openGrokForRecipe(
+      buildGrokImageRecipePrompt(raw),
+      '已開啟 Grok（說明已預填／複製）：請上載圖片，再複製回覆返嚟',
+      '已開啟 Grok；請貼上說明後上載圖片，再複製回覆返嚟'
+    );
   }
 
   function setAwaitingGoogleClipboard(on) {
@@ -1387,15 +1397,11 @@ img{max-width:100%;display:block}
       return;
     }
     if (isSocialVideoUrl(url)) {
-      var geminiPrompt = buildGeminiVideoRecipePrompt(url);
-      setAwaitingGoogleClipboard(true);
-      copyText(geminiPrompt).then(function () {
-        showToast('已複製說明並開啟 Gemini：請上載短片或貼上 caption，再複製回覆返嚟');
-        setTimeout(function () { openUrl(GEMINI_WEB); }, 350);
-      }).catch(function () {
-        showToast('未能自動複製；已開啟 Gemini，請手動貼上說明後上載短片');
-        setTimeout(function () { openUrl(GEMINI_WEB); }, 350);
-      });
+      openGrokForRecipe(
+        buildGrokVideoRecipePrompt(url),
+        '已開啟 Grok（說明已預填／複製）：請等佢整理，再複製回覆返嚟',
+        '已開啟 Grok；請確認問題已出現，再複製回覆返嚟'
+      );
       return;
     }
     var prompt =
