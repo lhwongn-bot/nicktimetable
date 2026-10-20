@@ -10,7 +10,7 @@
 <title>食譜簿</title>
 <!--
   個人食譜簿：用 Safari 打開（檔案 App 預覽可能冇 JavaScript）。
-  內建 50 款「示範小菜」。問 AI 用你 Safari 登入緊嘅 Gemini；無 API Key。
+  個人食譜存在本機 localStorage。問 AI 用你 Safari 登入緊嘅 Gemini；無 API Key。
 -->
 <style>
 :root {
@@ -260,7 +260,6 @@ img{max-width:100%;display:block}
 <div class="menu-panel" id="menuPanel">
   <button type="button" id="btnExport">匯出 JSON</button>
   <button type="button" id="btnImport">匯入 JSON</button>
-  <button type="button" id="btnLoadSeed">載入 50 款示範小菜</button>
 </div>
 <input type="file" class="hidden-file" id="importFile" accept="application/json,.json">
 <input type="file" class="hidden-file" id="photoFile" accept="image/*" multiple>
@@ -311,11 +310,11 @@ img{max-width:100%;display:block}
       <div class="field">
         <label>相片（最多 3 張）</label>
         <div class="photo-grid" id="photoEditor"></div>
-        <p class="hint">可從相簿揀圖或拍照；儲存前會壓縮。列表示範圖用色塊，詳情頁先載入網絡圖。</p>
+        <p class="hint">可從相簿揀圖或拍照；儲存前會壓縮。列表預覽用色塊佔位，詳情頁先載入網絡圖。</p>
       </div>
       <div class="field">
         <label for="fCategory">分類</label>
-        <input type="text" id="fCategory" list="categoryList" placeholder="例如：家常菜、示範小菜" maxlength="40" autocomplete="off">
+        <input type="text" id="fCategory" list="categoryList" placeholder="例如：家常菜" maxlength="40" autocomplete="off">
         <datalist id="categoryList"></datalist>
       </div>
       <div class="field"><label for="fTags">標籤</label><input type="text" id="fTags" placeholder="用逗號分隔" maxlength="200"></div>
@@ -369,16 +368,12 @@ img{max-width:100%;display:block}
   'use strict';
 
   var STORAGE_KEY = 'recipe-book-v1';
-  var SEED_FLAG = 'recipe-book-autoseed-v2';
-  var SAMPLE_CAT = '示範小菜';
   var MAX_PHOTOS = 3;
   var MAX_EDGE = 1200;
   var JPEG_QUALITY = 0.7;
   var GEMINI_WEB = 'https://gemini.google.com/app';
   var GOOGLE_AI_MODE = 'https://www.google.com/search?udm=50&q=';
   var PLACEHOLDER_COLORS = ['#6b7c6a','#7a6b5d','#5d6b7a','#7a5d66','#5d7a72','#6b5d7a'];
-
-  var SEED_RECIPES = [{"id":"seed-001","title":"番茄炒蛋","tags":"家常菜, 快煮, 雞蛋","cookTime":"15 分鐘","servings":"2–3 人","ingredients":"番茄 2 個\n雞蛋 3 隻\n蔥 1 棵\n鹽、糖、油 適量","steps":"1. 雞蛋加少許鹽打散；番茄切塊；蔥切段。\n2. 熱鑊下油，炒蛋至半熟盛起。\n3. 再下油炒番茄至出汁，加少許糖同鹽。\n4. 倒回雞蛋略炒均勻，灑蔥段即可。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/1/19/Stir_Fried_Tomatoes_with_Scrambled_Eggs.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-002","title":"蒜蓉炒菜心","tags":"素菜, 快煮, 青菜","cookTime":"10 分鐘","servings":"2–3 人","ingredients":"菜心 1 斤\n蒜頭 4 瓣\n鹽、油、糖 適量","steps":"1. 菜心洗淨切段；蒜頭切蓉。\n2. 燒滾水加少許油鹽焯菜心約 30 秒，撈起瀝乾。\n3. 熱鑊爆香蒜蓉，下菜心快炒調味即成。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/Choy_Sum_with_Soy_Sauce.jpg/960px-Choy_Sum_with_Soy_Sauce.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-003","title":"蚝油生菜","tags":"素菜, 快煮","cookTime":"10 分鐘","servings":"2–3 人","ingredients":"生菜 1 棵\n蒜蓉、蚝油、糖、生粉水、油 適量","steps":"1. 生菜洗淨，燒滾水加少許油鹽焯至軟身，瀝乾上碟。\n2. 熱鑊爆香蒜蓉，加蚝油、糖同少許水煮滾。\n3. 生粉水勾薄芡，淋上生菜即可。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/Chinese_Broccoli_with_Oyster_sauce.jpg/960px-Chinese_Broccoli_with_Oyster_sauce.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-004","title":"蒜香炒通菜","tags":"素菜, 快煮","cookTime":"10 分鐘","servings":"2–3 人","ingredients":"通菜 1 斤\n蒜頭、紅辣椒 適量\n鹽、糖、油 適量","steps":"1. 通菜摘洗切段；蒜切蓉；辣椒切圈。\n2. 大火爆香蒜同辣椒，下通菜快炒。\n3. 加鹽糖炒至軟熟即上碟。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/4/40/Ipomoea_aquatica_cooked.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-005","title":"清炒芥蘭","tags":"素菜, 快煮","cookTime":"12 分鐘","servings":"2–3 人","ingredients":"芥蘭 1 斤\n薑片、蒜頭 適量\n鹽、糖、酒、油 適量","steps":"1. 芥蘭切段洗淨。\n2. 大火爆香薑蒜，下芥蘭快炒。\n3. 濺酒加少許水，調味炒至爽脆。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Garlic_gai-lan_stir-fry.jpg/960px-Garlic_gai-lan_stir-fry.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-006","title":"蝦皮炒蛋","tags":"家常菜, 雞蛋, 快煮","cookTime":"10 分鐘","servings":"2 人","ingredients":"雞蛋 3 隻\n蝦皮 1 湯匙\n蔥花、鹽、油 適量","steps":"1. 蝦皮略洗瀝乾；雞蛋打散加少許鹽。\n2. 熱鑊下油爆香蝦皮，倒入蛋液。\n3. 推炒至凝固，灑蔥花。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Baby_shrimp_with_scrambled_egg.jpg/960px-Baby_shrimp_with_scrambled_egg.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-007","title":"韭菜炒蛋","tags":"家常菜, 雞蛋","cookTime":"12 分鐘","servings":"2–3 人","ingredients":"雞蛋 3 隻\n韭菜 150 克\n鹽、油 適量","steps":"1. 韭菜洗淨切段；雞蛋打散加少許鹽。\n2. 先炒蛋至半熟盛起。\n3. 炒香韭菜，回鍋雞蛋炒勻調味。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Chive_egg_pancake.jpg/960px-Chive_egg_pancake.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-008","title":"洋葱炒牛肉","tags":"家常菜, 牛肉","cookTime":"20 分鐘","servings":"2–3 人","ingredients":"牛肉片 200 克\n洋葱 1 個\n生抽、蚝油、生粉、糖、油 適量","steps":"1. 牛肉加生抽生粉油醃 15 分鐘；洋葱切絲。\n2. 大火快炒牛肉盛起。\n3. 炒香洋葱，回鍋牛肉加酱料快炒。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Ginger_and_Onion_Beef_%E8%96%91%E8%94%A5%E7%89%9B%E8%82%89_%28Golden_Dynasty_Chinese_Restaurant%29.jpg/960px-Ginger_and_Onion_Beef_%E8%96%91%E8%94%A5%E7%89%9B%E8%82%89_%28Golden_Dynasty_Chinese_Restaurant%29.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-009","title":"豉椒炒排骨","tags":"家常菜, 豬肉","cookTime":"30 分鐘","servings":"3–4 人","ingredients":"排骨 400 克\n青紅椒、豆豉、蒜 適量\n生抽、糖、生粉、油 適量","steps":"1. 排骨斬件加生抽生粉醃味，可先煎或略炸至微黃。\n2. 爆香豆豉蒜同椒，下排骨翻炒。\n3. 加水蓋燜至軟熟，大火收汁。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Spare_Ribs_in_Black_Bean_%26_Bell_Pepper_Sauce_with_Rice.jpg/960px-Spare_Ribs_in_Black_Bean_%26_Bell_Pepper_Sauce_with_Rice.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-010","title":"凉瓜炒牛肉","tags":"家常菜, 牛肉","cookTime":"25 分鐘","servings":"2–3 人","ingredients":"凉瓜 1 個\n牛肉片 200 克\n豆豉、蒜、生抽、生粉、油 適量","steps":"1. 凉瓜去瓤切片，可略醃鹽洗去苦味；牛肉醃味。\n2. 大火炒牛肉盛起；爆香豆豉蒜炒凉瓜。\n3. 回鍋牛肉略燜炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Bitter_melon_beef_2023_08.jpg/960px-Bitter_melon_beef_2023_08.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-011","title":"魚香茄子","tags":"家常菜, 素菜","cookTime":"25 分鐘","servings":"3 人","ingredients":"茄子 2 條\n免治肉 100 克（可免）\n豆瓣醬、蒜蓉、薑、蔥、糖、醋、生抽、生粉 適量","steps":"1. 茄子切條略炸或煎軟。\n2. 炒香肉碎同豆瓣醬薑蒜。\n3. 下茄子加糖醋生抽同少許水燜勻勾芡，灑蔥花。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Yuxiang_Eggplant_in_Hong_Kong.jpg/960px-Yuxiang_Eggplant_in_Hong_Kong.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-012","title":"干煸四季豆","tags":"家常菜, 素菜","cookTime":"20 分鐘","servings":"2–3 人","ingredients":"四季豆 400 克\n肉末 80 克、芽菜 適量\n豆瓣醬、蒜、生抽、糖、油 適量","steps":"1. 四季豆兩端摘去，油煎至起皺盛起。\n2. 炒香肉末豆瓣醬，下四季豆同芽菜。\n3. 調味炒乾香即可。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/%E5%B9%B2%E7%85%B8%E5%9B%9B%E5%AD%A3%E8%B1%86.jpg/960px-%E5%B9%B2%E7%85%B8%E5%9B%9B%E5%AD%A3%E8%B1%86.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-013","title":"椒鹽豆腐","tags":"豆腐, 家常菜","cookTime":"20 分鐘","servings":"2–3 人","ingredients":"硬豆腐 1 盒\n椒鹽、蒜蓉、椒粒、蔥 適量\n生粉、油 適量","steps":"1. 豆腐切件拍生粉，煎至兩面金黃。\n2. 爆香蒜椒蔥，下豆腐灑椒鹽快炒。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Salt_and_Pepper_Tofu.jpg/960px-Salt_and_Pepper_Tofu.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-014","title":"麻婆豆腐","tags":"豆腐, 川味, 家常菜","cookTime":"20 分鐘","servings":"3–4 人","ingredients":"嫩豆腐 1 盒\n免治豬肉 150 克\n豆瓣醬、蒜蓉薑蓉、生抽、糖、生粉水、花椒粉 適量","steps":"1. 豆腐切塊略焯瀝乾。\n2. 炒香肉碎豆瓣薑蒜。\n3. 加水同豆腐煮滾勾芡，灑花椒粉同蔥花。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Authentic_Mapo_Tofu.jpg/960px-Authentic_Mapo_Tofu.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-015","title":"豉汁蒸排骨","tags":"蒸菜, 豬肉","cookTime":"25 分鐘","servings":"3–4 人","ingredients":"排骨 300 克\n豆豉 1 湯匙、蒜蓉薑蓉 適量\n生抽、糖、生粉、油 適量","steps":"1. 排骨加豆豉蒜薑同調味生粉撈勻，醃 15 分鐘。\n2. 大火蒸 15–18 分鐘。\n3. 取出灑少許油同蔥花。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Food_%E8%B1%89%E6%B1%81%E8%92%B8%E6%8E%92%E9%AA%A8%2C_%E6%96%B0%E8%91%A1%E8%8B%91%2C_Shin_Pu_Yuan%2C_%E5%8F%B0%E5%8C%97_%2821531923392%29.jpg/960px-Food_%E8%B1%89%E6%B1%81%E8%92%B8%E6%8E%92%E9%AA%A8%2C_%E6%96%B0%E8%91%A1%E8%8B%91%2C_Shin_Pu_Yuan%2C_%E5%8F%B0%E5%8C%97_%2821531923392%29.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-016","title":"清蒸魚","tags":"蒸菜, 海鮮","cookTime":"20 分鐘","servings":"3–4 人","ingredients":"新鮮魚 1 條（約 600 克）\n薑絲、蔥絲、蒸魚豉油、油 適量","steps":"1. 魚洗淨抹乾劃刀，腹內放薑片。\n2. 大火蒸 8–12 分鐘（視大細），倒去蒸汁。\n3. 鋪蔥薑絲，淋熱油同蒸魚豉油。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Cantonese_style_steamed_fish_and_special_side_dishes_in_lunch.jpg/960px-Cantonese_style_steamed_fish_and_special_side_dishes_in_lunch.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-017","title":"蒸水蛋","tags":"蒸菜, 雞蛋, 快煮","cookTime":"15 分鐘","servings":"2–3 人","ingredients":"雞蛋 3 隻\n溫水約 1.5–2 倍、鹽、油、生抽 適量","steps":"1. 蛋打散加溫水同鹽，過篩去泡沫。\n2. 碟面淋少許油，蓋保鮮紙刺孔。\n3. 中火蒸 10–12 分鐘，淋生抽同熱油。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/8/8b/ChineseSteamedEgg.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-018","title":"鹹蛋蒸肉餅","tags":"蒸菜, 豬肉","cookTime":"25 分鐘","servings":"3–4 人","ingredients":"免治豬肉 300 克\n鹹蛋 1–2 隻\n生抽、糖、生粉、水、油 適量","steps":"1. 鹹蛋黃壓碎，蛋白切粒。\n2. 肉加調味同水攪至起膠，拌入鹹蛋。\n3. 鋪平大火蒸 15–18 分鐘。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/Steamed_Minced_Pork_with_Salt_Duck_Egg.jpg/960px-Steamed_Minced_Pork_with_Salt_Duck_Egg.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-019","title":"冬菜蒸肉餅","tags":"蒸菜, 豬肉","cookTime":"25 分鐘","servings":"3–4 人","ingredients":"免治豬肉 300 克\n冬菜 2 湯匙\n生抽、糖、生粉、水 適量","steps":"1. 冬菜洗淨切碎。\n2. 肉攪至起膠拌冬菜同調味。\n3. 鋪平大火蒸 15–18 分鐘。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Steamed_minced_pork.jpg/960px-Steamed_minced_pork.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-020","title":"蒜蓉蒸蝦","tags":"蒸菜, 海鮮","cookTime":"15 分鐘","servings":"2–3 人","ingredients":"大蝦 8–10 隻\n蒜蓉、粉絲（可選）、生抽、油、辣椒 適量","steps":"1. 蝦開背去腸；粉絲浸軟墊底（如用）。\n2. 鋪蒜蓉同椒絲，大火蒸 5–7 分鐘。\n3. 淋生抽同熱油。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/A_Steam_Shrimps_at_Hong_Kong_Style_Restaurant_in_Cheung_Chau.jpg/960px-A_Steam_Shrimps_at_Hong_Kong_Style_Restaurant_in_Cheung_Chau.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-021","title":"番茄蛋花湯","tags":"湯水, 快煮","cookTime":"15 分鐘","servings":"2–3 人","ingredients":"番茄 2 個\n雞蛋 2 隻\n蔥花、鹽、糖、胡椒 適量","steps":"1. 番茄切塊炒出汁，加水煮滾。\n2. 調味後慢慢倒入蛋液成蛋花。\n3. 灑蔥花胡椒。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Tomato_and_egg_soup.jpg/960px-Tomato_and_egg_soup.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-022","title":"冬瓜排骨湯","tags":"湯水, 豬肉","cookTime":"60 分鐘","servings":"4 人","ingredients":"冬瓜 1 件\n排骨 300 克\n薑片、蜜棗或南北杏 適量\n鹽 適量","steps":"1. 排骨飛水。\n2. 加水同薑蜜棗滾起轉中小火煲約 40 分鐘。\n3. 下冬瓜再煲 20 分鐘，調味。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/7/7f/Winter_melon_soup.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-023","title":"西洋菜豬骨湯","tags":"湯水, 老火湯","cookTime":"90 分鐘","servings":"4 人","ingredients":"西洋菜 1 斤\n豬骨 400 克\n蜜棗、薑、腰果（可選）適量","steps":"1. 豬骨飛水；西洋菜洗淨。\n2. 先煲骨約 1 小時，再下菜煲 20–30 分鐘。\n3. 下鹽調味。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Chinese_watercress_soup_with_sweet_corn_and_pork.jpg/960px-Chinese_watercress_soup_with_sweet_corn_and_pork.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-024","title":"皮蛋瘦肉粥","tags":"粥, 家常菜","cookTime":"50 分鐘","servings":"3–4 人","ingredients":"米 1 杯\n皮蛋 2 隻、瘦肉 150 克\n薑絲、蔥、鹽、油 適量","steps":"1. 米淘洗加少許油鹽搓勻，加水大火煮滾轉小火熬稠。\n2. 粥成下薑絲、皮蛋同肉片。\n3. 煮熟調味灑蔥。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Pork_preserved_duck_egg_congee.jpg/960px-Pork_preserved_duck_egg_congee.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-025","title":"魚片粥","tags":"粥, 海鮮","cookTime":"40 分鐘","servings":"3 人","ingredients":"米 1 杯\n新鮮魚片 200 克\n薑絲、油條、蔥、胡椒 適量","steps":"1. 煲白粥至稠。\n2. 魚片略醃，粥滾時下魚片燙熟。\n3. 調味加薑蔥胡椒，可配油條。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Fish_congee_in_home.jpg/960px-Fish_congee_in_home.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-026","title":"揚州炒飯","tags":"飯, 家常菜","cookTime":"20 分鐘","servings":"2–3 人","ingredients":"隔夜白飯 2 碗\n雞蛋 2 隻、蝦仁、叉燒丁、青豆 適量\n蔥花、鹽、油 適量","steps":"1. 炒蛋盛起。\n2. 炒香蝦仁叉燒，下飯炒散。\n3. 加蛋、青豆、鹽炒勻灑蔥。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/4/44/Yangzhou_fried_rice_and_drinks_06-09-2019.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-027","title":"蛋炒飯","tags":"飯, 快煮","cookTime":"15 分鐘","servings":"1–2 人","ingredients":"隔夜飯 1–2 碗\n雞蛋 2 隻、蔥、鹽、油 適量","steps":"1. 熱鑊炒散雞蛋。\n2. 下飯壓散炒香。\n3. 加蔥同鹽炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Chinese_egg_fried_rice.jpg/960px-Chinese_egg_fried_rice.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-028","title":"豉油皇炒麵","tags":"粉麵, 家常菜","cookTime":"20 分鐘","servings":"2 人","ingredients":"蛋麵 2 個\n芽菜、蔥 適量\n生抽、老抽、糖、油 適量","steps":"1. 麵煮至八成熟瀝乾。\n2. 熱鑊下油將麵煎香至微黃。\n3. 加醬料同芽菜蔥快炒。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/HK_Arena_Sunday_AsiaWorld_Expo_Food_Soy_Sauce_Fried_Noodles_%E8%B1%89%E6%B2%B9%E7%9A%87%E7%82%92%E9%BA%B5.JPG/960px-HK_Arena_Sunday_AsiaWorld_Expo_Food_Soy_Sauce_Fried_Noodles_%E8%B1%89%E6%B2%B9%E7%9A%87%E7%82%92%E9%BA%B5.JPG"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-029","title":"乾炒牛河","tags":"粉麵, 牛肉","cookTime":"25 分鐘","servings":"2 人","ingredients":"鮮河粉 400 克\n牛肉片 150 克、芽菜、蔥 適量\n生抽、老抽、糖、油 適量","steps":"1. 牛肉醃味。\n2. 大火炒牛肉盛起；河粉加醬炒散。\n3. 加芽菜蔥同牛肉回鍋快炒。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Beef_chow_fun.jpg/960px-Beef_chow_fun.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-030","title":"星洲炒米","tags":"粉麵, 家常菜","cookTime":"25 分鐘","servings":"2–3 人","ingredients":"米粉 200 克\n蝦仁、叉燒、蛋絲、辣椒 適量\n咖喱粉、生抽、魚露、油 適量","steps":"1. 米粉浸軟瀝乾。\n2. 炒香配料，下粉同咖喱醬料。\n3. 大火炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Singapore_style_noodles.jpg/960px-Singapore_style_noodles.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-031","title":"臘味煲仔飯","tags":"飯, 冬季","cookTime":"40 分鐘","servings":"2 人","ingredients":"米 1.5 杯\n臘腸、臘肉 適量\n薑蔥、豉油、油 適量","steps":"1. 米洗淨落煲加水煮至收水。\n2. 鋪臘味轉小火逼飯焦。\n3. 淋豉油同油，灑蔥拌勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Cured_Meat_Claypot_Rice_at_The_Soup_Kitchen_%2820200718171540%29.jpg/960px-Cured_Meat_Claypot_Rice_at_The_Soup_Kitchen_%2820200718171540%29.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-032","title":"雲吞麵","tags":"粉麵, 家常菜","cookTime":"30 分鐘","servings":"2 人","ingredients":"麵 2 個、雲吞 8–12 隻\n菜心、蔥、蝦子豉油 適量","steps":"1. 湯水煮滾下雲吞至浮起。\n2. 另燙麵同菜心。\n3. 碗內放蔥油豉油，撈麵加湯同雲吞。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Wonton_noodles_at_Yunshan_Caf%C3%A9%2C_Beijing_Guangdong_Hotel_%2820240128125129%29.jpg/960px-Wonton_noodles_at_Yunshan_Caf%C3%A9%2C_Beijing_Guangdong_Hotel_%2820240128125129%29.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-033","title":"薑葱炒雞","tags":"雞, 家常菜","cookTime":"25 分鐘","servings":"3 人","ingredients":"雞件 500 克\n薑片、蔥段 多量\n酒、生抽、蚝油、糖、生粉 適量","steps":"1. 雞件醃味。\n2. 爆香薑蔥下雞炒至變色。\n3. 濺酒加水燜熟收汁。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Ginger_and_shallot_y%C3%B3ul%C3%ADnj%C4%AB_with_rice%2C_Wing_Loong_Restaurant%2C_Melbourne.jpg/960px-Ginger_and_shallot_y%C3%B3ul%C3%ADnj%C4%AB_with_rice%2C_Wing_Loong_Restaurant%2C_Melbourne.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-034","title":"咖喱雞","tags":"雞, 家常菜","cookTime":"40 分鐘","servings":"3–4 人","ingredients":"雞件 500 克\n薯仔、洋葱、咖喱塊或粉 適量\n椰漿（可選）、鹽 適量","steps":"1. 炒香洋葱同雞件。\n2. 加咖喱同水（或椰漿）下薯仔。\n3. 燜至軟熟調味。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Curry_Chicken_Thigh_%26_Drumstick.jpg/960px-Curry_Chicken_Thigh_%26_Drumstick.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-035","title":"咕嚕肉","tags":"豬肉, 家常菜","cookTime":"35 分鐘","servings":"3–4 人","ingredients":"豬梅肉 300 克\n青紅椒、菠蘿、洋葱 適量\n茄汁、糖、醋、生粉 適量","steps":"1. 肉切件醃後拍粉炸至脆。\n2. 炒香配菜，下茄汁糖醋煮成酸甜醬。\n3. 回鍋肉快炒裹醬。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/Sweet_and_sour_pork.jpg/960px-Sweet_and_sour_pork.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-036","title":"糖醋排骨","tags":"豬肉, 家常菜","cookTime":"40 分鐘","servings":"3–4 人","ingredients":"排骨 400 克\n糖、醋、生抽、番茄醬、薑蔥 適量","steps":"1. 排骨炸或煎至金黃。\n2. 下醬料同水燜至軟。\n3. 大火收汁至亮澤。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/b/bf/T%C3%A1ngc%C3%B9_p%C3%A1ig%C7%94.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-037","title":"紅燒肉","tags":"豬肉, 家常菜","cookTime":"60 分鐘","servings":"4 人","ingredients":"五花肉 500 克\n冰糖、薑蔥、生抽、老抽、酒、八角 適量","steps":"1. 肉切塊飛水。\n2. 炒糖色下肉上色，加調味同水。\n3. 小火燜約 45 分鐘收汁。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Red_braised_pork_belly.jpg/960px-Red_braised_pork_belly.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-038","title":"番茄炆牛腩","tags":"牛肉, 家常菜","cookTime":"90 分鐘","servings":"4 人","ingredients":"牛腩 500 克\n番茄 3 個、薯仔、洋葱、芹菜 適量\n生抽、茄膏、糖、鹽 適量","steps":"1. 牛腩飛水後炆至開始軟。\n2. 炒香洋葱番茄茄膏，同牛腩再炆。\n3. 下薯仔煮軟調味。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Beef_brisket_flat_rice_noodle_-_CK_Bistro.jpg/960px-Beef_brisket_flat_rice_noodle_-_CK_Bistro.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-039","title":"柱侯牛腩","tags":"牛肉, 家常菜","cookTime":"100 分鐘","servings":"4 人","ingredients":"牛腩 600 克\n柱侯醬、南乳、薑蔥、八角 適量\n蘿蔔（可選）適量","steps":"1. 牛腩飛水。\n2. 爆香醬料下牛腩炒香，加水燜軟。\n3. 可加蘿蔔再燜 20 分鐘。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Beef_Belly_with_Noodles_Soup_-_Noodles_Soup_2023-10-24.jpg/960px-Beef_Belly_with_Noodles_Soup_-_Noodles_Soup_2023-10-24.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-040","title":"宮保雞丁","tags":"雞, 家常菜","cookTime":"25 分鐘","servings":"3 人","ingredients":"雞胸丁 300 克\n乾辣椒、花生、蔥、蒜 適量\n生抽、糖、醋、料酒、生粉 適量","steps":"1. 雞丁醃味滑炒盛起。\n2. 爆香乾椒蒜，下醬料。\n3. 回鍋雞丁花生蔥炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Kung-pao-shanghai.jpg/960px-Kung-pao-shanghai.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-041","title":"魚香肉絲","tags":"豬肉, 家常菜","cookTime":"25 分鐘","servings":"3 人","ingredients":"肉絲 250 克\n木耳筍絲紅蘿蔔絲 適量\n豆瓣、糖、醋、生抽、蒜薑蔥 適量","steps":"1. 肉絲滑炒；配菜切絲。\n2. 炒香醬料同配菜。\n3. 回鍋肉絲加糖醋汁炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Yuxiangrousi_%28%E9%AD%9A%E9%A6%99%E8%82%89%E7%B5%B2%29_in_K817_dining_car.JPG/960px-Yuxiangrousi_%28%E9%AD%9A%E9%A6%99%E8%82%89%E7%B5%B2%29_in_K817_dining_car.JPG"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-042","title":"白切雞","tags":"雞, 經典","cookTime":"45 分鐘","servings":"4 人","ingredients":"光雞 1 隻\n薑蔥、鹽 適量\n蘸料：薑蓉蔥油豉油","steps":"1. 水滾下雞浸煮，保持小火至熟（約 25–35 分鐘視大細）。\n2. 冰水浸泡令皮爽。\n3. 斬件配薑蔥醬。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ae/BeiQieJi-WhiteCutChicken.jpg/960px-BeiQieJi-WhiteCutChicken.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-043","title":"瑞士雞翼","tags":"雞, 港式","cookTime":"40 分鐘","servings":"3 人","ingredients":"雞翼 10 隻\n生抽、老抽、糖、酒、薑蔥、芝麻 適量","steps":"1. 雞翼兩面煎香。\n2. 加醬料水燜至熟收汁。\n3. 灑芝麻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Swiss_Chicken_Wings.jpg/960px-Swiss_Chicken_Wings.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-044","title":"避風塘炒蝦","tags":"海鮮, 家常菜","cookTime":"25 分鐘","servings":"3 人","ingredients":"大蝦 8–10 隻\n蒜蓉、辣椒、麵包糠或炸蒜 適量\n椒鹽、油 適量","steps":"1. 蝦兩面煎至熟盛起。\n2. 爆香大量蒜蓉辣椒同糠。\n3. 回鍋蝦灑椒鹽炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Fried_Mantis_Shrimp_in_Typhoon_Shelter_Style.jpg/960px-Fried_Mantis_Shrimp_in_Typhoon_Shelter_Style.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-045","title":"粉絲蒸扇貝","tags":"蒸菜, 海鮮","cookTime":"15 分鐘","servings":"2–3 人","ingredients":"扇貝 6–8 隻\n粉絲、蒜蓉、椒絲、蒸魚豉油、油 適量","steps":"1. 粉絲浸軟墊殼；扇貝放上鋪蒜蓉。\n2. 大火蒸 5–7 分鐘。\n3. 淋豉油熱油。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Freshippo_steamed_scallops_with_garlic_vermicelli.jpg/960px-Freshippo_steamed_scallops_with_garlic_vermicelli.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-046","title":"皮蛋豆腐","tags":"涼菜, 快煮, 豆腐","cookTime":"10 分鐘","servings":"2–3 人","ingredients":"嫩豆腐 1 盒\n皮蛋 1–2 隻\n生抽、香油、蒜蓉、蔥、辣椒油 適量","steps":"1. 豆腐瀝水上碟。\n2. 皮蛋切塊鋪上。\n3. 淋調味汁。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Tofu_with_Century_Egg.jpg/960px-Tofu_with_Century_Egg.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-047","title":"凉拌青瓜","tags":"涼菜, 素菜, 快煮","cookTime":"10 分鐘","servings":"2–3 人","ingredients":"青瓜 2 條\n蒜蓉、醋、糖、生抽、香油、辣椒 適量","steps":"1. 青瓜拍裂切段。\n2. 加調味撈勻，冷藏片刻更入味。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/7/78/Pai_huang_gua.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-048","title":"葱油拌麵","tags":"粉麵, 快煮","cookTime":"15 分鐘","servings":"1–2 人","ingredients":"麵 1–2 個\n蔥、油、生抽、糖 適量","steps":"1. 蔥切段用油慢炸成葱油。\n2. 麵煮熟瀝乾。\n3. 加葱油生抽糖拌勻。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/5/5b/Shanghai_oil_noodle.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-049","title":"羅宋湯（港式）","tags":"湯水, 港式西餐","cookTime":"60 分鐘","servings":"4 人","ingredients":"牛腱或牛腩 300 克\n番茄、洋蔥、蘿蔔、薯仔、西芹、高麗菜 適量\n茄膏、鹽、糖、黑胡椒 適量","steps":"1. 牛件飛水後先煲軟。\n2. 炒香洋葱番茄茄膏，同所有菜下煲。\n3. 煲至菜軟調味。","notes":"示範食譜（家庭小菜）","photos":["https://upload.wikimedia.org/wikipedia/commons/d/da/Borscht_in_Hong_Kong.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"},{"id":"seed-050","title":"西兰花炒牛肉","tags":"家常菜, 牛肉","cookTime":"20 分鐘","servings":"2–3 人","ingredients":"西蘭花 1 棵\n牛肉片 200 克\n蒜、蚝油、生抽、生粉、糖 適量","steps":"1. 西蘭花焯水；牛肉醃炒盛起。\n2. 爆香蒜下西蘭花。\n3. 回鍋加醬料炒勻。","notes":"示範食譜（家庭小菜）","photos":["https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Beef_and_broccoli_stir_fry.jpg/960px-Beef_and_broccoli_stir_fry.jpg"],"createdAt":0,"updatedAt":0,"isSeed":true,"category":"示範小菜"}];
 
   var recipes = [];
   var storageOk = true;
@@ -437,33 +432,13 @@ img{max-width:100%;display:block}
     return (r && r.category) ? String(r.category).trim() : '';
   }
 
-  function cloneSeed() {
-    var now = Date.now();
-    return SEED_RECIPES.map(function (r, i) {
-      return {
-        id: r.id || ('seed-' + (i + 1)),
-        title: r.title,
-        tags: r.tags || '',
-        category: r.category || SAMPLE_CAT,
-        cookTime: r.cookTime || '',
-        servings: r.servings || '',
-        ingredients: r.ingredients || '',
-        steps: r.steps || '',
-        notes: r.notes || '',
-        photos: Array.isArray(r.photos) ? r.photos.slice() : [],
-        createdAt: r.createdAt || now,
-        updatedAt: now,
-        isSeed: true
-      };
-    });
-  }
 
   function normalizeRecipe(r) {
     if (!r || !r.title) return null;
     if (!r.id) r.id = uid();
     if (!Array.isArray(r.photos)) r.photos = [];
     r.photos = r.photos.slice(0, MAX_PHOTOS);
-    if (!r.category) r.category = r.isSeed ? SAMPLE_CAT : '';
+    if (!r.category) r.category = '';
     if (!r.createdAt) r.createdAt = Date.now();
     if (!r.updatedAt) r.updatedAt = r.createdAt;
     return r;
@@ -490,19 +465,25 @@ img{max-width:100%;display:block}
       return true;
     } catch (e) {
       storageOk = false;
-      showToast('本機儲存不可用，示範食譜仍可瀏覽');
+      showToast('本機儲存不可用');
       return false;
     }
   }
 
-  function setSeedFlag() {
-    if (!storageOk) return;
-    try { localStorage.setItem(SEED_FLAG, '1'); } catch (e) {}
+
+  function isSeedRecipe(r) {
+    if (!r) return false;
+    if (r.isSeed === true) return true;
+    if (typeof r.id === 'string' && r.id.indexOf('seed-') === 0) return true;
+    return false;
+  }
+
+  function stripSeedRecipes(list) {
+    if (!Array.isArray(list)) return [];
+    return list.filter(function (r) { return !isSeedRecipe(r); });
   }
 
   function initRecipes() {
-    // Always start with seeds in memory so UI is never empty if seed exists
-    var seeds = cloneSeed();
     var stored = null;
     try {
       stored = loadFromStorage();
@@ -511,33 +492,21 @@ img{max-width:100%;display:block}
       stored = null;
     }
 
-    var flagVal = null;
-    try { flagVal = localStorage.getItem(SEED_FLAG); } catch (e) { flagVal = null; }
-    var needsSeedMigrate = storageOk && (!flagVal);
-
     if (stored && stored.length > 0) {
-      if (needsSeedMigrate) {
-        // v2 migration: replace isSeed recipes, keep user-created ones
-        var userRecipes = stored.filter(function (r) { return !r.isSeed; });
-        recipes = seeds.concat(userRecipes);
-        if (saveToStorage()) setSeedFlag();
-      } else {
-        recipes = stored;
+      var cleaned = stripSeedRecipes(stored);
+      recipes = cleaned;
+      // Persist cleaned list so demos don't reappear on next open
+      if (storageOk && cleaned.length !== stored.length) {
+        saveToStorage();
       }
     } else {
-      recipes = seeds;
-      if (storageOk) {
-        if (saveToStorage()) setSeedFlag();
-      } else {
-        showToast('本機儲存不可用，示範食譜仍可瀏覽');
+      recipes = [];
+      if (!storageOk) {
+        showToast('本機儲存不可用');
       }
     }
-
-    // Absolute fallback
-    if (!recipes || recipes.length === 0) {
-      recipes = seeds;
-    }
   }
+
 
   function anyOverlayOpen() {
     try {
@@ -590,8 +559,6 @@ img{max-width:100%;display:block}
       if (c) map[c] = (map[c] || 0) + 1;
     });
     var names = Object.keys(map).sort(function (a, b) {
-      if (a === SAMPLE_CAT) return -1;
-      if (b === SAMPLE_CAT) return 1;
       return a.localeCompare(b, 'zh-Hant');
     });
     return names.map(function (n) { return { name: n, count: map[n] }; });
@@ -633,7 +600,6 @@ img{max-width:100%;display:block}
     var dl = $('categoryList');
     if (!dl) return;
     var names = allCategories().map(function (c) { return c.name; });
-    if (names.indexOf(SAMPLE_CAT) === -1) names.unshift(SAMPLE_CAT);
     dl.innerHTML = names.map(function (n) { return '<option value="' + escapeHtml(n) + '"></option>'; }).join('');
   }
 
@@ -654,7 +620,7 @@ img{max-width:100%;display:block}
       listEl.innerHTML = '';
       if (empty) {
         empty.style.display = 'block';
-        empty.innerHTML = '<strong>尚未有食譜</strong><p>點「＋」新增，或選單載入示範小菜</p>';
+        empty.innerHTML = '<strong>尚未有食譜</strong><p>點「＋」新增你的第一道食譜</p>';
       }
       if (countBar) countBar.textContent = '';
       return;
@@ -822,7 +788,7 @@ img{max-width:100%;display:block}
       if (idx !== -1) {
         payload.id = id;
         payload.createdAt = recipes[idx].createdAt || now;
-        payload.isSeed = recipes[idx].isSeed;
+        // do not carry isSeed forward
         recipes[idx] = payload;
       }
     } else {
@@ -874,41 +840,6 @@ img{max-width:100%;display:block}
     });
   }
 
-  function mergeSeeds() {
-    var byId = {}, byTitle = {};
-    recipes.forEach(function (r) { byId[r.id] = r; byTitle[r.title] = r; });
-    var added = 0, skipped = 0;
-    cloneSeed().forEach(function (s) {
-      if (byId[s.id] || byTitle[s.title]) { skipped++; return; }
-      byId[s.id] = s; added++;
-    });
-    recipes = Object.keys(byId).map(function (k) { return byId[k]; });
-    saveToStorage();
-    setSeedFlag();
-    renderList();
-    showToast('已合併：新增 ' + added + '，略過 ' + skipped);
-  }
-
-  function replaceWithSeeds() {
-    var userRecipes = recipes.filter(function (r) { return !r.isSeed; });
-    recipes = cloneSeed().concat(userRecipes);
-    saveToStorage();
-    setSeedFlag();
-    renderList();
-    showToast('已取代為 50 款示範小菜（已保留你嘅食譜）');
-  }
-
-  function askLoadSeed() {
-    closeMenu();
-    showConfirm('載入 50 款示範家庭小菜？會用新示範取代舊示範小菜，並保留你自己新增嘅食譜。', [
-      { label: '取代示範', value: 'replace', primary: true },
-      { label: '合併加入', value: 'merge' },
-      { label: '取消', value: 'cancel' }
-    ]).then(function (v) {
-      if (v === 'merge') mergeSeeds();
-      else if (v === 'replace') replaceWithSeeds();
-    });
-  }
 
   function approxSizeMB(obj) {
     try { return (JSON.stringify(obj).length * 2) / (1024 * 1024); } catch (e) { return 0; }
@@ -948,10 +879,12 @@ img{max-width:100%;display:block}
         incoming.forEach(function (r) {
           r = normalizeRecipe(r);
           if (!r) return;
+          if (isSeedRecipe(r)) return;
+          delete r.isSeed;
           if (byId[r.id]) { byId[r.id] = r; updated++; }
           else { byId[r.id] = r; added++; }
         });
-        recipes = Object.keys(byId).map(function (k) { return byId[k]; });
+        recipes = stripSeedRecipes(Object.keys(byId).map(function (k) { return byId[k]; }));
         saveToStorage();
         renderList();
         showToast('匯入完成：新增 ' + added + '，更新 ' + updated);
@@ -1728,7 +1661,6 @@ img{max-width:100%;display:block}
     bindTap($('btnAi'), askAi);
     bindTap($('btnExport'), exportJson);
     bindTap($('btnImport'), function () { closeMenu(); $('importFile').click(); });
-    bindTap($('btnLoadSeed'), askLoadSeed);
 
     bindTap($('btnDetailClose'), closeDetail);
     bindTap($('btnDetailEdit'), function () { if (viewingId) openForm(viewingId); });
@@ -1838,28 +1770,24 @@ img{max-width:100%;display:block}
     });
   }
 
+
   function boot() {
     setBoot('載入中…');
-    // 1) seeds in memory + paint immediately
-    recipes = cloneSeed();
-    renderList();
-    updateFabsVisibility();
-
-    // 2) then storage merge without wiping incorrectly
+    recipes = [];
     initRecipes();
     renderList();
     updateFabsVisibility();
     wire();
     setBoot('', 'ok');
-    if (!storageOk) showToast('本機儲存不可用，示範食譜仍可瀏覽');
+    if (!storageOk) showToast('本機儲存不可用');
   }
+
 
   try {
     boot();
   } catch (err) {
     try {
-      // last-ditch: show seeds even if something failed
-      recipes = cloneSeed();
+      recipes = [];
       renderList();
       wire();
     } catch (e2) {}
