@@ -56,6 +56,7 @@ img{max-width:100%;display:block}
   font-size:.9375rem;font-weight:500;gap:6px;touch-action:manipulation;
 }
 .btn:active{opacity:.75}
+.btn:disabled{opacity:.55;pointer-events:none}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
 .btn-danger{background:var(--danger);color:#fff}
@@ -332,7 +333,10 @@ img{max-width:100%;display:block}
       <div class="field">
         <label>相片（最多 3 張）</label>
         <div class="photo-grid" id="photoEditor"></div>
-        <p class="hint">可從相簿揀圖或拍照；儲存前會壓縮。列表預覽用色塊佔位，詳情頁先載入網絡圖。</p>
+        <div class="field-actions" style="margin-top:8px">
+          <button type="button" class="btn btn-ghost" id="btnSearchPhotoByTitle" onclick="RecipeBook&&RecipeBook.searchPhotoByTitle(event)">依名稱搜圖</button>
+        </div>
+        <p class="hint">填好名稱後可自動搜一張公開圖；亦可撳「依名稱搜圖」。圖片來自 Openverse／創用 CC，未必完全準確。可從相簿揀圖或拍照；儲存前會壓縮。列表預覽用色塊佔位，詳情頁先載入網絡圖。</p>
       </div>
       <div class="field">
         <label for="fCategory">分類</label>
@@ -404,6 +408,8 @@ img{max-width:100%;display:block}
   var searchQuery = '';
   var activeCategory = '';
   var formPhotos = [];
+  var lastAutoImageTitle = '';
+  var titleAutoImageTimer = null;
   var confirmResolve = null;
   var tapLock = false;
   var toastTimer = null;
@@ -770,6 +776,7 @@ img{max-width:100%;display:block}
     $('fSteps').value = r ? (r.steps || '') : '';
     $('fNotes').value = r ? (r.notes || '') : '';
     formPhotos = r && Array.isArray(r.photos) ? r.photos.slice() : [];
+    lastAutoImageTitle = '';
     renderPhotoEditor();
     $('formSheet').classList.add('open');
     updateFabsVisibility();
@@ -779,6 +786,8 @@ img{max-width:100%;display:block}
     $('formSheet').classList.remove('open');
     editingId = null;
     formPhotos = [];
+    lastAutoImageTitle = '';
+    clearTimeout(titleAutoImageTimer);
     updateFabsVisibility();
   }
 
@@ -1340,6 +1349,128 @@ img{max-width:100%;display:block}
     showToast('複製咗就撳『貼上剪貼簿並排版』');
   }
 
+  function pickOpenverseImageUrl(results) {
+    if (!Array.isArray(results)) return null;
+    var preferred = null;
+    var fallback = null;
+    for (var i = 0; i < results.length; i++) {
+      var r = results[i] || {};
+      var pick = '';
+      if (r.url && /^https?:\/\//i.test(r.url)) pick = r.url;
+      else if (r.thumbnail && /^https?:\/\//i.test(r.thumbnail)) pick = r.thumbnail;
+      if (!pick) continue;
+      var path = pick.split('?')[0].toLowerCase();
+      if (/\.(svg|gif)$/.test(path)) continue;
+      if (/\.(jpe?g|png|webp)$/.test(path)) {
+        if (!preferred) preferred = pick;
+        break;
+      }
+      if (!fallback) fallback = pick;
+    }
+    return preferred || fallback;
+  }
+
+  function fetchOpenverseImages(query) {
+    var api = 'https://api.openverse.org/v1/images/?q=' + encodeURIComponent(query) +
+      '&page_size=8&license_type=commercial,modification';
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (ctrl) try { ctrl.abort(); } catch (e) {}
+    }, 15000);
+    var opts = { headers: { Accept: 'application/json' } };
+    if (ctrl) opts.signal = ctrl.signal;
+    return fetch(api, opts).then(function (res) {
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('http ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      return (data && Array.isArray(data.results)) ? data.results : [];
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
+  }
+
+  function setSearchPhotoBtnLoading(on) {
+    var btn = $('btnSearchPhotoByTitle');
+    if (!btn) return;
+    if (on) {
+      if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', btn.textContent);
+      btn.textContent = '搜圖中…';
+      btn.disabled = true;
+    } else {
+      btn.textContent = btn.getAttribute('data-label') || '依名稱搜圖';
+      btn.removeAttribute('data-label');
+      btn.disabled = false;
+    }
+  }
+
+  function resolveImageForTitle(title) {
+    return fetchOpenverseImages(title).then(function (results) {
+      var img = pickOpenverseImageUrl(results);
+      if (img && results.length >= 2) return img;
+      var retryQ = /[\u4e00-\u9fff]/.test(title) ? (title + ' 菜') : (title + ' food');
+      return fetchOpenverseImages(retryQ).then(function (results2) {
+        return pickOpenverseImageUrl(results2) || img || null;
+      });
+    });
+  }
+
+  /** @param {{manual?:boolean}} opts */
+  function searchPhotoByTitle(opts) {
+    opts = opts || {};
+    var manual = !!opts.manual;
+    var titleEl = $('fTitle');
+    var title = titleEl ? titleEl.value.trim() : '';
+    if (!title) {
+      if (manual) showToast('請先填寫名稱');
+      return Promise.resolve(false);
+    }
+    if (formPhotos.length >= MAX_PHOTOS) {
+      if (manual) showToast('最多 ' + MAX_PHOTOS + ' 張');
+      return Promise.resolve(false);
+    }
+    if (!manual) {
+      if (formPhotos.length !== 0) return Promise.resolve(false);
+      if (title.length < 2) return Promise.resolve(false);
+      if (title === lastAutoImageTitle) return Promise.resolve(false);
+    }
+    if (manual) setSearchPhotoBtnLoading(true);
+    return resolveImageForTitle(title).then(function (img) {
+      if (manual) setSearchPhotoBtnLoading(false);
+      if (!img) {
+        if (!manual) lastAutoImageTitle = title;
+        showToast('搵唔到合適圖片');
+        return false;
+      }
+      if (formPhotos.length >= MAX_PHOTOS) {
+        if (manual) showToast('最多 ' + MAX_PHOTOS + ' 張');
+        return false;
+      }
+      if (!manual && formPhotos.length !== 0) return false;
+      formPhotos.push(img);
+      if (!manual) lastAutoImageTitle = title;
+      renderPhotoEditor();
+      showToast('已加入搜尋圖片');
+      return true;
+    }).catch(function () {
+      if (manual) setSearchPhotoBtnLoading(false);
+      if (!manual) lastAutoImageTitle = title;
+      showToast('搵唔到合適圖片');
+      return false;
+    });
+  }
+
+  function maybeAutoSearchPhotoAfterTitle() {
+    var sheet = $('formSheet');
+    if (!sheet || !sheet.classList.contains('open')) return;
+    var title = $('fTitle') ? $('fTitle').value.trim() : '';
+    if (title.length < 2) return;
+    if (formPhotos.length !== 0) return;
+    if (title === lastAutoImageTitle) return;
+    searchPhotoByTitle({ manual: false });
+  }
+
   function applyParsedToForm(parsed) {
     parsed = parsed || {};
     var keys = ['title', 'category', 'tags', 'cookTime', 'servings', 'ingredients', 'steps', 'notes'];
@@ -1380,7 +1511,13 @@ img{max-width:100%;display:block}
       return;
     }
     var parsedText = parseRecipePlainText(raw);
-    applyParsedToForm(parsedText);
+    var ok = applyParsedToForm(parsedText);
+    if (ok) {
+      var titleNow = $('fTitle') && $('fTitle').value.trim();
+      if (titleNow && formPhotos.length === 0) {
+        searchPhotoByTitle({ manual: false });
+      }
+    }
   }
 
   function clearPasteRaw() {
@@ -1402,7 +1539,8 @@ img{max-width:100%;display:block}
     pasteViaGoogle: function (e) { guardTap(pasteViaGoogle)(e); },
     pasteClipboardApply: function (e) { guardTap(pasteClipboardAndApply)(e); },
     applyPaste: function (e) { guardTap(applyPasteFromRaw)(e); },
-    clearPaste: function (e) { guardTap(clearPasteRaw)(e); }
+    clearPaste: function (e) { guardTap(clearPasteRaw)(e); },
+    searchPhotoByTitle: function (e) { guardTap(function () { searchPhotoByTitle({ manual: true }); })(e); }
   };
 
   function wire() {
@@ -1426,6 +1564,19 @@ img{max-width:100%;display:block}
     bindTap($('btnPasteClipboardApply'), pasteClipboardAndApply);
     bindTap($('btnApplyPaste'), applyPasteFromRaw);
     bindTap($('btnClearPaste'), clearPasteRaw);
+    bindTap($('btnSearchPhotoByTitle'), function () { searchPhotoByTitle({ manual: true }); });
+
+    var fTitle = $('fTitle');
+    if (fTitle) {
+      fTitle.addEventListener('blur', function () {
+        clearTimeout(titleAutoImageTimer);
+        titleAutoImageTimer = setTimeout(maybeAutoSearchPhotoAfterTitle, 200);
+      });
+      fTitle.addEventListener('change', function () {
+        clearTimeout(titleAutoImageTimer);
+        titleAutoImageTimer = setTimeout(maybeAutoSearchPhotoAfterTitle, 450);
+      });
+    }
 
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') maybeToastGoogleReturn();
