@@ -298,11 +298,12 @@ img{max-width:100%;display:block}
     <form id="recipeForm" autocomplete="off">
       <input type="hidden" id="fId">
       <div class="field" id="pastePanel">
-        <label for="fPasteRaw">貼上連結或純文字自動排版</label>
-        <textarea id="fPasteRaw" rows="6" placeholder="貼上食譜連結，或整段純文字…"></textarea>
-        <p class="hint">可貼 https 食譜連結（自動讀取排版），或貼純文字。支援「材料／用料」「步驟／做法」「時間」「份量」「備註」。部分網站可能封鎖讀取，失敗時請打開頁面複製文字再貼。撳「套用排版」會填入下面欄位，可再人手改。</p>
+        <label for="fPasteRaw">貼連結 → Google 整理 → 套用排版</label>
+        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜連結，撳「Google 整理連結」&#10;② 複製 Google 純文字返嚟，撳「套用排版」"></textarea>
+        <p class="hint">兩步流程：先貼單一 https 食譜連結，撳「Google 整理連結」叫 Google AI Mode 抽出純文字；再將回覆貼返呢度，撳「套用排版」填入下面欄位。亦可直接貼已標好「名稱／材料／步驟／烹調時間／份量／備註」嘅純文字。套用排版唔會再自動讀取網頁。</p>
         <div class="field-actions">
-          <button type="button" class="btn btn-primary" id="btnApplyPaste" onclick="RecipeBook&&RecipeBook.applyPaste(event)">套用排版</button>
+          <button type="button" class="btn btn-primary" id="btnPasteViaGoogle" onclick="RecipeBook&&RecipeBook.pasteViaGoogle(event)">Google 整理連結</button>
+          <button type="button" class="btn btn-ghost" id="btnApplyPaste" onclick="RecipeBook&&RecipeBook.applyPaste(event)">套用排版</button>
           <button type="button" class="btn btn-ghost" id="btnClearPaste" onclick="RecipeBook&&RecipeBook.clearPaste(event)">清除</button>
         </div>
       </div>
@@ -1014,35 +1015,63 @@ img{max-width:100%;display:block}
     if (!raw.trim()) return out;
 
     var SECTION_MAP = [
-      { keys: ['名稱', '菜名', '食譜名稱', 'title'], field: 'title' },
-      { keys: ['材料', '用料', '食材', '配料', 'ingredients'], field: 'ingredients' },
-      { keys: ['步驟', '做法', '烹調方法', '作法', '方法', 'steps', 'directions'], field: 'steps' },
-      { keys: ['備註', '小貼士', '提示', '注意', 'tips', 'notes'], field: 'notes' },
-      { keys: ['烹調時間', '需時', '時間', 'cook time', 'cooktime'], field: 'cookTime' },
-      { keys: ['份量', '人份', '幾多人', 'servings'], field: 'servings' },
-      { keys: ['標籤', 'tags'], field: 'tags' },
-      { keys: ['分類', 'category'], field: 'category' }
+      { keys: ['食譜名稱', '菜式名稱', 'Recipe name', 'Recipe Name', '名稱', '菜名', '菜式', 'title', 'Name'], field: 'title' },
+      { keys: ['食材清單', '準備材料', 'Ingredients', 'Ingredient', '材料', '用料', '食材', '配料', 'ingredients'], field: 'ingredients' },
+      { keys: ['料理步驟', '烹飪步驟', '製作方法', '烹調方法', 'Instructions', 'Preparation', 'Directions', 'Method', '步驟', '做法', '作法', '方法', '說明', 'steps', 'directions'], field: 'steps' },
+      { keys: ['小貼士', 'Tips', 'Tip', 'Notes', 'Note', '備註', '提示', '注意', 'tips', 'notes'], field: 'notes' },
+      { keys: ['烹調時間', '準備時間', '總時間', 'Prep time', 'Total time', 'Cook time', 'Cooking time', 'cook time', 'cooktime', '需時', '時間'], field: 'cookTime' },
+      { keys: ['Serves', 'Yield', '份量', '人份', '幾多人', '幾多份', 'servings'], field: 'servings' },
+      { keys: ['標籤', 'tags', 'Tags'], field: 'tags' },
+      { keys: ['分類', 'category', 'Category'], field: 'category' }
     ];
+    // Prefer longer keys first within each field
+    SECTION_MAP.forEach(function (entry) {
+      entry.keys = entry.keys.slice().sort(function (a, b) { return b.length - a.length; });
+    });
+
+    function escapeRegExp(s) {
+      return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function stripHeaderWrappers(line) {
+      var t = String(line).trim();
+      t = t.replace(/^#{1,6}\s+/, '');
+      t = t.replace(/\*\*/g, '').replace(/__/g, '');
+      if (/^[【\[]/.test(t) && /[】\]]$/.test(t)) {
+        t = t.replace(/^[【\[]\s*/, '').replace(/\s*[】\]]$/, '');
+      }
+      if (/^「/.test(t) && /」$/.test(t)) {
+        t = t.replace(/^「\s*/, '').replace(/\s*」$/, '');
+      }
+      return t.trim();
+    }
+
+    function isHeaderJunk(rest) {
+      if (!rest) return true;
+      var r = rest.trim();
+      if (!r) return true;
+      if (/^[（(][^）)]*[）)]\s*$/.test(r)) return true;
+      if (/^[\[【][^\]】]*[\]】]\s*$/.test(r)) return true;
+      if (/^[\s:：\-–—|｜/／]+$/.test(r)) return true;
+      return false;
+    }
 
     function matchSectionHeader(line) {
-      var t = line.trim();
+      var t = stripHeaderWrappers(line);
       if (!t) return null;
       for (var i = 0; i < SECTION_MAP.length; i++) {
         var entry = SECTION_MAP[i];
         for (var j = 0; j < entry.keys.length; j++) {
           var k = entry.keys[j];
-          var reExact = new RegExp('^' + escapeRegExp(k) + '\\s*[:：]?\\s*$', 'i');
-          var reInline = new RegExp('^' + escapeRegExp(k) + '\\s*[:：]\\s*(.+)$', 'i');
-          if (reExact.test(t)) return { field: entry.field, inline: '' };
-          var m = t.match(reInline);
-          if (m) return { field: entry.field, inline: m[1].trim() };
+          var re = new RegExp('^' + escapeRegExp(k) + '\\s*[:：]?\\s*(.*)$', 'i');
+          var m = t.match(re);
+          if (!m) continue;
+          var rest = (m[1] || '').trim();
+          if (isHeaderJunk(rest)) return { field: entry.field, inline: '' };
+          return { field: entry.field, inline: rest };
         }
       }
       return null;
-    }
-
-    function escapeRegExp(s) {
-      return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     function stripBullet(line) {
@@ -1118,7 +1147,6 @@ img{max-width:100%;display:block}
         var body = cleanBlock(sec.lines, mode);
         if (!body) return;
         if (sec.field === 'title' || sec.field === 'cookTime' || sec.field === 'servings' || sec.field === 'tags' || sec.field === 'category') {
-          // single-line meta: take first non-empty line / join lightly
           var one = body.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join('，');
           if (one) buckets[sec.field] = one;
         } else {
@@ -1134,7 +1162,6 @@ img{max-width:100%;display:block}
 
     // --- no section headers: heuristic ---
     var nonempty = lines.map(function (x) { return x.replace(/\s+$/, ''); });
-    // drop leading/trailing empties
     while (nonempty.length && !nonempty[0].trim()) nonempty.shift();
     while (nonempty.length && !nonempty[nonempty.length - 1].trim()) nonempty.pop();
     if (!nonempty.length) return out;
@@ -1147,16 +1174,12 @@ img{max-width:100%;display:block}
       rest = nonempty.slice();
     }
 
-    var content = rest.filter(function (x, idx, arr) {
-      // keep structure but we'll re-process
-      return true;
-    });
+    var content = rest;
 
     var numbered = content.filter(function (x) { return x.trim() && isNumberedLine(x); });
     var contentNonEmpty = content.filter(function (x) { return x.trim(); });
 
     if (numbered.length >= 2) {
-      // split: lines before first numbered → ingredients; numbered+after → steps
       var firstNum = -1;
       for (var i = 0; i < content.length; i++) {
         if (content[i].trim() && isNumberedLine(content[i])) { firstNum = i; break; }
@@ -1178,7 +1201,6 @@ img{max-width:100%;display:block}
         var ing2 = cleanBlock(content, 'ingredients');
         if (ing2) out.ingredients = ing2;
       } else {
-        // mix: short lines ingredients, long → steps/notes
         var shortL = [];
         var longL = [];
         content.forEach(function (ln) {
@@ -1204,9 +1226,7 @@ img{max-width:100%;display:block}
     return out;
   }
 
-  /* --- URL / HTML recipe extraction helpers --- */
-  var pasteBusy = false;
-
+  /* --- URL detect (for Google 整理連結) --- */
   function isSingleRecipeUrl(text) {
     return !!extractSingleRecipeUrl(text);
   }
@@ -1233,338 +1253,20 @@ img{max-width:100%;display:block}
     }
   }
 
-  function isoDurationToChinese(iso) {
-    if (iso == null) return '';
-    var s = String(iso).trim();
-    if (!s) return '';
-    if (!/^P/i.test(s)) return '';
-    var m = s.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i);
-    if (!m) return '';
-    var days = m[1] ? parseInt(m[1], 10) : 0;
-    var hours = m[2] ? parseInt(m[2], 10) : 0;
-    var mins = m[3] ? parseInt(m[3], 10) : 0;
-    var secs = m[4] ? Math.floor(parseFloat(m[4])) : 0;
-    if (!days && !hours && !mins && !secs) return '';
-    var parts = [];
-    if (days) parts.push(days + ' 日');
-    if (hours) parts.push(hours + ' 小時');
-    if (mins) parts.push(mins + ' 分鐘');
-    if (secs && !days && !hours && !mins) parts.push(secs + ' 秒');
-    return parts.join(' ');
-  }
-
-  function normalizeSchemaType(t) {
-    if (t == null) return [];
-    var arr = Array.isArray(t) ? t : [t];
-    return arr.map(function (x) {
-      var s = String(x);
-      var slash = s.lastIndexOf('/');
-      if (slash >= 0) s = s.slice(slash + 1);
-      return s.toLowerCase();
-    });
-  }
-
-  function isSchemaType(node, name) {
-    if (!node || typeof node !== 'object') return false;
-    return normalizeSchemaType(node['@type']).indexOf(String(name).toLowerCase()) >= 0;
-  }
-
-  function collectJsonLdNodes(html) {
-    var nodes = [];
-    var re = /<script[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-    var m;
-    while ((m = re.exec(html))) {
-      var raw = (m[1] || '').trim();
-      if (!raw) continue;
-      try {
-        nodes.push(JSON.parse(raw));
-      } catch (e) {
-        try {
-          var cleaned = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/,\s*([}\]])/g, '$1');
-          nodes.push(JSON.parse(cleaned));
-        } catch (e2) {}
-      }
-    }
-    return nodes;
-  }
-
-  function findRecipeNodes(node, out) {
-    if (!node) return;
-    if (Array.isArray(node)) {
-      node.forEach(function (n) { findRecipeNodes(n, out); });
+  function pasteViaGoogle() {
+    var raw = $('fPasteRaw') ? $('fPasteRaw').value : '';
+    var url = extractSingleRecipeUrl(raw);
+    if (!url) {
+      showToast('請先貼上食譜連結');
       return;
     }
-    if (typeof node !== 'object') return;
-    if (isSchemaType(node, 'Recipe')) out.push(node);
-    if (node['@graph']) findRecipeNodes(node['@graph'], out);
-  }
-
-  function ingredientLines(ri) {
-    if (ri == null) return '';
-    if (typeof ri === 'string') return ri.trim();
-    if (!Array.isArray(ri)) {
-      if (typeof ri === 'object') {
-        return String(ri.name || ri.text || '').trim();
-      }
-      return String(ri).trim();
-    }
-    return ri.map(function (x) {
-      if (typeof x === 'string') return x.trim();
-      if (x && typeof x === 'object') return String(x.name || x.text || '').trim();
-      return '';
-    }).filter(Boolean).join('\n');
-  }
-
-  function stepItemText(item) {
-    if (item == null) return '';
-    if (typeof item === 'string') return item.trim();
-    if (typeof item !== 'object') return String(item).trim();
-    return String(item.text || item.name || '').trim();
-  }
-
-  function instructionsToSteps(ri) {
-    if (ri == null) return '';
-    if (typeof ri === 'string') return ri.trim();
-    var list = Array.isArray(ri) ? ri : [ri];
-    var steps = [];
-    var n = 1;
-    list.forEach(function (item) {
-      if (item == null) return;
-      if (typeof item === 'string') {
-        var s = item.trim();
-        if (!s) return;
-        if (/^\d+\s*[.、．)]/.test(s)) steps.push(s);
-        else { steps.push(n + '. ' + s); n++; }
-        return;
-      }
-      if (typeof item !== 'object') return;
-      if (isSchemaType(item, 'HowToSection')) {
-        var els = item.itemListElement;
-        var nested = Array.isArray(els) ? els : (els ? [els] : []);
-        nested.forEach(function (el) {
-          var tx = stepItemText(el);
-          if (tx) { steps.push(n + '. ' + tx); n++; }
-        });
-        return;
-      }
-      var tx2 = stepItemText(item);
-      if (tx2) { steps.push(n + '. ' + tx2); n++; }
-    });
-    return steps.join('\n');
-  }
-
-  function yieldToServings(y) {
-    if (y == null) return '';
-    if (Array.isArray(y)) y = y[0];
-    if (typeof y === 'object' && y) y = y.value != null ? y.value : (y.name || y.text || '');
-    return String(y).trim();
-  }
-
-  function keywordsToTags(kw) {
-    if (kw == null) return '';
-    if (Array.isArray(kw)) return kw.map(function (x) { return String(x).trim(); }).filter(Boolean).join(', ');
-    return String(kw).trim();
-  }
-
-  function shortNotes(s, maxLen) {
-    if (!s) return '';
-    var t = String(s).replace(/\s+/g, ' ').trim();
-    if (!t) return '';
-    maxLen = maxLen || 240;
-    if (t.length > maxLen) t = t.slice(0, maxLen).replace(/\s+\S*$/, '') + '…';
-    return t;
-  }
-
-  function mapJsonLdRecipe(node) {
-    var out = {};
-    if (!node) return out;
-    if (node.name) out.title = String(node.name).trim();
-    var ing = ingredientLines(node.recipeIngredient);
-    if (ing) out.ingredients = ing;
-    var steps = instructionsToSteps(node.recipeInstructions);
-    if (steps) out.steps = steps;
-    var timeRaw = node.totalTime || node.cookTime || node.prepTime;
-    if (timeRaw) {
-      var zh = isoDurationToChinese(timeRaw);
-      out.cookTime = zh || String(timeRaw).trim();
-    }
-    var serv = yieldToServings(node.recipeYield);
-    if (serv) out.servings = serv;
-    var notes = shortNotes(node.description);
-    if (!notes && node.author) {
-      var a = node.author;
-      if (typeof a === 'object') a = a.name || '';
-      if (a) notes = shortNotes('作者：' + a);
-    }
-    if (notes) out.notes = notes;
-    var tags = keywordsToTags(node.keywords);
-    if (tags) out.tags = tags;
-    if (node.recipeCategory) {
-      var cat = node.recipeCategory;
-      if (Array.isArray(cat)) cat = cat[0];
-      if (cat) out.category = String(cat).trim();
-    }
-    return out;
-  }
-
-  function extractRecipeFromJsonLd(html) {
-    var nodes = collectJsonLdNodes(html);
-    var recipes = [];
-    nodes.forEach(function (n) { findRecipeNodes(n, recipes); });
-    if (!recipes.length) return null;
-    var best = recipes[0];
-    for (var i = 0; i < recipes.length; i++) {
-      var r = recipes[i];
-      if (r.recipeIngredient || r.recipeInstructions) { best = r; break; }
-    }
-    var mapped = mapJsonLdRecipe(best);
-    var usable = mapped.title || mapped.ingredients || mapped.steps;
-    return usable ? mapped : null;
-  }
-
-  function extractMetaContent(html, key, value) {
-    if (!html) return '';
-    var esc = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    var re = new RegExp('<meta\\b[^>]*(?:' + key + ')\\s*=\\s*["\']' + esc + '["\'][^>]*>', 'i');
-    var m = String(html).match(re);
-    if (!m) {
-      // content may appear before property/name
-      re = new RegExp('<meta\\b[^>]*content\\s*=\\s*["\']([^"\']*)["\'][^>]*(?:' + key + ')\\s*=\\s*["\']' + esc + '["\'][^>]*>', 'i');
-      m = String(html).match(re);
-      if (m) return (m[1] || '').trim();
-      return '';
-    }
-    var tag = m[0];
-    var cm = tag.match(/\bcontent\s*=\s*["']([^"']*)["']/i);
-    if (cm) return cm[1].trim();
-    cm = tag.match(/\bcontent\s*=\s*([^\s>]+)/i);
-    return cm ? cm[1].trim() : '';
-  }
-
-  function extractOgTitle(html) {
-    return extractMetaContent(html, 'property', 'og:title') ||
-      extractMetaContent(html, 'name', 'og:title') ||
-      extractMetaContent(html, 'property', 'twitter:title');
-  }
-
-  function stripHtmlToText(chunk) {
-    if (!chunk) return '';
-    var t = String(chunk);
-    t = t.replace(/<script[\s\S]*?<\/script>/gi, ' ');
-    t = t.replace(/<style[\s\S]*?<\/style>/gi, ' ');
-    t = t.replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ');
-    t = t.replace(/<!--[\s\S]*?-->/g, ' ');
-    t = t.replace(/<\/(p|div|h[1-6]|li|tr|section|article|header|footer|blockquote)>/gi, '\n');
-    t = t.replace(/<br\s*\/?>/gi, '\n');
-    t = t.replace(/<\/?[^>]+>/g, ' ');
-    t = t.replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
-      .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'");
-    t = t.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
-    t = t.replace(/[ \t]{2,}/g, ' ');
-    t = t.replace(/\n{3,}/g, '\n\n');
-    return t.trim();
-  }
-
-  function extractTextFromHtml(html) {
-    if (!html) return '';
-    var src = String(html);
-    src = src.replace(/<script[\s\S]*?<\/script>/gi, ' ');
-    src = src.replace(/<style[\s\S]*?<\/style>/gi, ' ');
-    function grab(tag) {
-      var re = new RegExp('<' + tag + '\\b[^>]*>([\\s\\S]*?)<\\/' + tag + '>', 'i');
-      var m = src.match(re);
-      return m ? m[1] : '';
-    }
-    var chunk = grab('article') || grab('main') || grab('body') || src;
-    return stripHtmlToText(chunk);
-  }
-
-  function ensureSourceNote(parsed, url) {
-    if (!parsed) parsed = {};
-    if (!url) return parsed;
-    var line = '來源：' + url;
-    if (!parsed.notes || !String(parsed.notes).trim()) {
-      parsed.notes = line;
-    } else if (String(parsed.notes).indexOf(url) < 0) {
-      parsed.notes = String(parsed.notes).replace(/\s+$/, '') + '\n' + line;
-    }
-    return parsed;
-  }
-
-  function parseRecipeFromHtml(html, sourceUrl) {
-    var out = extractRecipeFromJsonLd(html);
-    if (!out) {
-      var plain = extractTextFromHtml(html);
-      out = parseRecipePlainText(plain);
-    }
-    if (!out) out = {};
-    if (!out.title) {
-      var og = extractOgTitle(html);
-      if (og) out.title = og;
-    }
-    if (!out.title) {
-      var tm = String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      if (tm) {
-        var title = stripHtmlToText(tm[1]).replace(/\s*[|\-–—].*$/, '').trim();
-        if (title && title.length <= 80) out.title = title;
-      }
-    }
-    return ensureSourceNote(out, sourceUrl);
-  }
-
-  function fetchWithTimeout(url, ms) {
-    return new Promise(function (resolve, reject) {
-      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer = setTimeout(function () {
-        try { if (ctrl) ctrl.abort(); } catch (e) {}
-        reject(new Error('timeout'));
-      }, ms || 14000);
-      var opts = { redirect: 'follow' };
-      if (ctrl) opts.signal = ctrl.signal;
-      fetch(url, opts).then(function (res) {
-        clearTimeout(timer);
-        resolve(res);
-      }).catch(function (err) {
-        clearTimeout(timer);
-        reject(err);
-      });
-    });
-  }
-
-  function fetchRecipeHtml(pageUrl) {
-    var proxies = [
-      function (u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
-      function (u) { return 'https://corsproxy.io/?' + encodeURIComponent(u); },
-      function (u) { return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }
-    ];
-    var i = 0;
-    function next() {
-      if (i >= proxies.length) {
-        return Promise.reject(new Error('all proxies failed'));
-      }
-      var proxyUrl = proxies[i++](pageUrl);
-      return fetchWithTimeout(proxyUrl, 14000).then(function (res) {
-        if (!res || !res.ok) throw new Error('bad status');
-        return res.text();
-      }).then(function (body) {
-        if (!body || String(body).trim().length < 80) throw new Error('empty body');
-        var s = String(body);
-        var head = s.slice(0, 2500).toLowerCase();
-        var hasLd = /application\/ld\+json/i.test(s);
-        // Reject common proxy / CDN error interstitials when no JSON-LD Recipe payload
-        if (!hasLd && /error code 52[0-9]|error code 1020|just a moment|cf-browser-verification|access denied|oops\.\.\. request timeout|request timeout\./i.test(head)) {
-          throw new Error('error page');
-        }
-        if (head.indexOf('<html') < 0 && head.indexOf('<!doctype') < 0 &&
-            head.indexOf('recipe') < 0 && !hasLd && s.length < 400) {
-          throw new Error('not html');
-        }
-        return s;
-      }).catch(function () {
-        return next();
-      });
-    }
-    return next();
+    var prompt =
+      '根據呢個食譜連結，整理成純文字食譜。必須包含以下標籤段落（用呢啲標籤開頭）：' +
+      '名稱： 、材料：（每行一種材料）、步驟：（用數字編號）、烹調時間：、份量：、備註：（可選）。' +
+      '唔好用 markdown、唔好加廣告或額外說明，淨係輸出食譜純文字。食譜連結：' + url;
+    var flat = prompt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+    openUrl(GOOGLE_AI_MODE + encodeURIComponent(flat));
+    showToast('已開啟 Google，複製純文字後返嚟貼上再撳套用排版');
   }
 
   function applyParsedToForm(parsed) {
@@ -1596,39 +1298,14 @@ img{max-width:100%;display:block}
     return true;
   }
 
-  function setPasteLoading(on) {
-    var btn = $('btnApplyPaste');
-    if (!btn) return;
-    if (on) {
-      if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', btn.textContent || '套用排版');
-      btn.disabled = true;
-      btn.textContent = '讀取中…';
-    } else {
-      btn.disabled = false;
-      btn.textContent = btn.getAttribute('data-label') || '套用排版';
-    }
-  }
-
   function applyPasteFromRaw() {
-    if (pasteBusy) return;
     var raw = $('fPasteRaw') ? $('fPasteRaw').value : '';
     if (!String(raw).trim()) {
-      showToast('請先貼上食譜連結或純文字');
+      showToast('請先貼上 Google 整理後嘅純文字');
       return;
     }
-    var url = extractSingleRecipeUrl(raw);
-    if (url) {
-      pasteBusy = true;
-      setPasteLoading(true);
-      fetchRecipeHtml(url).then(function (html) {
-        var parsed = parseRecipeFromHtml(html, url);
-        applyParsedToForm(parsed);
-      }).catch(function () {
-        showToast('讀取失敗：網站可能封鎖讀取，請打開頁面複製文字再貼上');
-      }).then(function () {
-        pasteBusy = false;
-        setPasteLoading(false);
-      });
+    if (isSingleRecipeUrl(raw)) {
+      showToast('請先撳「Google 整理連結」，再將純文字貼返嚟套用排版');
       return;
     }
     var parsedText = parseRecipePlainText(raw);
@@ -1650,6 +1327,7 @@ img{max-width:100%;display:block}
     askAi: function (e) { guardTap(askAi)(e); },
     saveForm: function (e) { guardTap(saveForm)(e); },
     closeForm: function (e) { guardTap(closeForm)(e); },
+    pasteViaGoogle: function (e) { guardTap(pasteViaGoogle)(e); },
     applyPaste: function (e) { guardTap(applyPasteFromRaw)(e); },
     clearPaste: function (e) { guardTap(clearPasteRaw)(e); }
   };
@@ -1671,6 +1349,7 @@ img{max-width:100%;display:block}
     bindTap($('btnFormCancelFooter'), closeForm);
     bindTap($('btnFormSave'), saveForm);
     bindTap($('btnFormSaveFooter'), saveForm);
+    bindTap($('btnPasteViaGoogle'), pasteViaGoogle);
     bindTap($('btnApplyPaste'), applyPasteFromRaw);
     bindTap($('btnClearPaste'), clearPasteRaw);
 
