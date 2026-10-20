@@ -234,6 +234,12 @@ img{max-width:100%;display:block}
 .ai-actions .btn{width:100%}
 .ai-context-label{font-size:.8125rem;font-weight:600;color:var(--muted);margin-bottom:8px}
 .hidden-file{display:none!important}
+.paste-await-banner{
+  display:none;margin-top:10px;padding:10px 12px;
+  background:#fff8e6;border:1px solid #f0e0a8;border-radius:10px;
+  font-size:.8125rem;color:#664d03;line-height:1.45;
+}
+.paste-await-banner.show{display:block}
 </style>
 </head>
 <body>
@@ -299,10 +305,12 @@ img{max-width:100%;display:block}
       <input type="hidden" id="fId">
       <div class="field" id="pastePanel">
         <label for="fPasteRaw">貼連結 → Google 整理 → 套用排版</label>
-        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜連結，撳「Google 整理連結」&#10;② 複製 Google 純文字返嚟，撳「套用排版」"></textarea>
-        <p class="hint">兩步流程：先貼單一 https 食譜連結，撳「Google 整理連結」叫 Google AI Mode 抽出純文字；再將回覆貼返呢度，撳「套用排版」填入下面欄位。亦可直接貼已標好「名稱／材料／步驟／烹調時間／份量／備註」嘅純文字。套用排版唔會再自動讀取網頁。</p>
+        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜連結，撳「Google 整理連結」&#10;② 喺 Google 複製回覆，返嚟撳「貼上剪貼簿並排版」（或手動貼再「套用排版」）"></textarea>
+        <p class="hint">流程：先貼單一 https 食譜連結，撳「Google 整理連結」叫 Google AI Mode 抽出純文字；喺 Google 複製回覆後返嚟，撳「貼上剪貼簿並排版」一次完成貼上同排版（Safari 需要你撳一下，唔會全自動）。亦可手動貼純文字後撳「套用排版」。支援已標好「名稱／材料／步驟／烹調時間／份量／備註」嘅文字。套用排版唔會再自動讀取網頁。</p>
+        <div id="pasteAwaitBanner" class="paste-await-banner" role="status">返嚟後：先複製 Google 回覆，再撳下面掣</div>
         <div class="field-actions">
           <button type="button" class="btn btn-primary" id="btnPasteViaGoogle" onclick="RecipeBook&&RecipeBook.pasteViaGoogle(event)">Google 整理連結</button>
+          <button type="button" class="btn btn-ghost" id="btnPasteClipboardApply" onclick="RecipeBook&&RecipeBook.pasteClipboardApply(event)">貼上剪貼簿並排版</button>
           <button type="button" class="btn btn-ghost" id="btnApplyPaste" onclick="RecipeBook&&RecipeBook.applyPaste(event)">套用排版</button>
           <button type="button" class="btn btn-ghost" id="btnClearPaste" onclick="RecipeBook&&RecipeBook.clearPaste(event)">清除</button>
         </div>
@@ -386,6 +394,8 @@ img{max-width:100%;display:block}
   var confirmResolve = null;
   var tapLock = false;
   var toastTimer = null;
+  var awaitingGoogleClipboard = false;
+  var googleReturnToastShown = false;
 
   function $(id) { return document.getElementById(id); }
 
@@ -733,6 +743,7 @@ img{max-width:100%;display:block}
     var r = id ? recipes.find(function (x) { return x.id === id; }) : null;
     $('fId').value = r ? r.id : '';
     if ($('fPasteRaw')) $('fPasteRaw').value = '';
+    setAwaitingGoogleClipboard(false);
     fillCategoryDatalist();
     $('fCategory').value = r ? (recipeCategory(r) || '') : '';
     $('fTitle').value = r ? (r.title || '') : '';
@@ -1253,6 +1264,16 @@ img{max-width:100%;display:block}
     }
   }
 
+  function setAwaitingGoogleClipboard(on) {
+    awaitingGoogleClipboard = !!on;
+    if (on) googleReturnToastShown = false;
+    var banner = $('pasteAwaitBanner');
+    if (banner) {
+      if (on) banner.classList.add('show');
+      else banner.classList.remove('show');
+    }
+  }
+
   function pasteViaGoogle() {
     var raw = $('fPasteRaw') ? $('fPasteRaw').value : '';
     var url = extractSingleRecipeUrl(raw);
@@ -1266,7 +1287,41 @@ img{max-width:100%;display:block}
       '唔好用 markdown、唔好加廣告或額外說明，淨係輸出食譜純文字。食譜連結：' + url;
     var flat = prompt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
     openUrl(GOOGLE_AI_MODE + encodeURIComponent(flat));
-    showToast('已開啟 Google，複製純文字後返嚟貼上再撳套用排版');
+    setAwaitingGoogleClipboard(true);
+    showToast('請複製 Google 回覆，返嚟撳「貼上剪貼簿並排版」');
+  }
+
+  function pasteClipboardAndApply() {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+      showToast('請允許貼上，或手動貼純文字後撳套用排版');
+      return;
+    }
+    navigator.clipboard.readText().then(function (text) {
+      text = text == null ? '' : String(text);
+      if (!String(text).trim()) {
+        showToast('剪貼簿係空嘅');
+        return;
+      }
+      if (isSingleRecipeUrl(text)) {
+        showToast('請複製 Google 回覆入面嘅食譜文字，唔好淨係複製連結');
+        return;
+      }
+      if ($('fPasteRaw')) $('fPasteRaw').value = text;
+      setAwaitingGoogleClipboard(false);
+      applyPasteFromRaw();
+    }).catch(function () {
+      showToast('請允許貼上，或手動貼純文字後撳套用排版');
+    });
+  }
+
+  function maybeToastGoogleReturn() {
+    if (!awaitingGoogleClipboard) return;
+    if (document.visibilityState && document.visibilityState !== 'visible') return;
+    var sheet = $('formSheet');
+    if (!sheet || !sheet.classList.contains('open')) return;
+    if (googleReturnToastShown) return;
+    googleReturnToastShown = true;
+    showToast('複製咗就撳『貼上剪貼簿並排版』');
   }
 
   function applyParsedToForm(parsed) {
@@ -1314,6 +1369,7 @@ img{max-width:100%;display:block}
 
   function clearPasteRaw() {
     if ($('fPasteRaw')) $('fPasteRaw').value = '';
+    setAwaitingGoogleClipboard(false);
   }
 
   /* Public API for onclick backup */
@@ -1328,6 +1384,7 @@ img{max-width:100%;display:block}
     saveForm: function (e) { guardTap(saveForm)(e); },
     closeForm: function (e) { guardTap(closeForm)(e); },
     pasteViaGoogle: function (e) { guardTap(pasteViaGoogle)(e); },
+    pasteClipboardApply: function (e) { guardTap(pasteClipboardAndApply)(e); },
     applyPaste: function (e) { guardTap(applyPasteFromRaw)(e); },
     clearPaste: function (e) { guardTap(clearPasteRaw)(e); }
   };
@@ -1350,8 +1407,15 @@ img{max-width:100%;display:block}
     bindTap($('btnFormSave'), saveForm);
     bindTap($('btnFormSaveFooter'), saveForm);
     bindTap($('btnPasteViaGoogle'), pasteViaGoogle);
+    bindTap($('btnPasteClipboardApply'), pasteClipboardAndApply);
     bindTap($('btnApplyPaste'), applyPasteFromRaw);
     bindTap($('btnClearPaste'), clearPasteRaw);
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') maybeToastGoogleReturn();
+    });
+    window.addEventListener('pageshow', function () { maybeToastGoogleReturn(); });
+    window.addEventListener('focus', function () { maybeToastGoogleReturn(); });
 
     bindTap($('btnAiClose'), closeAiSheet);
     bindTap($('btnAiGemini'), goMyGemini);
