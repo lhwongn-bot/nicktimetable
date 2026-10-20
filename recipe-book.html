@@ -92,9 +92,22 @@ img{max-width:100%;display:block}
 
 .card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:12px;text-align:left;width:100%;display:flex;gap:12px;align-items:flex-start;
+  padding:12px;text-align:left;width:100%;display:flex;gap:8px;align-items:stretch;
   touch-action:manipulation;
 }
+.card-main{
+  flex:1;min-width:0;display:flex;gap:12px;align-items:flex-start;
+  text-align:left;padding:0;min-height:var(--tap);touch-action:manipulation;
+}
+.card-main:active{opacity:.75}
+.card-remove{
+  flex-shrink:0;align-self:center;
+  min-width:40px;min-height:40px;padding:0 10px;
+  border-radius:10px;font-size:.8125rem;font-weight:500;
+  color:var(--danger);background:transparent;
+  touch-action:manipulation;
+}
+.card-remove:active{opacity:.75;background:rgba(179,58,58,.08)}
 .card-thumb-placeholder{
   width:72px;height:72px;border-radius:10px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;color:#fff;
@@ -658,7 +671,8 @@ img{max-width:100%;display:block}
       var meta = [];
       if (r.cookTime) meta.push(escapeHtml(r.cookTime));
       if (r.servings) meta.push(escapeHtml(r.servings));
-      return '<button type="button" class="card" data-id="' + escapeHtml(r.id) + '">' +
+      return '<div class="card" data-id="' + escapeHtml(r.id) + '">' +
+        '<button type="button" class="card-main" data-id="' + escapeHtml(r.id) + '">' +
         thumbPlaceholder(r) +
         '<div class="card-body">' +
         (recipeCategory(r) ? '<div class="card-cat">' + escapeHtml(recipeCategory(r)) + '</div>' : '') +
@@ -667,7 +681,9 @@ img{max-width:100%;display:block}
         (tags.length ? '<div class="tags">' + tags.map(function (t) {
           return '<span class="tag">' + escapeHtml(t) + '</span>';
         }).join('') + '</div>' : '') +
-        '</div></button>';
+        '</div></button>' +
+        '<button type="button" class="card-remove" data-id="' + escapeHtml(r.id) + '" aria-label="移除">移除</button>' +
+        '</div>';
     }).join('');
   }
 
@@ -1425,8 +1441,18 @@ img{max-width:100%;display:block}
     $('recipeForm').addEventListener('submit', function (e) { e.preventDefault(); saveForm(); });
 
     $('recipeList').addEventListener('click', function (e) {
-      var card = e.target.closest('.card');
-      if (card) openDetail(card.getAttribute('data-id'));
+      var rm = e.target.closest('.card-remove');
+      if (rm) {
+        e.preventDefault();
+        e.stopPropagation();
+        askDelete(rm.getAttribute('data-id'));
+        return;
+      }
+      var main = e.target.closest('.card-main');
+      if (main) {
+        openDetail(main.getAttribute('data-id'));
+        return;
+      }
     });
 
     $('catBar').addEventListener('click', function (e) {
