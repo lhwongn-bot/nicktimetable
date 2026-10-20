@@ -318,12 +318,12 @@ img{max-width:100%;display:block}
     <form id="recipeForm" autocomplete="off">
       <input type="hidden" id="fId">
       <div class="field" id="pastePanel">
-        <label for="fPasteRaw">貼連結 → Google 整理 → 套用排版</label>
-        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜連結，撳「Google 整理連結」&#10;② 喺 Google 複製回覆，返嚟撳「貼上剪貼簿並排版」（或手動貼再「套用排版」）"></textarea>
-        <p class="hint">流程：先貼單一 https 食譜連結，撳「Google 整理連結」叫 Google AI Mode 抽出純文字；喺 Google 複製回覆後返嚟，撳「貼上剪貼簿並排版」一次完成貼上同排版（Safari 需要你撳一下，唔會全自動）。亦可手動貼純文字後撳「套用排版」。支援已標好「名稱／材料／步驟／烹調時間／份量／備註」嘅文字。套用排版唔會再自動讀取網頁。</p>
-        <div id="pasteAwaitBanner" class="paste-await-banner" role="status">返嚟後：先複製 Google 回覆，再撳下面掣</div>
+        <label for="fPasteRaw">貼連結 → 整理 → 套用排版</label>
+        <textarea id="fPasteRaw" rows="6" placeholder="① 貼上食譜／IG／TikTok 連結，撳「整理連結」&#10;② 複製回覆返嚟，撳「貼上剪貼簿並排版」（或手動貼再「套用排版」）&#10;短片：會開 Gemini，請上載影片或貼 caption"></textarea>
+        <p class="hint">流程：貼單一 https 連結，撳「整理連結」。一般食譜網頁仍用 Google AI Mode 抽出純文字；IG／TikTok／YouTube Shorts 等短片會開 Gemini（請上載短片或貼 caption／說明），因為登入牆同片內內容 Google 未必讀到。複製回覆後返嚟撳「貼上剪貼簿並排版」（Safari 需要你撳一下）。亦可手動貼純文字後撳「套用排版」。支援「名稱／材料／步驟／烹調時間／份量／備註」。套用排版唔會再自動讀取網頁。</p>
+        <div id="pasteAwaitBanner" class="paste-await-banner" role="status">返嚟後：先複製回覆，再撳下面掣</div>
         <div class="field-actions">
-          <button type="button" class="btn btn-primary" id="btnPasteViaGoogle" onclick="RecipeBook&&RecipeBook.pasteViaGoogle(event)">Google 整理連結</button>
+          <button type="button" class="btn btn-primary" id="btnPasteViaGoogle" onclick="RecipeBook&&RecipeBook.pasteViaGoogle(event)">整理連結</button>
           <button type="button" class="btn btn-ghost" id="btnPasteClipboardApply" onclick="RecipeBook&&RecipeBook.pasteClipboardApply(event)">貼上剪貼簿並排版</button>
           <button type="button" class="btn btn-ghost" id="btnApplyPaste" onclick="RecipeBook&&RecipeBook.applyPaste(event)">套用排版</button>
           <button type="button" class="btn btn-ghost" id="btnClearPaste" onclick="RecipeBook&&RecipeBook.clearPaste(event)">清除</button>
@@ -1289,6 +1289,50 @@ img{max-width:100%;display:block}
     }
   }
 
+  /** Short-video / social video URLs → Gemini (not Google AI Mode). */
+  function isSocialVideoUrl(url) {
+    if (!url) return false;
+    try {
+      var u = new URL(url);
+      var host = (u.hostname || '').toLowerCase().replace(/^www\./, '');
+      var path = (u.pathname || '').toLowerCase();
+      if (host === 'instagram.com' || host === 'instagr.am' || host.endsWith('.instagram.com')) {
+        return true;
+      }
+      if (host === 'tiktok.com' || host === 'vm.tiktok.com' || host.endsWith('.tiktok.com')) {
+        return true;
+      }
+      if (host === 'youtu.be') {
+        return true;
+      }
+      if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+        if (path.indexOf('/shorts') === 0) return true;
+      }
+      if (host === 'facebook.com' || host === 'fb.watch' || host.endsWith('.facebook.com') ||
+          host === 'fb.com' || host.endsWith('.fb.com')) {
+        if (path.indexOf('/reel') === 0 || path.indexOf('/reels/') === 0) return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function buildGeminiVideoRecipePrompt(url) {
+    return [
+      '請根據我稍後上載嘅短片（或我貼上嘅 IG caption／說明文字）整理成純文字食譜。',
+      '必須包含以下標籤段落（用呢啲標籤開頭）：',
+      '名稱：',
+      '材料：（每行一種材料）',
+      '步驟：（用數字編號）',
+      '烹調時間：',
+      '份量：',
+      '備註：（可選）',
+      '唔好用 markdown、唔好加廣告或額外說明，淨係輸出食譜純文字。',
+      '參考連結（頁面可能有登入牆，請以我上載嘅短片／caption 為準）：' + url
+    ].join('\n');
+  }
+
   function setAwaitingGoogleClipboard(on) {
     awaitingGoogleClipboard = !!on;
     if (on) googleReturnToastShown = false;
@@ -1304,6 +1348,18 @@ img{max-width:100%;display:block}
     var url = extractSingleRecipeUrl(raw);
     if (!url) {
       showToast('請先貼上食譜連結');
+      return;
+    }
+    if (isSocialVideoUrl(url)) {
+      var geminiPrompt = buildGeminiVideoRecipePrompt(url);
+      setAwaitingGoogleClipboard(true);
+      copyText(geminiPrompt).then(function () {
+        showToast('已複製說明並開啟 Gemini：請上載短片或貼上 caption，再複製回覆返嚟');
+        setTimeout(function () { openUrl(GEMINI_WEB); }, 350);
+      }).catch(function () {
+        showToast('未能自動複製；已開啟 Gemini，請手動貼上說明後上載短片');
+        setTimeout(function () { openUrl(GEMINI_WEB); }, 350);
+      });
       return;
     }
     var prompt =
@@ -1328,7 +1384,7 @@ img{max-width:100%;display:block}
         return;
       }
       if (isSingleRecipeUrl(text)) {
-        showToast('請複製 Google 回覆入面嘅食譜文字，唔好淨係複製連結');
+        showToast('請複製回覆入面嘅食譜文字，唔好淨係複製連結');
         return;
       }
       if ($('fPasteRaw')) $('fPasteRaw').value = text;
@@ -1507,7 +1563,7 @@ img{max-width:100%;display:block}
       return;
     }
     if (isSingleRecipeUrl(raw)) {
-      showToast('請先撳「Google 整理連結」，再將純文字貼返嚟套用排版');
+      showToast('請先撳「整理連結」，再將純文字貼返嚟套用排版');
       return;
     }
     var parsedText = parseRecipePlainText(raw);
