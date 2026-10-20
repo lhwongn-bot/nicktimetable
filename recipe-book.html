@@ -147,6 +147,9 @@ img{max-width:100%;display:block}
 }
 .field textarea{min-height:120px;resize:vertical;line-height:1.55}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.field-actions .btn{flex:1;min-width:110px}
+#fPasteRaw{min-height:140px;font-size:.9375rem}
 
 .detail-title{font-size:1.375rem;font-weight:700;margin-bottom:10px}
 .detail-section{margin-top:20px}
@@ -295,6 +298,15 @@ img{max-width:100%;display:block}
   <div class="sheet-body">
     <form id="recipeForm" autocomplete="off">
       <input type="hidden" id="fId">
+      <div class="field" id="pastePanel">
+        <label for="fPasteRaw">貼上純文字自動排版</label>
+        <textarea id="fPasteRaw" rows="6" placeholder="貼上整段食譜文字，例如名稱、材料、步驟…"></textarea>
+        <p class="hint">支援常見標題如「材料／用料」「步驟／做法」「時間」「份量」「備註」。撳「套用排版」會填入下面欄位，可再人手改。</p>
+        <div class="field-actions">
+          <button type="button" class="btn btn-primary" id="btnApplyPaste" onclick="RecipeBook&&RecipeBook.applyPaste(event)">套用排版</button>
+          <button type="button" class="btn btn-ghost" id="btnClearPaste" onclick="RecipeBook&&RecipeBook.clearPaste(event)">清除</button>
+        </div>
+      </div>
       <div class="field"><label for="fTitle">名稱 *</label><input type="text" id="fTitle" required placeholder="例如：番茄炒蛋" maxlength="120"></div>
       <div class="field">
         <label>相片（最多 3 張）</label>
@@ -753,6 +765,7 @@ img{max-width:100%;display:block}
     $('formTitle').textContent = id ? '編輯食譜' : '新增食譜';
     var r = id ? recipes.find(function (x) { return x.id === id; }) : null;
     $('fId').value = r ? r.id : '';
+    if ($('fPasteRaw')) $('fPasteRaw').value = '';
     fillCategoryDatalist();
     $('fCategory').value = r ? (recipeCategory(r) || '') : '';
     $('fTitle').value = r ? (r.title || '') : '';
@@ -1059,6 +1072,238 @@ img{max-width:100%;display:block}
     openUrl(GOOGLE_AI_MODE + encodeURIComponent(flat));
   }
 
+
+  /* --- paste plain text → structured form --- */
+  function parseRecipePlainText(text) {
+    var out = {};
+    if (text == null) return out;
+    var raw = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (!raw.trim()) return out;
+
+    var SECTION_MAP = [
+      { keys: ['名稱', '菜名', '食譜名稱', 'title'], field: 'title' },
+      { keys: ['材料', '用料', '食材', '配料', 'ingredients'], field: 'ingredients' },
+      { keys: ['步驟', '做法', '烹調方法', '作法', '方法', 'steps', 'directions'], field: 'steps' },
+      { keys: ['備註', '小貼士', '提示', '注意', 'tips', 'notes'], field: 'notes' },
+      { keys: ['烹調時間', '需時', '時間', 'cook time', 'cooktime'], field: 'cookTime' },
+      { keys: ['份量', '人份', '幾多人', 'servings'], field: 'servings' },
+      { keys: ['標籤', 'tags'], field: 'tags' },
+      { keys: ['分類', 'category'], field: 'category' }
+    ];
+
+    function matchSectionHeader(line) {
+      var t = line.trim();
+      if (!t) return null;
+      for (var i = 0; i < SECTION_MAP.length; i++) {
+        var entry = SECTION_MAP[i];
+        for (var j = 0; j < entry.keys.length; j++) {
+          var k = entry.keys[j];
+          var reExact = new RegExp('^' + escapeRegExp(k) + '\\s*[:：]?\\s*$', 'i');
+          var reInline = new RegExp('^' + escapeRegExp(k) + '\\s*[:：]\\s*(.+)$', 'i');
+          if (reExact.test(t)) return { field: entry.field, inline: '' };
+          var m = t.match(reInline);
+          if (m) return { field: entry.field, inline: m[1].trim() };
+        }
+      }
+      return null;
+    }
+
+    function escapeRegExp(s) {
+      return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function stripBullet(line) {
+      return line.replace(/^\s*[-•＊*·‧▪◦]\s*/, '').trim();
+    }
+
+    function normalizeStepLine(line) {
+      var t = line.trim();
+      var m = t.match(/^[\(（]?\s*(\d+)\s*[\)）]\s*[,.、．:：]?\s*(.*)$/);
+      if (!m) m = t.match(/^(\d+)\s*[.、．\)）:：]\s*(.*)$/);
+      if (m) {
+        var body = (m[2] || '').trim();
+        return body ? (m[1] + '. ' + body) : (m[1] + '.');
+      }
+      return t;
+    }
+
+    function isNumberedLine(line) {
+      var t = line.trim();
+      return /^[\(（]?\s*\d+\s*[\)）]\s*[,.、．:：]?/.test(t) || /^\d+\s*[.、．\)）:：]/.test(t);
+    }
+
+    function cleanBlock(lines, mode) {
+      var cleaned = [];
+      for (var i = 0; i < lines.length; i++) {
+        var L = lines[i].replace(/\s+$/, '');
+        if (!L.trim()) {
+          if (cleaned.length && cleaned[cleaned.length - 1] !== '') cleaned.push('');
+          continue;
+        }
+        if (mode === 'ingredients') cleaned.push(stripBullet(L));
+        else if (mode === 'steps') cleaned.push(normalizeStepLine(L));
+        else cleaned.push(L.trim());
+      }
+      while (cleaned.length && !cleaned[0].trim()) cleaned.shift();
+      while (cleaned.length && !cleaned[cleaned.length - 1].trim()) cleaned.pop();
+      return cleaned.join('\n');
+    }
+
+    var lines = raw.split('\n');
+    var sections = [];
+    var hasHeader = false;
+    for (var li = 0; li < lines.length; li++) {
+      var hit = matchSectionHeader(lines[li]);
+      if (hit) {
+        hasHeader = true;
+        sections.push({ field: hit.field, inline: hit.inline, start: li, lines: [] });
+        if (hit.inline) sections[sections.length - 1].lines.push(hit.inline);
+      } else if (sections.length) {
+        sections[sections.length - 1].lines.push(lines[li]);
+      }
+    }
+
+    if (hasHeader) {
+      // preamble before first header may be title
+      var firstHeaderIdx = -1;
+      for (var s0 = 0; s0 < lines.length; s0++) {
+        if (matchSectionHeader(lines[s0])) { firstHeaderIdx = s0; break; }
+      }
+      if (firstHeaderIdx > 0) {
+        var preamble = lines.slice(0, firstHeaderIdx).map(function (x) { return x.trim(); }).filter(Boolean);
+        if (preamble.length === 1 && preamble[0].length <= 40 && !out.title) {
+          out.title = preamble[0];
+        } else if (preamble.length && !out.title) {
+          var cand = preamble[0];
+          if (cand.length <= 40) out.title = cand;
+        }
+      }
+
+      var buckets = {};
+      sections.forEach(function (sec) {
+        var mode = (sec.field === 'ingredients') ? 'ingredients' : (sec.field === 'steps' ? 'steps' : 'plain');
+        var body = cleanBlock(sec.lines, mode);
+        if (!body) return;
+        if (sec.field === 'title' || sec.field === 'cookTime' || sec.field === 'servings' || sec.field === 'tags' || sec.field === 'category') {
+          // single-line meta: take first non-empty line / join lightly
+          var one = body.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join('，');
+          if (one) buckets[sec.field] = one;
+        } else {
+          if (buckets[sec.field]) buckets[sec.field] += '\n' + body;
+          else buckets[sec.field] = body;
+        }
+      });
+      Object.keys(buckets).forEach(function (k) {
+        if (buckets[k]) out[k] = buckets[k];
+      });
+      return out;
+    }
+
+    // --- no section headers: heuristic ---
+    var nonempty = lines.map(function (x) { return x.replace(/\s+$/, ''); });
+    // drop leading/trailing empties
+    while (nonempty.length && !nonempty[0].trim()) nonempty.shift();
+    while (nonempty.length && !nonempty[nonempty.length - 1].trim()) nonempty.pop();
+    if (!nonempty.length) return out;
+
+    var first = nonempty[0].trim();
+    var rest = nonempty.slice(1);
+    if (first.length <= 40 && !/^[-•＊*·]/.test(first) && !isNumberedLine(first)) {
+      out.title = first;
+    } else {
+      rest = nonempty.slice();
+    }
+
+    var content = rest.filter(function (x, idx, arr) {
+      // keep structure but we'll re-process
+      return true;
+    });
+
+    var numbered = content.filter(function (x) { return x.trim() && isNumberedLine(x); });
+    var contentNonEmpty = content.filter(function (x) { return x.trim(); });
+
+    if (numbered.length >= 2) {
+      // split: lines before first numbered → ingredients; numbered+after → steps
+      var firstNum = -1;
+      for (var i = 0; i < content.length; i++) {
+        if (content[i].trim() && isNumberedLine(content[i])) { firstNum = i; break; }
+      }
+      if (firstNum > 0) {
+        var ingLines = content.slice(0, firstNum);
+        var ing = cleanBlock(ingLines, 'ingredients');
+        if (ing) out.ingredients = ing;
+      }
+      var stepPart = content.slice(Math.max(0, firstNum));
+      var st = cleanBlock(stepPart, 'steps');
+      if (st) out.steps = st;
+      return out;
+    }
+
+    if (contentNonEmpty.length >= 2) {
+      var avg = contentNonEmpty.reduce(function (a, b) { return a + b.trim().length; }, 0) / contentNonEmpty.length;
+      if (avg < 40) {
+        var ing2 = cleanBlock(content, 'ingredients');
+        if (ing2) out.ingredients = ing2;
+      } else {
+        // mix: short lines ingredients, long → steps/notes
+        var shortL = [];
+        var longL = [];
+        content.forEach(function (ln) {
+          if (!ln.trim()) return;
+          if (ln.trim().length < 40 && !/[。！？.!?]$/.test(ln.trim())) shortL.push(ln);
+          else longL.push(ln);
+        });
+        if (shortL.length >= 2 && longL.length) {
+          out.ingredients = cleanBlock(shortL, 'ingredients');
+          out.steps = cleanBlock(longL, 'steps');
+        } else if (avg < 55 && contentNonEmpty.every(function (x) { return x.trim().length < 60; })) {
+          out.ingredients = cleanBlock(content, 'ingredients');
+        } else {
+          out.steps = cleanBlock(content, 'steps');
+        }
+      }
+    } else if (contentNonEmpty.length === 1) {
+      var only = contentNonEmpty[0].trim();
+      if (only.length < 40) out.ingredients = stripBullet(only);
+      else out.notes = only;
+    }
+
+    return out;
+  }
+
+  function applyPasteFromRaw() {
+    var raw = $('fPasteRaw') ? $('fPasteRaw').value : '';
+    var parsed = parseRecipePlainText(raw);
+    var keys = ['title', 'category', 'tags', 'cookTime', 'servings', 'ingredients', 'steps', 'notes'];
+    var map = {
+      title: 'fTitle', category: 'fCategory', tags: 'fTags', cookTime: 'fCookTime',
+      servings: 'fServings', ingredients: 'fIngredients', steps: 'fSteps', notes: 'fNotes'
+    };
+    var filled = 0;
+    keys.forEach(function (k) {
+      var v = parsed[k];
+      if (v == null || String(v).trim() === '') return;
+      var el = $(map[k]);
+      if (!el) return;
+      el.value = String(v);
+      filled++;
+    });
+    var titleNow = $('fTitle') && $('fTitle').value.trim();
+    if (!parsed.title && !titleNow) {
+      showToast('搵唔到名稱，請檢查文字或人手填寫名稱');
+      return;
+    }
+    if (!filled) {
+      showToast('未能辨識內容，請檢查文字格式');
+      return;
+    }
+    showToast('已套用排版，可再修改');
+  }
+
+  function clearPasteRaw() {
+    if ($('fPasteRaw')) $('fPasteRaw').value = '';
+  }
+
   /* Public API for onclick backup */
   function add(e) { closeMenu(); openForm(null); }
   function menu(e) { toggleMenu(); }
@@ -1069,7 +1314,9 @@ img{max-width:100%;display:block}
     menu: function (e) { guardTap(menu)(e); },
     askAi: function (e) { guardTap(askAi)(e); },
     saveForm: function (e) { guardTap(saveForm)(e); },
-    closeForm: function (e) { guardTap(closeForm)(e); }
+    closeForm: function (e) { guardTap(closeForm)(e); },
+    applyPaste: function (e) { guardTap(applyPasteFromRaw)(e); },
+    clearPaste: function (e) { guardTap(clearPasteRaw)(e); }
   };
 
   function wire() {
@@ -1090,6 +1337,8 @@ img{max-width:100%;display:block}
     bindTap($('btnFormCancelFooter'), closeForm);
     bindTap($('btnFormSave'), saveForm);
     bindTap($('btnFormSaveFooter'), saveForm);
+    bindTap($('btnApplyPaste'), applyPasteFromRaw);
+    bindTap($('btnClearPaste'), clearPasteRaw);
 
     bindTap($('btnAiClose'), closeAiSheet);
     bindTap($('btnAiGemini'), goMyGemini);
