@@ -180,6 +180,28 @@
   .center { text-align: center; }
   .mt { margin-top: 8px; }
   .mb { margin-bottom: 8px; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+    z-index: 80; padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #000; border: 2px solid #fff; padding: 16px;
+    max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .shop-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+  .shop-tabs button { flex: 1; padding: 10px; min-height: 40px; font-size: 0.9rem; }
+  .shop-tabs button.active { background: #fff; color: #000; }
+  .inv-row {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; border: 1px solid var(--border); padding: 8px; margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  .inv-row .info { flex: 1; }
+  .inv-row .meta { color: var(--muted); font-size: 0.8rem; }
+  .inv-row button { min-height: 40px; padding: 8px 10px; font-size: 0.85rem; width: auto; }
 </style>
 </head>
 <body>
@@ -216,6 +238,8 @@
     <div class="panel" id="town-flavor"></div>
     <div class="btn-grid">
       <button id="btn-rest">休息回復</button>
+      <button id="btn-shop">商店</button>
+      <button id="btn-bag">道具袋</button>
       <button id="btn-status">狀態／詞條</button>
       <button id="btn-fuse">融合詞條</button>
       <button id="btn-quests">接任務</button>
@@ -272,6 +296,7 @@
       <button id="btn-atk">攻擊</button>
       <button id="btn-def">防禦</button>
       <button id="btn-skill">用詞條技能</button>
+      <button id="btn-item">道具</button>
       <button id="btn-flee" class="danger">逃跑</button>
     </div>
     <div class="btn-grid one hidden" id="combat-next-wrap">
@@ -308,6 +333,47 @@
   </div>
 
 </div>
+
+  <!-- SHOP -->
+  <div id="screen-shop" class="screen">
+    <h2>雜貨商店</h2>
+    <div class="statline mb" id="shop-gold"></div>
+    <div class="shop-tabs">
+      <button type="button" id="tab-buy" class="active">買入</button>
+      <button type="button" id="tab-sell-item">賣道具</button>
+      <button type="button" id="tab-sell-trait">賣詞條</button>
+    </div>
+    <div id="shop-list" class="select-list"></div>
+    <button id="btn-shop-back">返回</button>
+  </div>
+
+  <!-- BAG -->
+  <div id="screen-bag" class="screen">
+    <h2>道具袋</h2>
+    <p class="statline mb">鎮內可用嘅道具喺呢度使用。</p>
+    <div id="bag-list" class="select-list"></div>
+    <button id="btn-bag-back">返回</button>
+  </div>
+
+  <!-- COMBAT ITEMS -->
+  <div id="screen-combat-items" class="screen">
+    <h2>戰鬥道具</h2>
+    <div id="combat-item-list"></div>
+    <button id="btn-combat-items-back">返回戰鬥</button>
+  </div>
+
+  <!-- LEVEL UP -->
+  <div id="screen-levelup" class="screen">
+    <h2>等級提升！</h2>
+    <div class="panel mb" id="levelup-info"></div>
+    <p class="mb">揀一項永久強化：</p>
+    <div class="btn-grid one">
+      <button id="btn-lu-vit" class="list-btn">體力<span class="desc">最大 HP +8，防禦 +1</span></button>
+      <button id="btn-lu-str" class="list-btn">力量<span class="desc">攻擊力（力量）+2</span></button>
+      <button id="btn-lu-agi" class="list-btn">敏捷<span class="desc">先攻／連擊機會提升</span></button>
+    </div>
+  </div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -430,6 +496,67 @@
     { a: "web_bind", b: "venom_fang", out: "venom_blade", hint: "蛛網縛 + 毒牙 → 毒刃" },
     { a: "goblin_blood", b: "rage_mark", out: "berserk_heart", hint: "哥布林血 + 狂怒印 → 狂心（需先有綠）" }
   ];
+
+
+  // ---------- Items ----------
+  var ITEMS = {
+    potion: {
+      id: "potion", name: "傷藥",
+      desc: "回復 25 HP。鎮內／戰鬥可用。",
+      buy: 20, sell: 8, use: "heal", val: 25, town: true, combat: true
+    },
+    hi_potion: {
+      id: "hi_potion", name: "高級傷藥",
+      desc: "回復 55 HP。鎮內／戰鬥可用。",
+      buy: 50, sell: 20, use: "heal", val: 55, town: true, combat: true
+    },
+    antidote: {
+      id: "antidote", name: "解毒劑",
+      desc: "解除中毒。戰鬥中最有用。",
+      buy: 15, sell: 6, use: "antidote", town: true, combat: true
+    },
+    smoke: {
+      id: "smoke", name: "煙霧彈",
+      desc: "本場戰鬥逃跑成功率大幅提升。",
+      buy: 25, sell: 10, use: "smoke", town: false, combat: true
+    },
+    whetstone: {
+      id: "whetstone", name: "砥石",
+      desc: "下一場戰鬥攻擊 +4（進戰時生效）。",
+      buy: 30, sell: 12, use: "buff_atk", val: 4, town: true, combat: false
+    },
+    amulet: {
+      id: "amulet", name: "護符",
+      desc: "下一場戰鬥防禦 +3（進戰時生效）。",
+      buy: 30, sell: 12, use: "buff_def", val: 3, town: true, combat: false
+    },
+    xp_scroll: {
+      id: "xp_scroll", name: "經驗書",
+      desc: "閱讀後獲得 18 點經驗。",
+      buy: 40, sell: 15, use: "xp", val: 18, town: true, combat: false
+    },
+    ration: {
+      id: "ration", name: "乾糧",
+      desc: "簡單充飢，回復 12 HP（僅鎮內）。",
+      buy: 10, sell: 4, use: "heal", val: 12, town: true, combat: false
+    }
+  };
+
+  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration"];
+
+  var TRAIT_SELL = { white: 15, green: 40, blue: 100, purple: 250 };
+
+  var QUEST_REWARDS = {
+    goblin:  { xp: 30, gold: 20, itemChance: 0.35 },
+    spider:  { xp: 45, gold: 32, itemChance: 0.4 },
+    slime:   { xp: 60, gold: 45, itemChance: 0.45 },
+    s1_l1:   { xp: 50, gold: 38, itemChance: 0.42 },
+    s1_l2:   { xp: 65, gold: 48, itemChance: 0.45 },
+    s1_l3:   { xp: 80, gold: 58, itemChance: 0.48 },
+    s1_l4:   { xp: 95, gold: 70, itemChance: 0.5 }
+  };
+
+  var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -654,15 +781,86 @@
       con: 5,
       baseHp: 40,
       hp: 40,
-      gold: 0,
+      gold: 30,
+      level: 1,
+      xp: 0,
+      xpToNext: 40,
+      levelDef: 0,
+      inventory: {},
+      buffAtk: 0,
+      buffDef: 0,
       traits: [],          // owned trait ids (can duplicate? no - unique instances as {uid, id})
       equipped: [null, null], // 2 slots
       fragments: 0,
       fragNeed: 5,
       cleared: {},
       introDone: false,
-      turn: 0
+      turn: 0,
+      pendingLevelUps: 0
     };
+  }
+
+  function migrateState(s) {
+    if (!s || typeof s !== "object") return s;
+    if (s.level == null) s.level = 1;
+    if (s.xp == null) s.xp = 0;
+    if (s.xpToNext == null) s.xpToNext = 30 + s.level * 25;
+    if (s.gold == null) s.gold = 0;
+    if (s.levelDef == null) s.levelDef = 0;
+    if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
+    if (s.buffAtk == null) s.buffAtk = 0;
+    if (s.buffDef == null) s.buffDef = 0;
+    if (s.pendingLevelUps == null) s.pendingLevelUps = 0;
+    if (s.fragments == null) s.fragments = 0;
+    if (s.fragNeed == null) s.fragNeed = 5;
+    if (!s.cleared) s.cleared = {};
+    if (!Array.isArray(s.traits)) s.traits = [];
+    if (!Array.isArray(s.equipped)) s.equipped = [null, null];
+    return s;
+  }
+
+  function restCost() {
+    return 8 + (state.level || 1) * 5;
+  }
+
+  function xpForNext(level) {
+    return 30 + level * 25;
+  }
+
+  function invCount(id) {
+    return (state.inventory && state.inventory[id]) || 0;
+  }
+
+  function addItem(id, n) {
+    n = n || 1;
+    if (!ITEMS[id]) return;
+    if (!state.inventory) state.inventory = {};
+    state.inventory[id] = (state.inventory[id] || 0) + n;
+  }
+
+  function takeItem(id, n) {
+    n = n || 1;
+    var c = invCount(id);
+    if (c < n) return false;
+    state.inventory[id] = c - n;
+    if (state.inventory[id] <= 0) delete state.inventory[id];
+    return true;
+  }
+
+  function randomRewardItem() {
+    // weight cheaper items higher
+    var pool = ITEM_REWARD_POOL.slice();
+    var weights = pool.map(function (id) {
+      var it = ITEMS[id];
+      return Math.max(1, 60 - (it.buy || 20));
+    });
+    var sum = weights.reduce(function (a, b) { return a + b; }, 0);
+    var r = Math.random() * sum;
+    for (var i = 0; i < pool.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return pool[i];
+    }
+    return pool[0];
   }
 
   function uid() {
@@ -700,6 +898,10 @@
       if (d.regen) s.regen += d.regen;
       if (d.fleeBonus) s.fleeBonus += d.fleeBonus;
     });
+    s.defBonus += (state.levelDef || 0);
+    if (combat && combat.battleBuffAtk) s.atk += combat.battleBuffAtk;
+    if (combat && combat.battleBuffDef) s.defBonus += combat.battleBuffDef;
+    if (combat && combat.smokeFlee) s.fleeBonus += 40;
     s.maxHp = state.baseHp + s.con * 3 + s.hpBonus;
     s.attack = 4 + s.str + s.atk;
     s.defense = Math.floor(s.con / 2) + s.defBonus;
@@ -752,7 +954,7 @@
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
-      state = JSON.parse(raw);
+      state = migrateState(JSON.parse(raw));
       return true;
     } catch (e) {
       return false;
@@ -776,6 +978,8 @@
     // starter gift
     addTrait("sharp_claw");
     state.equipped[0] = state.traits[0].uid;
+    addItem("potion", 2);
+    addItem("ration", 1);
     showIntro();
   }
 
@@ -813,10 +1017,15 @@
     showScreen("screen-town");
     var st = calcStats();
     if (state.hp > st.maxHp) state.hp = st.maxHp;
+    var rc = restCost();
     $("town-stats").innerHTML =
-      "<b>" + escapeHtml(state.name) + "</b>　HP " + state.hp + "/" + st.maxHp +
-      "　力" + st.str + " 敏" + st.agi + " 體" + st.con +
+      "<b>" + escapeHtml(state.name) + "</b>　Lv." + state.level +
+      "　HP " + state.hp + "/" + st.maxHp +
+      "　金 " + state.gold +
+      "<br>力" + st.str + " 敏" + st.agi + " 體" + st.con +
+      "　XP " + state.xp + "/" + state.xpToNext +
       "　碎片 " + state.fragments + "/" + state.fragNeed;
+    $("btn-rest").textContent = "休息回復（" + rc + "金）";
     var flavors = [
       "公會大廳煙味同汗味混埋一齊。任務板釘滿泛黃嘅紙條。",
       "窗外黑木林影晃動。有人講，林入面嘅詞條會『認人』。",
@@ -828,24 +1037,41 @@
     if (msg) {
       appendLog(log, msg, "sys");
     }
+    if (state.pendingLevelUps > 0) {
+      setTimeout(showLevelUp, 50);
+    }
   }
 
   function doRest() {
+    var cost = restCost();
+    if (state.gold < cost) {
+      toast("金錢不足（需要 " + cost + "）");
+      appendLog($("town-log"), "旅店老闆搖頭：「冇錢就喺屋簷底下蹲啦。」", "sys");
+      return;
+    }
     var st = calcStats();
+    if (state.hp >= st.maxHp) {
+      toast("HP 已滿，唔使休息");
+      return;
+    }
+    state.gold -= cost;
     state.hp = st.maxHp;
-    enterTown("你喺廉價旅店瞓咗一覺。體力回復。");
-    toast("HP 已回滿");
+    enterTown("你付咗 " + cost + " 金，喺旅店瞓咗一覺。體力回復。");
+    toast("休息 −" + cost + "金，HP 回滿");
   }
 
   function showStatus() {
     showScreen("screen-status");
     var st = calcStats();
     $("status-panel").innerHTML =
-      "<p><b>" + escapeHtml(state.name) + "</b></p>" +
-      "<p>HP " + state.hp + " / " + st.maxHp + "</p>" +
-      "<p>力量 " + st.str + "　敏捷 " + st.agi + "　體質 " + st.con + "</p>" +
+      "<p><b>" + escapeHtml(state.name) + "</b>　等級 " + state.level + "</p>" +
+      "<p>HP " + state.hp + " / " + st.maxHp + "　金錢 " + state.gold + "</p>" +
+      "<p>經驗 " + state.xp + " / " + state.xpToNext + "</p>" +
+      "<p>力量 " + st.str + "　敏捷 " + st.agi + "　體質 " + st.con +
+      (state.levelDef ? "　等級防禦 +" + state.levelDef : "") + "</p>" +
       "<p>攻擊力 " + st.attack + "　減傷 " + st.defense +
       (st.regen ? "　再生 +" + st.regen : "") + "</p>" +
+      "<p>下戰增益：攻 +" + (state.buffAtk || 0) + "　防 +" + (state.buffDef || 0) + "</p>" +
       "<p>詞條碎片 " + state.fragments + " / " + state.fragNeed + "（滿則隨機白詞條）</p>";
 
     var slots = $("equip-slots");
@@ -968,6 +1194,286 @@
     showFuse();
   }
 
+
+  // ---------- XP / Level ----------
+  function gainXp(amount) {
+    if (!amount || amount <= 0) return;
+    state.xp += amount;
+    while (state.xp >= state.xpToNext) {
+      state.xp -= state.xpToNext;
+      state.level += 1;
+      state.xpToNext = xpForNext(state.level);
+      state.pendingLevelUps = (state.pendingLevelUps || 0) + 1;
+    }
+  }
+
+  function showLevelUp() {
+    if (!state || state.pendingLevelUps <= 0) return;
+    showScreen("screen-levelup");
+    $("levelup-info").innerHTML =
+      "<p>你升到 <b>Lv." + state.level + "</b>！</p>" +
+      "<p class='statline'>剩餘可分配：" + state.pendingLevelUps + " 次</p>" +
+      "<p class='statline'>現況　力" + state.str + " 敏" + state.agi + " 體" + state.con +
+      "　HP上限相關 base " + state.baseHp + "　等級防禦 +" + (state.levelDef || 0) + "</p>";
+  }
+
+  function applyLevelChoice(kind) {
+    if (!state || state.pendingLevelUps <= 0) return;
+    if (kind === "vit") {
+      state.baseHp += 8;
+      state.levelDef = (state.levelDef || 0) + 1;
+      state.con += 1;
+      toast("體力強化：HP上限+8、防禦+1、體質+1");
+    } else if (kind === "str") {
+      state.str += 2;
+      toast("力量強化：力量+2");
+    } else if (kind === "agi") {
+      state.agi += 2;
+      toast("敏捷強化：敏捷+2（先攻／連擊）");
+    } else {
+      return;
+    }
+    state.pendingLevelUps -= 1;
+    var st = calcStats();
+    if (state.hp > 0 && state.hp < st.maxHp) {
+      // small heal on vit
+      if (kind === "vit") state.hp = Math.min(st.maxHp, state.hp + 8);
+    }
+    if (state.pendingLevelUps > 0) {
+      showLevelUp();
+    } else {
+      enterTown("等級強化完成。");
+    }
+  }
+
+  // ---------- Items use ----------
+  function useItem(id, fromCombat) {
+    var def = ITEMS[id];
+    if (!def) return false;
+    if (fromCombat && !def.combat) {
+      toast("呢樣唔能喺戰鬥用");
+      return false;
+    }
+    if (!fromCombat && !def.town) {
+      toast("呢樣要喺戰鬥先用得");
+      return false;
+    }
+    if (!takeItem(id, 1)) {
+      toast("冇呢樣道具");
+      return false;
+    }
+    var st = calcStats();
+    switch (def.use) {
+      case "heal":
+        var before = state.hp;
+        state.hp = Math.min(st.maxHp, state.hp + def.val);
+        toast(def.name + "：回復 " + (state.hp - before) + " HP");
+        break;
+      case "antidote":
+        if (fromCombat && combat) combat.playerPoison = 0;
+        toast("解毒劑生效");
+        break;
+      case "smoke":
+        if (combat) {
+          combat.smokeFlee = true;
+          toast("煙霧彈：逃跑更容易");
+        }
+        break;
+      case "buff_atk":
+        state.buffAtk = (state.buffAtk || 0) + def.val;
+        toast("砥石：下戰攻擊 +" + def.val);
+        break;
+      case "buff_def":
+        state.buffDef = (state.buffDef || 0) + def.val;
+        toast("護符：下戰防禦 +" + def.val);
+        break;
+      case "xp":
+        gainXp(def.val);
+        toast("經驗書：+" + def.val + " XP");
+        if (state.pendingLevelUps > 0) {
+          showLevelUp();
+          return true;
+        }
+        break;
+      default:
+        toast("無效道具");
+        addItem(id, 1);
+        return false;
+    }
+    return true;
+  }
+
+  // ---------- Shop / Bag ----------
+  var shopTab = "buy";
+
+  function showShop(tab) {
+    shopTab = tab || shopTab || "buy";
+    showScreen("screen-shop");
+    $("shop-gold").textContent = "持有金錢：" + state.gold;
+    ["tab-buy", "tab-sell-item", "tab-sell-trait"].forEach(function (id) {
+      $(id).classList.remove("active");
+    });
+    if (shopTab === "buy") $("tab-buy").classList.add("active");
+    else if (shopTab === "sell-item") $("tab-sell-item").classList.add("active");
+    else $("tab-sell-trait").classList.add("active");
+
+    var list = $("shop-list");
+    list.innerHTML = "";
+    if (shopTab === "buy") {
+      SHOP_ORDER.forEach(function (id) {
+        var it = ITEMS[id];
+        var row = document.createElement("div");
+        row.className = "inv-row";
+        row.innerHTML =
+          "<div class='info'><b>" + escapeHtml(it.name) + "</b>" +
+          " <span class='meta'>持有 " + invCount(id) + "</span>" +
+          "<div class='meta'>" + escapeHtml(it.desc) + "</div></div>";
+        var b = document.createElement("button");
+        b.textContent = "買 " + it.buy;
+        b.onclick = (function (itemId, price) {
+          return function () {
+            if (state.gold < price) { toast("金錢不足"); return; }
+            state.gold -= price;
+            addItem(itemId, 1);
+            toast("購入「" + ITEMS[itemId].name + "」");
+            showShop("buy");
+          };
+        })(id, it.buy);
+        row.appendChild(b);
+        list.appendChild(row);
+      });
+    } else if (shopTab === "sell-item") {
+      var keys = Object.keys(state.inventory || {}).filter(function (k) { return invCount(k) > 0 && ITEMS[k]; });
+      if (!keys.length) {
+        list.innerHTML = "<p class='statline'>冇可賣嘅道具。</p>";
+      } else {
+        keys.forEach(function (id) {
+          var it = ITEMS[id];
+          var row = document.createElement("div");
+          row.className = "inv-row";
+          row.innerHTML =
+            "<div class='info'><b>" + escapeHtml(it.name) + "</b> ×" + invCount(id) +
+            "<div class='meta'>售價 " + it.sell + " 金</div></div>";
+          var b = document.createElement("button");
+          b.textContent = "賣";
+          b.onclick = (function (itemId) {
+            return function () {
+              if (!takeItem(itemId, 1)) return;
+              state.gold += ITEMS[itemId].sell;
+              toast("賣出「" + ITEMS[itemId].name + "」+" + ITEMS[itemId].sell + "金");
+              showShop("sell-item");
+            };
+          })(id);
+          row.appendChild(b);
+          list.appendChild(row);
+        });
+      }
+    } else {
+      var unequipped = state.traits.filter(function (inst) {
+        return state.equipped.indexOf(inst.uid) < 0;
+      });
+      if (!unequipped.length) {
+        list.innerHTML = "<p class='statline'>冇未裝備詞條可賣。（裝備中嘅唔能賣）</p>";
+      } else {
+        unequipped.forEach(function (inst) {
+          var def = TRAITS[inst.id];
+          if (!def) return;
+          var price = TRAIT_SELL[def.rarity] || 10;
+          var row = document.createElement("div");
+          row.className = "inv-row rarity-" + def.rarity;
+          row.innerHTML =
+            "<div class='info'><span class='name'>" + escapeHtml(def.name) + "</span>" +
+            "<div class='meta'>" + escapeHtml(def.desc) + "　售價 " + price + "</div></div>";
+          var b = document.createElement("button");
+          b.textContent = "賣 " + price;
+          b.onclick = (function (u, p, n) {
+            return function () {
+              if (!confirm("確定賣出詞條「" + n + "」換 " + p + " 金？")) return;
+              removeTraitByUid(u);
+              state.gold += p;
+              toast("賣出詞條 +" + p + "金");
+              showShop("sell-trait");
+            };
+          })(inst.uid, price, def.name);
+          row.appendChild(b);
+          list.appendChild(row);
+        });
+      }
+    }
+  }
+
+  function showBag() {
+    showScreen("screen-bag");
+    var list = $("bag-list");
+    list.innerHTML = "";
+    var keys = Object.keys(state.inventory || {}).filter(function (k) { return invCount(k) > 0 && ITEMS[k]; });
+    if (!keys.length) {
+      list.innerHTML = "<p class='statline'>道具袋係空嘅。去商店睇睇？</p>";
+      return;
+    }
+    keys.forEach(function (id) {
+      var it = ITEMS[id];
+      var row = document.createElement("div");
+      row.className = "inv-row";
+      row.innerHTML =
+        "<div class='info'><b>" + escapeHtml(it.name) + "</b> ×" + invCount(id) +
+        "<div class='meta'>" + escapeHtml(it.desc) + "</div></div>";
+      if (it.town) {
+        var b = document.createElement("button");
+        b.textContent = "使用";
+        b.onclick = (function (itemId) {
+          return function () {
+            if (useItem(itemId, false)) {
+              if (state.pendingLevelUps > 0) return;
+              showBag();
+              // refresh stats toast already
+            }
+          };
+        })(id);
+        row.appendChild(b);
+      } else {
+        var note = document.createElement("span");
+        note.className = "meta";
+        note.textContent = "戰鬥用";
+        row.appendChild(note);
+      }
+      list.appendChild(row);
+    });
+  }
+
+  function showCombatItems() {
+    if (!combat || combat.over) return;
+    showScreen("screen-combat-items");
+    var list = $("combat-item-list");
+    list.innerHTML = "";
+    var keys = Object.keys(state.inventory || {}).filter(function (k) {
+      return invCount(k) > 0 && ITEMS[k] && ITEMS[k].combat;
+    });
+    if (!keys.length) {
+      list.innerHTML = "<p class='statline'>冇可用戰鬥道具。</p>";
+      return;
+    }
+    keys.forEach(function (id) {
+      var it = ITEMS[id];
+      var btn = document.createElement("button");
+      btn.className = "list-btn";
+      btn.innerHTML = escapeHtml(it.name) + " ×" + invCount(id) +
+        "<span class='desc'>" + escapeHtml(it.desc) + "</span>";
+      btn.onclick = (function (itemId) {
+        return function () {
+          if (!combat || combat.over) return;
+          if (!useItem(itemId, true)) return;
+          showScreen("screen-combat");
+          appendLog($("combat-log"), "你使用咗「" + ITEMS[itemId].name + "」。", "sys");
+          updateBars();
+          // using item spends the turn (except maybe — keep simple: spends turn)
+          afterPlayerAction();
+        };
+      })(id);
+      list.appendChild(btn);
+    });
+  }
+
   function showQuests() {
     showScreen("screen-quests");
     var list = $("quest-list");
@@ -978,10 +1484,12 @@
       var btn = document.createElement("button");
       btn.className = "list-btn";
       btn.disabled = locked;
+      var rw = QUEST_REWARDS[q.id];
+      var rewardHint = rw ? ("　獎：XP" + rw.xp + "/金" + rw.gold) : "";
       btn.innerHTML =
         escapeHtml(q.name) + (cleared ? " ✓" : "") +
         "<span class='desc'>" +
-        (locked ? "（需先完成上一關）" : escapeHtml(q.desc)) +
+        (locked ? "（需先完成上一關）" : escapeHtml(q.desc) + rewardHint) +
         "</span>";
       if (!locked) {
         btn.onclick = function () { startQuest(q); };
@@ -1000,7 +1508,11 @@
       enemyStun: 0,
       playerPoison: 0,
       guardHeal: false,
-      over: false
+      over: false,
+      wasCleared: !!state.cleared[q.id],
+      battleBuffAtk: 0,
+      battleBuffDef: 0,
+      smokeFlee: false
     };
     beginStage();
   }
@@ -1018,6 +1530,16 @@
     combat.defending = false;
     combat.guardHeal = false;
     combat.over = false;
+    // apply next-battle buffs once at first stage of a quest
+    if (combat.stage === 0) {
+      combat.battleBuffAtk = state.buffAtk || 0;
+      combat.battleBuffDef = state.buffDef || 0;
+      combat.smokeFlee = false;
+      if (state.buffAtk || state.buffDef) {
+        state.buffAtk = 0;
+        state.buffDef = 0;
+      }
+    }
     showScreen("screen-combat");
     $("combat-title").textContent = q.name + "（" + (combat.stage + 1) + "/" + q.stages.length + "）";
     $("enemy-name").textContent = "敵人：" + stage.name;
@@ -1026,7 +1548,50 @@
     $("combat-next-wrap").classList.add("hidden");
     updateBars();
     appendLog($("combat-log"), stage.flavor);
-    appendLog($("combat-log"), "戰鬥開始！", "sys");
+    var st0 = calcStats();
+    var buffMsg = [];
+    if (combat.battleBuffAtk) buffMsg.push("攻擊+" + combat.battleBuffAtk);
+    if (combat.battleBuffDef) buffMsg.push("防禦+" + combat.battleBuffDef);
+    if (buffMsg.length) appendLog($("combat-log"), "增益生效：" + buffMsg.join("、"), "sys");
+    appendLog($("combat-log"), "戰鬥開始！（敏捷 " + st0.agi + "）", "sys");
+    // 敏捷：降低敵方先制機率；低敏時敵較常偷襲
+    var enemyFirstChance = Math.max(0.02, 0.28 - st0.agi * 0.02);
+    combat.skipNextEnemy = false;
+    if (Math.random() < enemyFirstChance) {
+      appendLog($("combat-log"), combat.enemy.name + "憑速度搶先出手！（敏捷不足／對手迅捷）", "sys");
+      enemyStrikeOnly();
+      // 開場先制算作敵方呢一回合，玩家行動後唔再連打
+      if (combat && !combat.over) combat.skipNextEnemy = true;
+    } else {
+      appendLog($("combat-log"), "你憑敏捷佔得先機，可以先行動。", "sys");
+    }
+  }
+
+  function enemyStrikeOnly() {
+    if (!combat || combat.over) return;
+    if (combat.enemyStun > 0) {
+      combat.enemyStun--;
+      appendLog($("combat-log"), combat.enemy.name + "被束縛，無法行動！", "sys");
+      updateBars();
+      return;
+    }
+    var eatk = combat.enemy.atk + Math.floor(Math.random() * 3);
+    if (combat.quest.id === "spider" && Math.random() < 0.25) {
+      combat.playerPoison = Math.max(combat.playerPoison, 2);
+      appendLog($("combat-log"), combat.enemy.name + "的攻擊帶毒！", "sys");
+    }
+    var dmg = dealToPlayer(eatk);
+    appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。", "dmg");
+    if (combat.playerPoison > 0) {
+      state.hp -= 2;
+      combat.playerPoison--;
+      appendLog($("combat-log"), "你因中毒失去 2 HP。", "dmg");
+    }
+    updateBars();
+    if (state.hp <= 0) {
+      state.hp = 0;
+      onPlayerDown();
+    }
   }
 
   function updateBars() {
@@ -1083,6 +1648,13 @@
       combat.guardHeal = false;
     }
     // enemy turn
+    if (combat.skipNextEnemy) {
+      combat.skipNextEnemy = false;
+      appendLog($("combat-log"), "（敵方已用過先制，本回合不再攻擊）", "sys");
+      combat.defending = false;
+      updateBars();
+      return;
+    }
     if (combat.enemyStun > 0) {
       combat.enemyStun--;
       appendLog($("combat-log"), combat.enemy.name + "被束縛，無法行動！", "sys");
@@ -1162,20 +1734,42 @@
     combat.stage++;
     if (combat.stage >= combat.quest.stages.length) {
       // quest clear
-      state.cleared[combat.quest.id] = true;
+      var qid = combat.quest.id;
+      var qname = combat.quest.name;
+      var clearText = combat.quest.clearText;
+      state.cleared[qid] = true;
       var st = calcStats();
       state.hp = Math.min(state.hp + 10, st.maxHp);
+
+      var rw = QUEST_REWARDS[qid] || { xp: 25, gold: 15, itemChance: 0.3 };
+      var replay = !!combat.wasCleared;
+      if (replay) {
+        rw = { xp: Math.floor(rw.xp / 2), gold: Math.floor(rw.gold / 2), itemChance: rw.itemChance * 0.5 };
+      }
+      var gainedXp = rw.xp;
+      var gainedGold = rw.gold;
+      gainXp(gainedXp);
+      state.gold += gainedGold;
+      var itemGot = null;
+      if (Math.random() < rw.itemChance) {
+        itemGot = randomRewardItem();
+        addItem(itemGot, 1);
+      }
+
       showScreen("screen-result");
-      $("result-title").textContent = "任務完成：" + combat.quest.name;
+      $("result-title").textContent = "任務完成：" + qname;
       $("result-log").innerHTML = "";
-      appendLog($("result-log"), combat.quest.clearText);
-      appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、融合詞條，或接下一個委託。", "sys");
-      // Prologue (goblin/spider/slime) + Section levels: return to town.
-      // showWin() reserved for later section-finale; section levels (s1_l1–s1_l4/…) return to town — do not softlock.
-      var clearedName = combat.quest.name;
+      appendLog($("result-log"), clearText);
+      var rewardLine = "報酬：經驗 +" + gainedXp + "　金錢 +" + gainedGold;
+      if (itemGot) rewardLine += "　道具「" + ITEMS[itemGot].name + "」×1";
+      if (replay) rewardLine += "（再通關減半）";
+      appendLog($("result-log"), rewardLine, "loot");
+      appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、去商店，或接下一個委託。", "sys");
+      toast("+" + gainedXp + "XP　+" + gainedGold + "金" + (itemGot ? "　" + ITEMS[itemGot].name : ""));
+
       $("btn-result-ok").onclick = function () {
-        toast("完成：「" + clearedName + "」");
-        enterTown("完成咗「" + clearedName + "」。");
+        toast("完成：「" + qname + "」");
+        enterTown("完成咗「" + qname + "」。" + rewardLine);
       };
       combat = null;
     } else {
@@ -1201,9 +1795,9 @@
 
   function actAttack() {
     if (!combat || combat.over) return;
-    var raw = playerAttackPower() + Math.floor(Math.random() * 4);
-    // first strike mild bonus from agi
     var st = calcStats();
+    var raw = playerAttackPower() + Math.floor(Math.random() * 4);
+    // 敏捷：破綻一擊
     if (Math.random() * 20 < st.agi) {
       raw = Math.floor(raw * 1.15);
       appendLog($("combat-log"), "憑敏捷捉到破綻！", "sys");
@@ -1211,6 +1805,22 @@
     var dmg = dealToEnemy(raw);
     appendLog($("combat-log"), "你發動攻擊，造成 " + dmg + " 傷害。");
     updateBars();
+    if (combat.enemy.hp <= 0) {
+      onEnemyDown();
+      return;
+    }
+    // 敏捷：連擊／攻擊頻率 — agi 越高越常追加一次攻擊
+    var extraChance = Math.min(0.45, 0.05 + st.agi * 0.025);
+    if (Math.random() < extraChance) {
+      var raw2 = Math.floor(playerAttackPower() * 0.7) + Math.floor(Math.random() * 3);
+      var dmg2 = dealToEnemy(raw2);
+      appendLog($("combat-log"), "敏捷連擊！追加造成 " + dmg2 + " 傷害。", "loot");
+      updateBars();
+      if (combat.enemy.hp <= 0) {
+        onEnemyDown();
+        return;
+      }
+    }
     afterPlayerAction();
   }
 
@@ -1341,6 +1951,16 @@
       enterTown("你站喺公會大廳。從任務板開始啦。");
     };
     $("btn-rest").onclick = doRest;
+    $("btn-shop").onclick = function () { showShop("buy"); };
+    $("btn-bag").onclick = showBag;
+    $("btn-shop-back").onclick = function () { enterTown(); };
+    $("btn-bag-back").onclick = function () { enterTown(); };
+    $("tab-buy").onclick = function () { showShop("buy"); };
+    $("tab-sell-item").onclick = function () { showShop("sell-item"); };
+    $("tab-sell-trait").onclick = function () { showShop("sell-trait"); };
+    $("btn-lu-vit").onclick = function () { applyLevelChoice("vit"); };
+    $("btn-lu-str").onclick = function () { applyLevelChoice("str"); };
+    $("btn-lu-agi").onclick = function () { applyLevelChoice("agi"); };
     $("btn-status").onclick = showStatus;
     $("btn-status-back").onclick = function () { enterTown(); };
     $("btn-fuse").onclick = showFuse;
@@ -1358,8 +1978,10 @@
     $("btn-atk").onclick = actAttack;
     $("btn-def").onclick = actDefend;
     $("btn-skill").onclick = showSkillPick;
+    $("btn-item").onclick = showCombatItems;
     $("btn-flee").onclick = actFlee;
     $("btn-skill-back").onclick = function () { showScreen("screen-combat"); };
+    $("btn-combat-items-back").onclick = function () { showScreen("screen-combat"); };
     $("btn-combat-next").onclick = combatNext;
     $("btn-result-ok").onclick = function () { enterTown(); };
     $("btn-restart-lose").onclick = restart;
