@@ -2257,9 +2257,9 @@
     },
     mire_sight: {
       id: "mire_sight", name: "沼眼晶片",
-      desc: "本戰敏＋6；若有霧則清霧 1 層並回 10 HP。探霧沼必備。",
+      desc: "本戰敏＋6；若有霧則清霧 1 層並回 10 HP。已移出貨架（廢堡輪換優先突入貨）。",
       buy: 48, sell: 19, use: "mire_sight", town: false, combat: true, agi: 6, val: 10,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     bridge_coil: {
       id: "bridge_coil", name: "斷橋錨索",
@@ -2315,6 +2315,12 @@
       desc: "本戰攻＋5、下次穿甲；霧／夜中再造成約 15 物傷。影潮廢堡突入用。",
       buy: 54, sell: 22, use: "ruin_wedge", town: false, combat: true, atk: 5, dmg: 15,
       minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    ruin_torch: {
+      id: "ruin_torch", name: "廢堡引火炬",
+      desc: "清霧 1 層、本戰攻＋4；霧／夜中再造成約 16 物傷。影潮廢堡突入照明。",
+      buy: 54, sell: 21, use: "ruin_torch", town: false, combat: true, atk: 4, dmg: 16,
+      minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
 
@@ -2349,7 +2355,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -5275,6 +5281,23 @@
           var note = "廢堡破門楔：攻＋" + (def.atk || 5) + "、下次穿甲";
           if (hasField("fog") || hasField("night")) {
             var d = dealToEnemy(def.dmg || 15);
+            note += "、霧／夜中傷 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "ruin_torch":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var note = "廢堡引火炬：攻＋" + (def.atk || 4);
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (def.atk || 4);
+          if (hasField("fog") && combat.field && combat.field.fog) {
+            combat.field.fog = Math.max(0, combat.field.fog - 1);
+            if (combat.field.fog <= 0) delete combat.field.fog;
+            note += "、霧薄 1 層";
+          }
+          if (hasField("fog") || hasField("night")) {
+            var d = dealToEnemy(def.dmg || 16);
             note += "、霧／夜中傷 " + d;
           }
           toast(note);
