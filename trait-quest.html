@@ -1296,7 +1296,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=2 OF=5  （2C：自動存檔標示＋開局流派；2B／2A＋批次1–4保留；2026-10-30）
+  // Progress: SECTION=2 LEVEL=2 OF=5  （技能道具批次：debug+3詞條+2道具；2026-10-30 21:40 HKT）
   var SAVE_KEY = "traitQuest_v1";
   var LEGACY_KEY = "traitQuest_legacy_v1";
   var SAVE_VERSION = 1;
@@ -1637,6 +1637,25 @@
       id: "unyielding", name: "不屈意志", rarity: "purple",
       desc: "技能：致死留1",
       con: 3, hp: 15, defBonus: 2, skill: { name: "不屈意志", desc: "本戰致死時留1HP一次", type: "survive", val: 1 }
+    },
+    // ---- 原創批次 2026-10-30 21:40 HKT（精神波動／西林影潮）----
+    spirit_ripple: {
+      id: "spirit_ripple", name: "精神漣漪", rarity: "green",
+      desc: "每回合回 2；技能：精神波輕療",
+      regen: 2, hp: 8,
+      skill: { name: "精神漣漪", cost: 0, desc: "即時回復 14 HP；日間再＋5", type: "heal", val: 14 }
+    },
+    echo_shade: {
+      id: "echo_shade", name: "回音殘影", rarity: "green",
+      desc: "敏捷 +3；技能：殘影閃",
+      agi: 3,
+      skill: { name: "殘影閃", cost: 0, desc: "完全閃避下次攻擊", type: "dodge_next", val: 1 }
+    },
+    tide_brand: {
+      id: "tide_brand", name: "影潮烙印", rarity: "blue",
+      desc: "攻擊 +3；技能：烙印破绽",
+      atk: 3, agi: 1,
+      skill: { name: "影潮烙印", cost: 0, desc: "標記敵人：後續傷害↑", type: "mark", val: 3 }
     }
   };
 
@@ -1732,7 +1751,10 @@
     perfect_dodge: ["shadow"],
     backstab: ["shadow", "beast"],
     last_stand: ["beast", "fire"],
-    unyielding: ["beast"]
+    unyielding: ["beast"],
+    spirit_ripple: ["shadow"],
+    echo_shade: ["shadow"],
+    tide_brand: ["shadow", "beast"]
   };
 
   /**
@@ -2190,7 +2212,7 @@
       desc: "清霧一半並暴擊＋14；對影敵額外 8 傷。",
       buy: 44, sell: 17, use: "west_flare_dust", town: false, combat: true, val: 14, dmg: 8,
       minSection: 2, rarity: 2, staple: false, weight: 8
-    }    ,
+    },
     mire_sight: {
       id: "mire_sight", name: "沼眼晶片",
       desc: "本戰敏＋6；若有霧則清霧 1 層並回 10 HP。探霧沼必備。",
@@ -2214,6 +2236,19 @@
       desc: "本戰敵攻－5；濕潤／泥沼中再造成約 14 物傷並暈 1。斷橋防線。",
       buy: 48, sell: 18, use: "span_spike", town: false, combat: true, val: 5, dmg: 14,
       minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    // ---- 原創批次 2026-10-30 21:40 HKT（入庫＋輪換；唔加常駐、唔撐爆貨架）----
+    spirit_tea: {
+      id: "spirit_tea", name: "靈波清茶",
+      desc: "回復 38 HP。西林茶攤熬嘅精神波動清茶；鎮內／戰鬥可用。",
+      buy: 34, sell: 13, use: "heal", val: 38, town: true, combat: true,
+      minSection: 2, rarity: 2, staple: false, weight: 7
+    },
+    west_mist_silk: {
+      id: "west_mist_silk", name: "西霧繭絲",
+      desc: "本戰敏＋5；若有霧則清霧 1 層。影潮織女抽嘅霧絲。",
+      buy: 46, sell: 18, use: "west_mist_silk", town: false, combat: true, agi: 5,
+      minSection: 2, rarity: 2, staple: false, weight: 8
     }
   };
 
@@ -2247,7 +2282,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "spirit_tea", "west_mist_silk"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -2881,9 +2916,14 @@
   }
 
   function randomRewardItem() {
+    // 任務掉落唔受 shop:false 限制（shop:false 只係唔上貨架）；只睇資料存在＋節解鎖
+    function rewardEligible(id) {
+      var it = ITEMS[id];
+      return !!(it && (it.minSection || 1) <= currentSection());
+    }
     var pool = (currentSection() >= 2 ? ITEM_REWARD_POOL_S2 : ITEM_REWARD_POOL_S1).slice();
-    pool = pool.filter(function (id) { return ITEMS[id] && itemUnlocked(id); });
-    if (!pool.length) pool = ITEM_REWARD_POOL.slice();
+    pool = pool.filter(rewardEligible);
+    if (!pool.length) pool = ITEM_REWARD_POOL.filter(rewardEligible);
     var weights = pool.map(function (id) {
       var it = ITEMS[id];
       return Math.max(1, 70 - (it.buy || 20));
@@ -5051,11 +5091,24 @@
           }
           var before = state.hp;
           state.hp = Math.min(st.maxHp, state.hp + (def.val || 22));
-          combat.battleAtk = (combat.battleAtk || 0) + (def.atk || 4);
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (def.atk || 4);
           note += "、回 " + (state.hp - before);
           if (hasField("wet")) {
             combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
             note += "、濕中暈 1";
+          }
+          toast(note);
+        })();
+        break;
+      case "west_mist_silk":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 5);
+          var note = "西霧繭絲：敏＋" + (def.agi || 5);
+          if (hasField("fog") && combat.field && combat.field.fog) {
+            combat.field.fog = Math.max(0, combat.field.fog - 1);
+            if (combat.field.fog <= 0) delete combat.field.fog;
+            note += "、霧薄 1 層";
           }
           toast(note);
         })();
