@@ -2211,7 +2211,7 @@
       id: "gorge_jerky", name: "西峽燻肉",
       desc: "回 36 HP，並下戰攻＋4。鎮內／戰鬥。",
       buy: 40, sell: 16, use: "gorge_jerky", val: 36, buff: 4, town: true, combat: true,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     echo_bell: {
       id: "echo_bell", name: "峽谷回聲鈴",
@@ -2303,6 +2303,12 @@
       desc: "本戰敏＋6；濕潤／泥沼中下次穿甲並造成約 12 物傷。斷橋求援跨縫用。",
       buy: 50, sell: 20, use: "bridge_hook", town: false, combat: true, agi: 6, dmg: 12,
       minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rescue_ladder: {
+      id: "rescue_ladder", name: "求援纜梯",
+      desc: "本戰護甲＋10、敏＋4；濕潤／泥沼中再回復約 14 HP。斷橋求援攀援用。",
+      buy: 52, sell: 21, use: "rescue_ladder", town: false, combat: true, val: 10, agi: 4, heal: 14,
+      minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
 
@@ -2331,12 +2337,13 @@
     s1_l4:   { xp: 95, gold: 70, itemChance: 0.5 },
     s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 },
     s2_l1:   { xp: 135, gold: 100, itemChance: 0.52 },
-    s2_l2:   { xp: 150, gold: 112, itemChance: 0.54 }
+    s2_l2:   { xp: 150, gold: 112, itemChance: 0.54 },
+    s2_l3:   { xp: 165, gold: 125, itemChance: 0.56 }
   };
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -2416,6 +2423,15 @@
       greenChance: 0.25,
       blueChance: 0.09,
       fragChance: 0.56
+    },
+    s2_l3: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "rage_mark", "slime_core", "web_bind"],
+      blue: ["cloak_shade", "shadow_step", "venom_blade", "blade_dance"],
+      whiteChance: 0.3,
+      greenChance: 0.26,
+      blueChance: 0.1,
+      fragChance: 0.57
     }
   };
 
@@ -2662,6 +2678,24 @@
       ],
       need: "s2_l1",
       clearText: "哨魂散成濕霧，你喺瞭望架釘低第二枚公會標記，抄低南向斷橋路徑。接待員蓋章：「西林影潮·第2關——探路完成。下一個委託：斷橋鎮求援。影潮已咬住橋柱。」"
+    },
+    {
+      id: "s2_l3",
+      name: "斷橋鎮·求援",
+      desc: "第二節·西林影潮其三。格蘭公會急委：沿霧沼南向泥路赴斷橋鎮，接應鎮民求援燈號，穩定橋柱防線，並查清影潮有冇咬住橋心。",
+      startField: { wet: 6, fog: 5, mud: 2 },
+      stages: [
+        { name: "橋隙濕影", hp: 80, atk: 17, def: 3,
+          flavor: "斷橋北端橋板缺一大塊。縫隙裏湧出濕潮影絲，踩低一塊橋板就作響——像有人用橋柱當鼓面在敳。" },
+        { name: "裂柱攀影", hp: 104, atk: 20, def: 4,
+          flavor: "半倒橋柱上攀住半透明攀影，手指插進石縫。水気沿柱流；遠處鎮內燈火一明一暗，像求援信號被染短。" },
+        { name: "求援偽聲", hp: 130, atk: 22, def: 5,
+          flavor: "橋面中段風裏有人喊「救命……」——走近才發現係影潮播出嘅偽聲。聲源處站起一團帶鐘聲輪廓嘅影，嘴裏複讀鎮民名單。" },
+        { name: "斷橋潮影", hp: 152, atk: 24, def: 6,
+          flavor: "橋心裂縫昇起一團濃影，形狀像舊橋神主祠，卻流著影潮口音。「霧沼哨站……你來晚了。鎮民……還在廢堡那邊喊。」擊敗它後，南向廢堡雲霧裂開一線，露出影潮廢堡的破門。" }
+      ],
+      need: "s2_l2",
+      clearText: "潮影散成水霧與鐘聲。你在橋柱釘低第三枚公會標記，接走幾戶鎮民過橋，抄低廢堡方向。接待員蓋章：「西林影潮·第3關——求援完成。下一個委託：影潮廢堡突入。影潮已在廢墓肚裡聚。」"
     }
   ];
 
@@ -5212,6 +5246,21 @@
           toast(note);
         })();
         break;
+      case "rescue_ladder":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var arm = def.val || 10;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 4);
+          var note = "求援纜梯：護甲＋" + arm + "、敏＋" + (def.agi || 4);
+          if (hasField("wet") || hasField("mud")) {
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + (def.heal || 14));
+            note += "、濕／泥中回 " + (state.hp - before);
+          }
+          toast(note);
+        })();
+        break;
       default:
         toast("無效道具");
         addItem(id, 1);
@@ -5799,6 +5848,13 @@
       var drag = 2 + Math.floor(Math.random() * 3);
       state.hp -= drag;
       appendLog($("combat-log"), combat.enemy.name + "捲起泥霧拖住你的腳步，額外 " + drag + " 傷害！", "dmg");
+      eatk = eatk + 1;
+    }
+    // 西林影潮·斷橋求援：橋面晃動（濕潮偶發額外傷）
+    if (combat.quest.id === "s2_l3" && /橋|濕|影|求援|偽聲/.test(combat.enemy.name) && Math.random() < 0.25) {
+      var sway = 2 + Math.floor(Math.random() * 4);
+      state.hp -= sway;
+      appendLog($("combat-log"), combat.enemy.name + "震動橋面，你站不穩，額外 " + sway + " 傷害！", "dmg");
       eatk = eatk + 1;
     }
     return eatk;
