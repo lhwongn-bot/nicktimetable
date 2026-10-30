@@ -2165,7 +2165,7 @@
       id: "ash_charm", name: "餘煙護符",
       desc: "下戰防＋5；進戰時若有霧則額外防＋2。",
       buy: 42, sell: 16, use: "ash_charm", val: 5, fogDef: 2, town: true, combat: false,
-      minSection: 2, rarity: 2, staple: false, weight: 7
+      minSection: 2, rarity: 2, staple: false, weight: 7, shop: false
     },
     void_thread: {
       id: "void_thread", name: "虛空絲線",
@@ -2207,6 +2207,12 @@
       id: "rescue_beacon", name: "求援烽火",
       desc: "清霧 1 層、回 22 HP，本戰攻＋4；濕潤再暈敵 1。斷橋求援信號。",
       buy: 52, sell: 20, use: "rescue_beacon", town: false, combat: true, val: 22, atk: 4,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    span_spike: {
+      id: "span_spike", name: "橋隙拒釘",
+      desc: "本戰敵攻－5；濕潤／泥沼中再造成約 14 物傷並暈 1。斷橋防線。",
+      buy: 48, sell: 18, use: "span_spike", town: false, combat: true, val: 5, dmg: 14,
       minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
@@ -5017,6 +5023,19 @@
           if (hasField("wet") || hasField("fog")) {
             combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
             note += "、濕／霧中暈 1";
+          }
+          toast(note);
+        })();
+        break;
+      case "span_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, def.val || 5);
+          var note = "橋隙拒釘：敵攻－" + (def.val || 5);
+          if (hasField("wet") || hasField("mud")) {
+            var d = dealToEnemy(def.dmg || 14);
+            combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+            note += "、濕／泥中傷" + d + "並暈 1";
           }
           toast(note);
         })();
