@@ -314,7 +314,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=1 LEVEL=2 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
+  // Progress: SECTION=1 LEVEL=3 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -468,6 +468,13 @@
       whiteChance: 0.38,
       greenChance: 0.2,
       fragChance: 0.52
+    },
+    s1_l3: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "web_bind", "slime_core", "rage_mark"],
+      whiteChance: 0.36,
+      greenChance: 0.22,
+      fragChance: 0.54
     }
   };
 
@@ -567,6 +574,35 @@
       ],
       need: "s1_l1",
       clearText: "你標記咗安全路線返格蘭。公會接待員睇完草圖：「邊陲村恰達嗰邊有人求援——下一個委託紙，應該就係嗰度。」"
+    },
+    {
+      id: "s1_l3",
+      name: "邊陲村·恰達",
+      desc: "格蘭公會收到恰達村求援：村口連日有怪影夜襲，牲口失蹤。要你去村邊清場，順便打聽廢墟方向嘅傳聞。",
+      stages: [
+        {
+          name: "飢餓野犬",
+          hp: 52, atk: 12, def: 2,
+          flavor: "泥路通向矮木柵欄。幾隻肋骨突出嘅野犬圍住翻倒嘅糧車，低吼著擋住去路。村內有人喊：「唔好打死晒——留一隻餵雞都得！」"
+        },
+        {
+          name: "柵欄夜盜",
+          hp: 68, atk: 14, def: 3,
+          flavor: "夜盜戴住破布面罩，從柵欄缺口鑽出，刀尖有鏽。「傳聞話夏嵐廢墟嗰邊有人影——我哋只係趁亂搵食，唔關我事。」"
+        },
+        {
+          name: "稻草怨偶",
+          hp: 85, atk: 16, def: 4,
+          flavor: "田埂上幾具稻草人忽然轉身。縫線眼睛滲黑汁，手臂揮出乾草鞭。遠處山脊似有黑影披風掠過——一閃就冇。"
+        },
+        {
+          name: "恰達影襲者",
+          hp: 105, atk: 18, def: 5,
+          flavor: "村口廣場中央，披破斗篷嘅影襲者踏碎燈籠。「恰達只係過路站。真正嘅路……喺夏嵐廢墟。」佢抬刀時，斗篷邊角黑得唔自然——唔係布，似係影。"
+        }
+      ],
+      need: "s1_l2",
+      clearText: "影襲者潰散後，村長塞你一袋乾糧：「多謝。夏嵐廢墟喺東面山坳——自從黑影出沒，冇人敢近。公會若再派人，記得帶火把。」"
     }
   ];
 
@@ -1099,7 +1135,7 @@
       appendLog($("result-log"), combat.quest.clearText);
       appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、融合詞條，或接下一個委託。", "sys");
       // Prologue (goblin/spider/slime) + Section levels: return to town.
-      // showWin() reserved for later section-finale; section levels (s1_l1/s1_l2/…) return to town — do not softlock.
+      // showWin() reserved for later section-finale; section levels (s1_l1/s1_l2/s1_l3/…) return to town — do not softlock.
       var clearedName = combat.quest.name;
       $("btn-result-ok").onclick = function () {
         toast("完成：「" + clearedName + "」");
