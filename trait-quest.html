@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="combat-nospeed-202610310210">
-<!-- tq-build: combat-nospeed-202610310210 | remove 1x/2x/skip; wider right actions -->
+<meta name="tq-build" content="party-balance-202610310234">
+<!-- tq-build: party-balance-202610310234 | AP/def formula/enemy packs+AOE/mental feedback; no 1x2x -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1471,6 +1471,21 @@
   .party-card .btn-row { display: flex; flex-wrap: wrap; gap: 6px; }
   .party-card .btn-row button { flex: 1 1 120px; min-height: 40px; }
 
+  .ap-hud {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin: 4px 0 6px; padding: 6px 10px;
+    background: #121820; border: 1px solid #2a3a4a; border-radius: 4px;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem;
+  }
+  .ap-hud b { color: #7ec8ff; font-size: 1.05rem; }
+  .ap-hud .ap-hint { color: var(--muted); font-size: 0.75rem; }
+  #ally-action-row { margin-top: 6px; }
+  #ally-action-row button { font-size: 0.78rem; }
+  .party-chip.stun { border-color: #ab47bc; box-shadow: 0 0 6px rgba(171,71,188,0.35); }
+  .party-chip.clickable { cursor: pointer; }
+  .party-chip.clickable:hover { border-color: #66bb6a; }
+
+
 
 </style>
 </head>
@@ -1554,7 +1569,7 @@
   <!-- PARTY -->
   <div id="screen-party" class="screen">
     <h2>組隊／同伴</h2>
-    <p class="statline mb">詞條（精神波動）只裝備喺<strong>主角</strong>。同伴靠固定技能同成長率作戰；最多同時出戰 2 人。</p>
+    <p class="statline mb">詞條（精神波動）只裝備喺<strong>主角</strong>。同伴靠固定技能同成長率作戰；最多同時出戰 2 人。<br>戰鬥每回合全隊共 <b>3 AP</b>——要分配畀主角／隊友。隊友倒下會精神反噬；戰後唔自動滿血，要返鎮旅館治療。</p>
     <div id="party-active-line" class="panel mb"></div>
     <div id="party-list"></div>
     <div class="btn-grid">
@@ -1702,10 +1717,14 @@
       <div class="party-chip empty" id="party-chip-0"></div>
       <div class="party-chip empty" id="party-chip-1"></div>
     </div>
+    <div class="ap-hud" id="ap-hud" aria-live="polite">
+      <span>行動點 AP：<b id="ap-n">3</b>/3</span>
+      <span class="ap-hint">普攻1・大招2・隊友技1–2・要分配</span>
+    </div>
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build:combat-nospeed-202610310210 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build:party-balance-202610310234 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -1713,12 +1732,14 @@
       </div>
       <div class="battle-actions-wrap" aria-label="戰鬥操作">
         <div class="btn-grid battle-actions" id="combat-actions">
-          <button id="btn-atk">攻擊</button>
-          <button id="btn-def">防禦</button>
-          <button id="btn-skill">詞條技能</button>
-          <button id="btn-item">道具</button>
-          <button id="btn-flee" class="danger">逃跑</button>
+          <button id="btn-atk">攻擊（1AP）</button>
+          <button id="btn-def">防禦（1AP）</button>
+          <button id="btn-skill">詞條大招（2AP）</button>
+          <button id="btn-item">道具（1AP）</button>
+          <button id="btn-flee" class="danger">逃跑（1AP）</button>
+          <button id="btn-end-turn">結束回合</button>
         </div>
+        <div class="btn-grid" id="ally-action-row" aria-label="隊友行動"></div>
         <div class="btn-grid one soft-hidden" id="combat-next-wrap">
           <button class="primary" id="btn-combat-next">繼續</button>
         </div>
@@ -2520,10 +2541,13 @@
     var el = $("combat-status-hint");
     if (!el || !combat) return;
     var bits = [];
+    if (combat.ap != null) bits.push("AP " + combat.ap + "/" + AP_PER_TURN);
     if (combat.defending) bits.push("防禦姿勢");
+    if ((combat.playerStun || 0) > 0) bits.push("眩暈×" + combat.playerStun);
     if (combat.playerPoison > 0) bits.push("中毒×" + combat.playerPoison);
     if (combat.enemyPoison > 0) bits.push("敵中毒×" + combat.enemyPoison);
     if (combat.enemyStun > 0) bits.push("敵束縛");
+    if (combat.enemy && combat.enemy.pierce) bits.push("敵破甲" + Math.round(combat.enemy.pierce * 100) + "%");
     if (combat.invuln) bits.push("相位無敵");
     if (combat.guardNext) bits.push("影子替身");
     if (combat.battleBuffAtk) bits.push("攻+" + combat.battleBuffAtk);
@@ -3119,9 +3143,9 @@
       name: "哥布林洞窟",
       desc: "公會最低級委託。清掉洞窟入面嘅哥布林。報酬微薄，但適合新人練手。",
       stages: [
-        { name: "瘦弱哥布林", hp: 28, atk: 6, def: 1, flavor: "洞窟入口傳來嘈雜聲。一隻瘦弱哥布林舉住生鏽匕首衝出嚟。" },
-        { name: "哥布林戰士", hp: 40, atk: 9, def: 2, flavor: "深入少少，有隻裝備比較齊嘅哥布林擋住去路。" },
-        { name: "哥布林頭目", hp: 55, atk: 12, def: 3, flavor: "洞穴最入面，頭目坐喺一堆破銅爛鐵上面，雙眼發紅。" }
+        { name: "瘦弱哥布林", hp: 48, atk: 8, def: 1, pack: 2, ai: "brute", pierce: 0, flavor: "洞窟入口傳來嘈雜聲。一隻瘦弱哥布林舉住生鏽匕首衝出嚟。" },
+        { name: "哥布林戰士", hp: 68, atk: 12, def: 2, pack: 2, ai: "brute", pierce: 0, flavor: "深入少少，有隻裝備比較齊嘅哥布林擋住去路。" },
+        { name: "哥布林頭目", hp: 94, atk: 16, def: 3, pack: 1, ai: "aoe", pierce: 0, flavor: "洞穴最入面，頭目坐喺一堆破銅爛鐵上面，雙眼發紅。" }
       ],
       unlock: true,
       clearText: "你拎住頭目嘅耳朵返到公會。接待員淡淡咁蓋咗個章：「下一個委託喺蛛巢。小心啲。」"
@@ -3131,10 +3155,10 @@
       name: "黑木蛛巢",
       desc: "森林深處嘅蛛巢。傳聞有冒險者隊喺度失蹤——隊長臨走前對隊員笑得好奇怪。",
       stages: [
-        { name: "幼蛛", hp: 32, atk: 8, def: 1, flavor: "蛛絲黏住腳踝。幾隻幼蛛從樹幹後面爬出嚟。" },
-        { name: "毒蛛", hp: 48, atk: 11, def: 2, flavor: "毒液滴落葉上發出嗤聲。成蛛盯住你。" },
-        { name: "蛛后", hp: 70, atk: 14, def: 3, flavor: "巢穴中央，巨大嘅蛛后緩緩轉身。角落有半舊嘅冒險者徽章……隊長款。" },
-        { name: "影蛛護衛", hp: 50, atk: 13, def: 2, flavor: "蛛后倒下後，護衛蛛從暗處撲出。你感覺到類似『背叛』嘅敵意——唔係蛛，而係某種印記。" }
+        { name: "幼蛛", hp: 54, atk: 11, def: 1, pack: 2, ai: "brute", pierce: 0, flavor: "蛛絲黏住腳踝。幾隻幼蛛從樹幹後面爬出嚟。" },
+        { name: "毒蛛", hp: 82, atk: 15, def: 2, pack: 2, ai: "control", pierce: 0, flavor: "毒液滴落葉上發出嗤聲。成蛛盯住你。" },
+        { name: "蛛后", hp: 119, atk: 19, def: 3, pack: 1, ai: "control", pierce: 0.15, flavor: "巢穴中央，巨大嘅蛛后緩緩轉身。角落有半舊嘅冒險者徽章……隊長款。" },
+        { name: "影蛛護衛", hp: 85, atk: 18, def: 2, pack: 1, ai: "assassin", pierce: 0, flavor: "蛛后倒下後，護衛蛛從暗處撲出。你感覺到類似『背叛』嘅敵意——唔係蛛，而係某種印記。" }
       ],
       need: "goblin",
       clearText: "你燒咗蛛巢一角。公會說史萊姆洞窟有異常魔力反應，願意接嘅人不多。"
@@ -3144,10 +3168,10 @@
       name: "史萊姆洞窟",
       desc: "最深處嘅委託。史萊姆異常增殖，有人話同『詞條暴走』有關。完成呢個，你就唔再係純新人。",
       stages: [
-        { name: "綠史萊姆", hp: 36, atk: 9, def: 2, flavor: "黏液反光。一隻綠史萊姆一彈一彈靠近。" },
-        { name: "酸史萊姆", hp: 52, atk: 13, def: 3, flavor: "酸性霧氣令喉嚨發癢。大隻酸史萊姆堵住通道。" },
-        { name: "鐵皮史萊姆", hp: 75, atk: 12, def: 6, flavor: "表面硬化如鐵。普通刀刃幾乎削唔入。" },
-        { name: "詞條核心體", hp: 95, atk: 16, def: 4, flavor: "洞窟最底，一團半透明物質浮住——入面隱約有文字形狀嘅光。呢個就係異常嘅源頭。" }
+        { name: "綠史萊姆", hp: 61, atk: 12, def: 2, pack: 2, ai: "brute", pierce: 0, flavor: "黏液反光。一隻綠史萊姆一彈一彈靠近。" },
+        { name: "酸史萊姆", hp: 88, atk: 18, def: 3, pack: 2, ai: "control", pierce: 0, flavor: "酸性霧氣令喉嚨發癢。大隻酸史萊姆堵住通道。" },
+        { name: "鐵皮史萊姆", hp: 128, atk: 16, def: 6, pack: 1, ai: "aoe", pierce: 0.15, flavor: "表面硬化如鐵。普通刀刃幾乎削唔入。" },
+        { name: "詞條核心體", hp: 162, atk: 22, def: 4, pack: 1, ai: "aoe", pierce: 0.25, flavor: "洞窟最底，一團半透明物質浮住——入面隱約有文字形狀嘅光。呢個就係異常嘅源頭。" }
       ],
       need: "spider",
       clearText: "核心潰散成碎光。你感覺詞條槽隱隱發熱——成長還未完，但呢一片森林，暫時安靜咗。"
@@ -3159,22 +3183,26 @@
       stages: [
         {
           name: "草編靶傀",
-          hp: 42, atk: 10, def: 2,
+          hp: 71, atk: 14, def: 2,
+          pack: 2, ai: "brute", pierce: 0,
           flavor: "格蘭鎮城牆外，演習場鋪住沙。一具草編靶傀抬起木臂——公會師傅隔空喊：「當佢係真怪！唔好收力！」"
         },
         {
           name: "演習狼犬",
-          hp: 56, atk: 12, def: 2,
+          hp: 95, atk: 16, def: 2,
+          pack: 2, ai: "brute", pierce: 0,
           flavor: "鐵鏈一鬆，灰毛狼犬撲近。旁邊有人咬住煙斗：「北窟嗰邊成日有怪響，演習先當熱身啦。」"
         },
         {
           name: "試煉兵·銅盾",
-          hp: 70, atk: 14, def: 3,
+          hp: 119, atk: 19, def: 3,
+          pack: 1, ai: "aoe", pierce: 0,
           flavor: "銅牌試煉兵抬起圓盾：「傳聞話鄰國邊界出咗黑影披風——你聽過未？邊打邊答都得。」"
         },
         {
           name: "監考官·鐵腕",
-          hp: 84, atk: 15, def: 4,
+          hp: 143, atk: 20, def: 4,
+          pack: 1, ai: "aoe", pierce: 0,
           flavor: "監考官踏入場中央，鐵護腕反光。「及格線係企到最後。及格之後……北窟嘅委託紙已經寫好一半。」"
         }
       ],
@@ -3188,22 +3216,26 @@
       stages: [
         {
           name: "濕石洞蝠",
-          hp: 48, atk: 11, def: 2,
+          hp: 82, atk: 15, def: 2,
+          pack: 2, ai: "assassin", pierce: 0,
           flavor: "北窟入口涼氣撲面。水珠滴落石壁，回音一層疊一層。幾隻濕翼洞蝠撲過頭頂，尖嘯刺耳。"
         },
         {
           name: "岩隙蜥蜴",
-          hp: 62, atk: 13, def: 3,
+          hp: 105, atk: 18, def: 3,
+          pack: 1, ai: "brute", pierce: 0.15,
           flavor: "通道轉窄，腳下青苔滑溜。一條岩隙蜥蜴從縫隙躥出，尾巴拍石「啪」一聲，回音好似有人應咗句。"
         },
         {
           name: "回音石衛",
-          hp: 78, atk: 15, def: 4,
+          hp: 133, atk: 20, def: 4,
+          pack: 1, ai: "aoe", pierce: 0.22,
           flavor: "半身石像擋路——唔係雕刻，係自己郁。石衛每踩一步，洞穴就答一句悶響。深處似有黑布一閃……未睇清就冇咗。"
         },
         {
           name: "北窟石傀",
-          hp: 95, atk: 17, def: 5,
+          hp: 162, atk: 23, def: 5,
+          pack: 1, ai: "aoe", pierce: 0.22,
           flavor: "探路最深點，石傀撐住塌半邊嘅拱門。傀身裂縫滲出冷氣；傳聞話再入面先有『影披』蹤跡——呢次夠膽探到呢度已經交差。"
         }
       ],
@@ -3217,22 +3249,26 @@
       stages: [
         {
           name: "飢餓野犬",
-          hp: 52, atk: 12, def: 2,
+          hp: 88, atk: 16, def: 2,
+          pack: 2, ai: "brute", pierce: 0,
           flavor: "泥路通向矮木柵欄。幾隻肋骨突出嘅野犬圍住翻倒嘅糧車，低吼著擋住去路。村內有人喊：「唔好打死晒——留一隻餵雞都得！」"
         },
         {
           name: "柵欄夜盜",
-          hp: 68, atk: 14, def: 3,
+          hp: 116, atk: 19, def: 3,
+          pack: 1, ai: "brute", pierce: 0.15,
           flavor: "夜盜戴住破布面罩，從柵欄缺口鑽出，刀尖有鏽。「傳聞話夏嵐廢墟嗰邊有人影——我哋只係趁亂搵食，唔關我事。」"
         },
         {
           name: "稻草怨偶",
-          hp: 85, atk: 16, def: 4,
+          hp: 144, atk: 22, def: 4,
+          pack: 1, ai: "aoe", pierce: 0.22,
           flavor: "田埂上幾具稻草人忽然轉身。縫線眼睛滲黑汁，手臂揮出乾草鞭。遠處山脊似有黑影披風掠過——一閃就冇。"
         },
         {
           name: "恰達影襲者",
-          hp: 105, atk: 18, def: 5,
+          hp: 178, atk: 24, def: 5,
+          pack: 1, ai: "assassin", pierce: 0.22,
           flavor: "村口廣場中央，披破斗篷嘅影襲者踏碎燈籠。「恰達只係過路站。真正嘅路……喺夏嵐廢墟。」佢抬刀時，斗篷邊角黑得唔自然——唔係布，似係影。"
         }
       ],
@@ -3246,22 +3282,26 @@
       stages: [
         {
           name: "崩廳塵蝠",
-          hp: 56, atk: 13, def: 2,
+          hp: 95, atk: 18, def: 2,
+          pack: 2, ai: "assassin", pierce: 0,
           flavor: "東面山坳風乾得刺骨。廢墟大門塌咗一半，石階積滿灰。幾隻灰翼塵蝠從裂縫撲出，翼尖帶住舊日壁畫嘅粉屑。"
         },
         {
           name: "碎柱石衛",
-          hp: 74, atk: 15, def: 3,
+          hp: 126, atk: 20, def: 3,
+          pack: 1, ai: "brute", pierce: 0.15,
           flavor: "中央大廳柱斷成斜面。半身石衛從碎礫底下撐起，護腕刻住褪色家徽——唔似魔物，似守墓人。腳步一響，遠處似有布料窸窣。"
         },
         {
           name: "殘響影侍",
-          hp: 92, atk: 17, def: 4,
+          hp: 156, atk: 23, def: 4,
+          pack: 1, ai: "assassin", pierce: 0.22,
           flavor: "走廊牆上浮住淡影，跟人形差唔多，但冇面孔。影侍抬手時，空氣變冷；牆縫滲出一句低語：「……披風……還未到……」——像有人故意留低嘅痕跡。"
         },
         {
           name: "夏嵐影遺",
-          hp: 115, atk: 19, def: 5,
+          hp: 196, atk: 26, def: 5,
+          pack: 1, ai: "assassin", pierce: 0.22,
           flavor: "調查最深處，祭台殘座上面蹲住一團濃影。佢唔似完整生物，更似被撕落嘅斗篷邊角——黑得發亮，邊緣仍在顫。擊敗佢之後，地上留住一道向西嘅足跡……似係有人特意引你睇。"
         }
       ],
@@ -3275,22 +3315,26 @@
       stages: [
         {
           name: "峽口影哨",
-          hp: 62, atk: 14, def: 3,
+          hp: 105, atk: 19, def: 3,
+          pack: 2, ai: "assassin", pierce: 0,
           flavor: "夏嵐西面峽口風割面。石壁上掛住半截黑布，布紋會自己郁。影哨從裂縫踏出，刀尖無反光——似係影铸成嘅。"
         },
         {
           name: "雙層披影",
-          hp: 88, atk: 17, def: 4,
+          hp: 150, atk: 23, def: 4,
+          pack: 1, ai: "assassin", pierce: 0.15,
           flavor: "通道轉彎，兩層斗篷重疊站起。外層係布，內層係濃煙。恰達村長講過嘅「唔係布，似係影」——而家近距離睇，果然。"
         },
         {
           name: "夜梟執刀",
-          hp: 110, atk: 20, def: 5,
+          hp: 187, atk: 27, def: 5,
+          pack: 1, ai: "aoe", pierce: 0.3,
           flavor: "峽口平台中央，戴鳥喙面具嘅執刀者轉身。面具後冇眼，只有兩點冷光。「格蘭……北窟……恰達……夏嵐——你跟足晒啲足跡。正正就係我想你嚟嘅路。」"
         },
         {
           name: "黑影披風",
-          hp: 145, atk: 23, def: 6,
+          hp: 246, atk: 31, def: 6,
+          pack: 1, ai: "aoe", pierce: 0.3,
           flavor: "夜梟面具碎落，斗篷自行鼓起——入面無人。黑影披風張開如翼，峽口瞬間變夜。北窟閃過嘅黑布、廢墟低語「披風還未到」、西向足跡——全部係佢撕落嚟嘅誘餌。節末頭目就係呢件會走嘅影。"
         }
       ],
@@ -3305,22 +3349,26 @@
       stages: [
         {
           name: "餘煙影絲",
-          hp: 68, atk: 15, def: 3,
+          hp: 116, atk: 20, def: 3,
+          pack: 2, ai: "assassin", pierce: 0.2,
           flavor: "峽口平台仲留住一灘冷煙。煙絲自行扭成細線，勒住碎石——似係披風撕落嘅邊角，仲未肯散。"
         },
         {
           name: "峽壁夜蝠",
-          hp: 88, atk: 18, def: 4,
+          hp: 150, atk: 24, def: 4,
+          pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "石壁縫裡撲出灰黑夜蝠，翼膜映住極夜冷光。濃霧令腳步聲鈍掉；遠處西面林梢，似有更深嘅影潮在呼吸。"
         },
         {
           name: "冷煙披侍",
-          hp: 112, atk: 20, def: 5,
+          hp: 190, atk: 27, def: 5,
+          pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "半截斗篷從煙裡站起，冇面具、冇身軀，只有兩隻抓刀嘅影手。「披風走咗……我哋仲守住呢度。」——語氣似複讀，又似有人遙控。"
         },
         {
           name: "西峽影殘",
-          hp: 132, atk: 22, def: 6,
+          hp: 224, atk: 30, def: 6,
+          pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "清殘最核心：一團比披風稀薄、卻更執拗嘅影殘盤踞裂縫。擊敗佢時，西向林霧裂開一瞬——霧沼哨站嘅舊燈火，隱約閃咗一下。"
         }
       ],
@@ -3335,22 +3383,26 @@
       stages: [
         {
           name: "沼面霧鰻",
-          hp: 74, atk: 16, def: 3,
+          hp: 126, atk: 22, def: 3,
+          pack: 2, ai: "brute", pierce: 0.2,
           flavor: "泥水沒過腳踝。一條灰白霧鰻從浮藻下鑽出，身側掛住碎哨燈鐵環——像有人曾用燈誘過佢，再冇人返嚟收。"
         },
         {
           name: "哨燈影蟲",
-          hp: 96, atk: 19, def: 4,
+          hp: 163, atk: 26, def: 4,
+          pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "半倒嘅瞭望架上，殘燈忽明忽暗。幾隻影蟲圍住燈芯飛，翅膜映住極夜冷光；一靠近，霧就厚一層。"
         },
         {
           name: "泥沼巡影",
-          hp: 122, atk: 21, def: 5,
+          hp: 207, atk: 28, def: 5,
+          pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "柵欄缺口站住半透明巡影，手勢像舊時守兵巡更，嘴裡複讀：「……通行……證明……」——證明紙早溶喺沼裡，只剩影潮口音。"
         },
         {
           name: "霧沼哨魂",
-          hp: 142, atk: 23, def: 6,
+          hp: 241, atk: 31, def: 6,
+          pack: 1, ai: "control", pierce: 0.35,
           flavor: "哨站中央水窪升起一團帶斗篷輪廓嘅哨魂。燈火喺佢胸口跳咗一下，又暗返。「西峽標記……我收到。斷橋鎮……仲有人喊。」擊敗佢後，南向斷橋方向裂開一條較乾嘅泥路。"
         }
       ],
@@ -3363,13 +3415,17 @@
       desc: "第二節·西林影潮其三。格蘭公會急委：沿霧沼南向泥路赴斷橋鎮，接應鎮民求援燈號，穩定橋柱防線，並查清影潮有冇咬住橋心。",
       startField: { wet: 6, fog: 5, mud: 2 },
       stages: [
-        { name: "橋隙濕影", hp: 80, atk: 17, def: 3,
+        { name: "橋隙濕影", hp: 136, atk: 23, def: 3,
+          pack: 2, ai: "assassin", pierce: 0.2,
           flavor: "斷橋北端橋板缺一大塊。縫隙裏湧出濕潮影絲，踩低一塊橋板就作響——像有人用橋柱當鼓面在敳。" },
-        { name: "裂柱攀影", hp: 104, atk: 20, def: 4,
+        { name: "裂柱攀影", hp: 177, atk: 27, def: 4,
+          pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "半倒橋柱上攀住半透明攀影，手指插進石縫。水気沿柱流；遠處鎮內燈火一明一暗，像求援信號被染短。" },
-        { name: "求援偽聲", hp: 130, atk: 22, def: 5,
+        { name: "求援偽聲", hp: 221, atk: 30, def: 5,
+          pack: 1, ai: "control", pierce: 0.35,
           flavor: "橋面中段風裏有人喊「救命……」——走近才發現係影潮播出嘅偽聲。聲源處站起一團帶鐘聲輪廓嘅影，嘴裏複讀鎮民名單。" },
-        { name: "斷橋潮影", hp: 152, atk: 24, def: 6,
+        { name: "斷橋潮影", hp: 258, atk: 32, def: 6,
+          pack: 1, ai: "aoe", pierce: 0.35,
           flavor: "橋心裂縫昇起一團濃影，形狀像舊橋神主祠，卻流著影潮口音。「霧沼哨站……你來晚了。鎮民……還在廢堡那邊喊。」擊敗它後，南向廢堡雲霧裂開一線，露出影潮廢堡的破門。" }
       ],
       need: "s2_l2",
@@ -3412,13 +3468,17 @@
       var scale = 1.35 + i * 0.05;
       var flavorTpl = EVENT_FLAVOR_TEMPLATES[i % EVENT_FLAVOR_TEMPLATES.length];
       var name = pref + "·" + st.name;
-      return {
+      var out = {
         name: name,
         hp: Math.floor(st.hp * scale),
         atk: Math.floor(st.atk * scale) + 2,
         def: Math.floor(st.def * scale) + 1,
-        flavor: flavorTpl.replace(/\{name\}/g, name)
+        flavor: flavorTpl.replace(/\{name\}/g, name),
+        pack: st.pack || 1,
+        ai: st.ai || (i >= 2 ? "aoe" : "brute"),
+        pierce: Math.min(0.45, (st.pierce || 0) + 0.1)
       };
+      return out;
     });
   }
 
@@ -3460,9 +3520,15 @@
 
   // ---------- Companions / Party（詞條只裝備主角） ----------
   var PARTY_ACTIVE_MAX = 2;
-  /** 軟上限減傷：實際傷害 = atk * (100/(100+defEff))，至少 1。
-   *  遊戲防禦數值偏細，代入前 × DEF_MIT_SCALE，令中前期減傷有手感。 */
-  var DEF_MIT_SCALE = 5;
+  /** 隊友版減傷：減傷率 = def/(def+120)；保底傷 = ceil(maxHp*3%)；破甲忽略部分 def。 */
+  var DEF_SOFT_K = 120;
+  var AP_PER_TURN = 3;
+  var AP_COST_ATK = 1;
+  var AP_COST_DEF = 1;
+  var AP_COST_SKILL = 2;
+  var AP_COST_ITEM = 1;
+  var AP_COST_FLEE = 1;
+  var AP_COST_ALLY_ATK = 1;
 
   var COMPANION_DEFS = {
     koran: {
@@ -3477,11 +3543,12 @@
       skill: {
         id: "iron_taunt",
         name: "鐵壁挑釁",
-        desc: "嘲諷敵人 2 回合；期間自身防禦＋8",
+        desc: "嘲諷敵人 2 回合；期間自身防禦＋8（1AP）",
         cd: 3,
         type: "taunt",
         turns: 2,
-        defBonus: 8
+        defBonus: 8,
+        apCost: 1
       }
     },
     eilin: {
@@ -3496,20 +3563,28 @@
       skill: {
         id: "aria_mend",
         name: "癒合詠",
-        desc: "回復血量最低同伴（含主角）；若全員近滿則發射魔力彈",
+        desc: "回復血量最低同伴（含主角）；若全員近滿則發射魔力彈（2AP）",
         cd: 3,
         type: "heal_or_bolt",
         heal: 20,
-        boltMult: 1.35
+        boltMult: 1.35,
+        apCost: 2
       }
     }
   };
 
-  function calcMitigatedDamage(atk, def) {
+  function calcMitigatedDamage(atk, def, opts) {
+    opts = opts || {};
     atk = Math.max(0, Number(atk) || 0);
-    var defEff = Math.max(0, Number(def) || 0) * DEF_MIT_SCALE;
     if (atk <= 0) return 0;
-    return Math.max(1, Math.floor(atk * 100 / (100 + defEff)));
+    var defEff = Math.max(0, Number(def) || 0);
+    var pierce = Math.max(0, Math.min(0.95, Number(opts.pierce) || 0));
+    defEff = defEff * (1 - pierce);
+    var reduction = defEff / (defEff + DEF_SOFT_K);
+    var raw = Math.round(atk * (1 - reduction));
+    var maxHp = Math.max(0, Number(opts.maxHp) || 0);
+    var floor = maxHp > 0 ? Math.ceil(maxHp * 0.03) : 1;
+    return Math.max(floor, raw, 1);
   }
 
   function companionXpToNext(level) {
@@ -3673,7 +3748,9 @@
         skill: def.skill,
         skillCd: 0,
         tauntTurns: 0,
-        defBonusTemp: 0
+        stunTurns: 0,
+        defBonusTemp: 0,
+        _feedbackDone: false
       });
     });
     return list;
@@ -3709,11 +3786,12 @@
       }
       var cd = ally.skillCd > 0 ? ("CD" + ally.skillCd) : "技能就緒";
       var pct = ally.maxHp > 0 ? (ally.hp / ally.maxHp * 100) : 0;
-      chip.className = "party-chip" + (ally.hp <= 0 ? " down" : "") + (ally.tauntTurns > 0 ? " taunt" : "");
+      chip.className = "party-chip" + (ally.hp <= 0 ? " down" : "") + (ally.tauntTurns > 0 ? " taunt" : "") + ((ally.stunTurns || 0) > 0 ? " stun" : "");
       chip.innerHTML =
         "<div class='pc-name'>" + escapeHtml(ally.name) + "</div>" +
         "<div class='pc-meta'>Lv." + ally.level + "　HP " + Math.max(0, ally.hp) + "/" + ally.maxHp + "　" + cd +
-        (ally.tauntTurns > 0 ? "　嘲諷" + ally.tauntTurns : "") + "</div>" +
+        (ally.tauntTurns > 0 ? "　嘲諷" + ally.tauntTurns : "") +
+        ((ally.stunTurns || 0) > 0 ? "　眩暈" + ally.stunTurns : "") + "</div>" +
         "<div class='pc-bar'><span style='width:" + Math.max(0, Math.min(100, pct)) + "%'></span></div>";
     }
   }
@@ -3791,27 +3869,74 @@
     return (ally.def || 0) + (ally.defBonusTemp || 0);
   }
 
-  function dealToAlly(ally, raw) {
+  function dealToAlly(ally, raw, pierce) {
     if (!ally || ally.hp <= 0) return 0;
-    var dmg = calcMitigatedDamage(raw, allyEffectiveDef(ally));
+    var dmg = calcMitigatedDamage(raw, allyEffectiveDef(ally), {
+      maxHp: ally.maxHp,
+      pierce: pierce || 0
+    });
     ally.hp -= dmg;
     if (ally.hp < 0) ally.hp = 0;
     if (!combat._floatMute) {
       spawnDmgFloat(dmg, { target: "player" });
       if (dmg > 0) shakeCombat();
     }
+    if (ally.hp <= 0) triggerMentalFeedback(ally);
     return dmg;
   }
 
-  function pickEnemyVictim() {
-    // 嘲諷優先；否則打主角（簡單可讀）
+  /** 隊友死亡：精神反噬扣主角當前 HP 20%；本戰唔再有該隊友支援 */
+  function triggerMentalFeedback(ally) {
+    if (!ally || ally._feedbackDone) return;
+    ally._feedbackDone = true;
+    ally.stunTurns = 0;
+    ally.tauntTurns = 0;
+    appendLog($("combat-log"), ally.name + "倒下！當場戰鬥無法再獲得其支援。", "sys");
+    if (!state || state.hp <= 0) return;
+    var drain = Math.max(1, Math.ceil(state.hp * 0.2));
+    state.hp = Math.max(0, state.hp - drain);
+    appendLog($("combat-log"), "精神反噬！你失去 " + drain + " HP（當前 HP 嘅 20%）。", "dmg");
+    if (!combat._floatMute) {
+      spawnDmgFloat(drain, { target: "player" });
+      shakeCombat();
+    }
+  }
+
+  function livingAllies() {
+    if (!combat || !combat.allies) return [];
+    return combat.allies.filter(function (a) { return a && a.hp > 0; });
+  }
+
+  function pickEnemyVictim(mode) {
+    // 嘲諷永遠優先
     if (combat && combat.allies) {
       for (var i = 0; i < combat.allies.length; i++) {
         var a = combat.allies[i];
         if (a && a.hp > 0 && a.tauntTurns > 0) return { kind: "ally", ally: a };
       }
     }
-    return { kind: "player" };
+    var allies = livingAllies();
+    if (mode === "assassin" && allies.length) {
+      // 優先高攻低血隊友
+      var best = allies.slice().sort(function (x, y) {
+        var rx = (x.atk || 1) / Math.max(1, x.hp);
+        var ry = (y.atk || 1) / Math.max(1, y.hp);
+        return ry - rx;
+      })[0];
+      return { kind: "ally", ally: best };
+    }
+    // 60% 打血量百分比最低，40% 隨機（含主角）
+    var pool = [{ kind: "player", hp: state.hp, max: calcStats().maxHp }];
+    allies.forEach(function (a) {
+      pool.push({ kind: "ally", ally: a, hp: a.hp, max: a.maxHp });
+    });
+    if (Math.random() < 0.6) {
+      pool.sort(function (a, b) { return (a.hp / a.max) - (b.hp / b.max); });
+      var t = pool[0];
+      return t.kind === "player" ? { kind: "player" } : { kind: "ally", ally: t.ally };
+    }
+    var r = pool[Math.floor(Math.random() * pool.length)];
+    return r.kind === "player" ? { kind: "player" } : { kind: "ally", ally: r.ally };
   }
 
   function tickAllySkillCds() {
@@ -3822,12 +3947,22 @@
         a.tauntTurns--;
         if (a.tauntTurns <= 0) a.defBonusTemp = 0;
       }
+      if (a.stunTurns > 0) a.stunTurns--;
     });
+  }
+
+  function allySkillApCost(ally) {
+    if (!ally || !ally.skill) return AP_COST_ALLY_ATK;
+    return Math.max(1, ally.skill.apCost || (ally.skill.type === "heal_or_bolt" ? 2 : 1));
   }
 
   function allyUseSkill(ally) {
     if (!ally || ally.hp <= 0 || !ally.skill) return false;
     if (ally.skillCd > 0) return false;
+    if (ally.stunTurns > 0) {
+      toast(ally.name + "精神紊亂／眩暈，無法行動");
+      return false;
+    }
     var sk = ally.skill;
     if (sk.type === "taunt") {
       ally.tauntTurns = sk.turns || 2;
@@ -3837,7 +3972,6 @@
       return true;
     }
     if (sk.type === "heal_or_bolt") {
-      // find lowest hp ratio among hero + allies
       var st = calcStats();
       var candidates = [{ kind: "player", hp: state.hp, max: st.maxHp }];
       combat.allies.forEach(function (a) {
@@ -3855,7 +3989,7 @@
           t.ally.hp = Math.min(t.ally.maxHp, t.ally.hp + heal);
           appendLog($("combat-log"), ally.name + "詠唱【" + sk.name + "】，" + t.ally.name + "回復 " + heal + " HP！", "skill");
         }
-        if (!combat._floatMute) spawnDmgFloat(heal, { target: "player" }); // reuse float; heal color if class set
+        if (!combat._floatMute) spawnDmgFloat(heal, { target: "player" });
       } else {
         var bolt = Math.floor(ally.atk * (sk.boltMult || 1.3)) + Math.floor(Math.random() * 3);
         var bd = dealToEnemy(bolt);
@@ -3868,24 +4002,149 @@
   }
 
   function allyBasicAttack(ally) {
-    if (!ally || ally.hp <= 0 || !combat || combat.enemy.hp <= 0) return;
+    if (!ally || ally.hp <= 0 || !combat || !combat.enemy || combat.enemy.hp <= 0) return false;
+    if (ally.stunTurns > 0) {
+      toast(ally.name + "精神紊亂／眩暈，無法行動");
+      return false;
+    }
     var raw = ally.atk + Math.floor(Math.random() * 3);
     var dmg = dealToEnemy(raw);
     appendLog($("combat-log"), ally.name + "攻擊，造成 " + dmg + " 傷害。", "dmg");
+    return true;
   }
 
-  function runAllyActions() {
+  function trySpendAp(cost) {
+    if (!combat || combat.over) return false;
+    cost = cost | 0;
+    if ((combat.ap || 0) < cost) {
+      toast("AP 不足（要 " + cost + "，剩 " + (combat.ap || 0) + "）");
+      return false;
+    }
+    combat.ap -= cost;
+    updateApUI();
+    return true;
+  }
+
+  function updateApUI() {
+    var el = $("ap-n");
+    if (el) el.textContent = String(combat && !combat.over ? (combat.ap || 0) : 0);
+    renderAllyActionRow();
+  }
+
+  function renderAllyActionRow() {
+    var row = $("ally-action-row");
+    if (!row) return;
+    row.innerHTML = "";
     if (!combat || combat.over || !combat.allies) return;
-    combat.allies.forEach(function (ally) {
-      if (combat.over || combat.enemy.hp <= 0) return;
-      if (!ally || ally.hp <= 0) return;
-      // 技能就緒就用，否則普攻
-      if (ally.skillCd <= 0) {
-        if (!allyUseSkill(ally)) allyBasicAttack(ally);
-      } else {
-        allyBasicAttack(ally);
-      }
+    combat.allies.forEach(function (ally, idx) {
+      if (!ally) return;
+      var atkBtn = document.createElement("button");
+      var skBtn = document.createElement("button");
+      var down = ally.hp <= 0;
+      var stunned = (ally.stunTurns || 0) > 0;
+      var skCost = allySkillApCost(ally);
+      atkBtn.textContent = ally.name.split("·").pop() + " 普攻（1AP）";
+      atkBtn.disabled = down || stunned || (combat.ap || 0) < AP_COST_ALLY_ATK;
+      atkBtn.onclick = (function (a) {
+        return function () { actAllyAttack(a); };
+      })(ally);
+      skBtn.textContent = ally.name.split("·").pop() + "【" + (ally.skill ? ally.skill.name : "?") + "】（" + skCost + "AP）";
+      skBtn.disabled = down || stunned || ally.skillCd > 0 || (combat.ap || 0) < skCost;
+      if (ally.skillCd > 0) skBtn.title = "冷卻剩 " + ally.skillCd;
+      skBtn.onclick = (function (a) {
+        return function () { actAllySkill(a); };
+      })(ally);
+      row.appendChild(atkBtn);
+      row.appendChild(skBtn);
     });
+  }
+
+  function actAllyAttack(ally) {
+    if (!combat || combat.over) return;
+    if (!trySpendAp(AP_COST_ALLY_ATK)) return;
+    if (!allyBasicAttack(ally)) {
+      combat.ap += AP_COST_ALLY_ATK;
+      updateApUI();
+      return;
+    }
+    updateBars();
+    afterSpendAction();
+  }
+
+  function actAllySkill(ally) {
+    if (!combat || combat.over) return;
+    var cost = allySkillApCost(ally);
+    if (!trySpendAp(cost)) return;
+    if (!allyUseSkill(ally)) {
+      combat.ap += cost;
+      updateApUI();
+      return;
+    }
+    updateBars();
+    afterSpendAction();
+  }
+
+  function afterSpendAction() {
+    if (!combat || combat.over) return;
+    if (combat.enemy && combat.enemy.hp <= 0) {
+      onEnemyDown();
+      return;
+    }
+    if (state.hp <= 0) {
+      state.hp = 0;
+      onPlayerDown();
+      return;
+    }
+    syncAlliesHpToState();
+    if ((combat.ap || 0) <= 0) {
+      endPlayerTurn();
+    } else {
+      updateBars();
+      updateApUI();
+      refreshCombatButtons();
+    }
+  }
+
+  function refreshCombatButtons() {
+    if (!combat || combat.over) return;
+    var ap = combat.ap || 0;
+    var stun = (combat.playerStun || 0) > 0;
+    var setDis = function (id, need) {
+      var b = $(id);
+      if (!b) return;
+      b.disabled = stun || ap < need;
+    };
+    setDis("btn-atk", AP_COST_ATK);
+    setDis("btn-def", AP_COST_DEF);
+    setDis("btn-skill", AP_COST_SKILL);
+    setDis("btn-item", AP_COST_ITEM);
+    setDis("btn-flee", AP_COST_FLEE);
+    var et = $("btn-end-turn");
+    if (et) et.disabled = false;
+    renderAllyActionRow();
+  }
+
+  function startPlayerTurn() {
+    if (!combat || combat.over) return;
+    combat.ap = AP_PER_TURN;
+    updateApUI();
+    if ((combat.playerStun || 0) > 0) {
+      combat.playerStun--;
+      appendLog($("combat-log"), "你陷入眩暈／精神紊亂，無法行動！", "sys");
+      updateBars();
+      endPlayerTurn();
+      return;
+    }
+    refreshCombatButtons();
+    appendLog($("combat-log"), "—— 你嘅回合（AP " + AP_PER_TURN + "）——", "sys");
+  }
+
+  function actEndTurn() {
+    if (!combat || combat.over) return;
+    appendLog($("combat-log"), "你結束回合（剩 AP " + (combat.ap || 0) + "）。", "sys");
+    combat.ap = 0;
+    updateApUI();
+    endPlayerTurn();
   }
 
 
@@ -4699,6 +4958,7 @@
 
   function formatSkillCostHtml(skill) {
     var tags = [];
+    tags.push("<span class='cost-tag'>AP " + AP_COST_SKILL + "</span>");
     var cd = defaultSkillCd(skill);
     var left = getSkillCdLeft(skill);
     if (left > 0) {
@@ -5297,7 +5557,7 @@
       "<br>力" + st.str + " 敏" + st.agi + " 體" + st.con +
       "　XP " + state.xp + "/" + state.xpToNext +
       "　碎片 " + state.fragments + "/" + state.fragNeed;
-    $("btn-rest").textContent = "休息回復（" + rc + "金）";
+    $("btn-rest").textContent = "旅館治療（" + rc + "金・含同伴）";
     var flavors = [
       "公會大廳煙味同汗味混埋一齊。任務板釘滿泛黃嘅紙條。",
       "窗外黑木林影晃動。有人講，林入面嘅詞條會『認人』。",
@@ -5350,8 +5610,8 @@
     state.gold -= cost;
     state.hp = st.maxHp;
     healPartyFull();
-    enterTown("你付咗 " + cost + " 金，喺旅店瞓咗一覺。體力（含同伴）回復。");
-    toast("休息 −" + cost + "金，全員 HP 回滿");
+    enterTown("你付咗 " + cost + " 金，喺旅館／診所治療。主角同同伴 HP 回滿。（戰後同伴唔會自動滿血）");
+    toast("旅館治療 −" + cost + "金，全員 HP 回滿");
   }
 
   function showStatus() {
@@ -6757,6 +7017,10 @@
 
   function showCombatItems() {
     if (!combat || combat.over) return;
+    if ((combat.ap || 0) < AP_COST_ITEM) {
+      toast("AP 不足（道具要 " + AP_COST_ITEM + "）");
+      return;
+    }
     showScreen("screen-combat-items");
     var list = $("combat-item-list");
     list.innerHTML = "";
@@ -6777,9 +7041,14 @@
       btn.onclick = (function (itemId) {
         return function () {
           if (!combat || combat.over) return;
-          if (!useItem(itemId, true)) return;
+          if (!trySpendAp(AP_COST_ITEM)) return;
+          if (!useItem(itemId, true)) {
+            combat.ap += AP_COST_ITEM;
+            updateApUI();
+            return;
+          }
           showScreen("screen-combat");
-          appendLog($("combat-log"), "你使用咗「" + ITEMS[itemId].name + "」。", "sys");
+          appendLog($("combat-log"), "你使用咗「" + ITEMS[itemId].name + "」（−" + AP_COST_ITEM + "AP）。", "sys");
           updateBars();
           if (combat.enemy && combat.enemy.hp <= 0) {
             onEnemyDown();
@@ -6790,8 +7059,7 @@
             onPlayerDown();
             return;
           }
-          // using item spends the turn
-          afterPlayerAction();
+          afterSpendAction();
         };
       })(id);
       list.appendChild(btn);
@@ -7033,30 +7301,59 @@
       skillCd: {},
       _lastCrit: false,
       _floatMute: false,
-      allies: buildCombatAllies()
+      allies: buildCombatAllies(),
+      ap: AP_PER_TURN,
+      playerStun: 0,
+      packLeft: 1,
+      packTotal: 1
     };
     beginStage();
+  }
+
+  function spawnStageEnemy() {
+    var stage = combat.quest.stages[combat.stage];
+    var packIdx = (combat.packTotal || 1) - (combat.packLeft || 1) + 1;
+    var label = stage.name;
+    if ((combat.packTotal || 1) > 1) {
+      label = stage.name + "（" + packIdx + "/" + combat.packTotal + "）";
+    }
+    combat.enemy = {
+      name: label,
+      baseName: stage.name,
+      maxHp: stage.hp,
+      hp: stage.hp,
+      atk: stage.atk,
+      def: stage.def || 0,
+      ai: stage.ai || "brute",
+      pierce: stage.pierce || 0
+    };
+    $("enemy-name").textContent = "敵人：" + label +
+      (combat.enemy.ai === "aoe" ? "〔範圍〕" :
+       combat.enemy.ai === "assassin" ? "〔刺客〕" :
+       combat.enemy.ai === "control" ? "〔控制〕" : "") +
+      (combat.enemy.pierce ? ("　破甲" + Math.round(combat.enemy.pierce * 100) + "%") : "");
+    setCombatArt(stage.name);
   }
 
   function beginStage() {
     var q = combat.quest;
     var stage = q.stages[combat.stage];
-    combat.enemy = {
-      name: stage.name,
-      maxHp: stage.hp,
-      hp: stage.hp,
-      atk: stage.atk,
-      def: stage.def
-    };
+    combat.packTotal = Math.max(1, stage.pack || 1);
+    combat.packLeft = combat.packTotal;
+    spawnStageEnemy();
     combat.defending = false;
     combat.guardHeal = false;
     combat.over = false;
-    // 每關重置同伴技能 CD／嘲諷；HP 跨關保留
+    combat.playerStun = 0;
+    combat.ap = AP_PER_TURN;
+    // 每關重置同伴技能 CD／嘲諷；HP 跨關保留（戰後唔自動滿血）
     if (!combat.allies) combat.allies = buildCombatAllies();
     combat.allies.forEach(function (a) {
       a.skillCd = 0;
       a.tauntTurns = 0;
+      a.stunTurns = 0;
       a.defBonusTemp = 0;
+      a._feedbackDone = a.hp <= 0;
       if (a.hp > a.maxHp) a.hp = a.maxHp;
     });
     // apply next-battle buffs once at first stage of a quest
@@ -7074,9 +7371,8 @@
       }
     }
     showScreen("screen-combat");
-    $("combat-title").textContent = q.name + "（" + (combat.stage + 1) + "/" + q.stages.length + "）";
-    $("enemy-name").textContent = "敵人：" + stage.name;
-    setCombatArt(stage.name);
+    $("combat-title").textContent = q.name + "（" + (combat.stage + 1) + "/" + q.stages.length + "）" +
+      ((combat.packTotal || 1) > 1 ? "　群體×" + combat.packTotal : "");
     $("combat-log").innerHTML = "";
     var fxLayer = $("combat-fx-layer");
     if (fxLayer) fxLayer.innerHTML = "";
@@ -7126,6 +7422,7 @@
     } else {
       appendLog($("combat-log"), "你憑敏捷佔得先機，可以先行動。", "sys");
     }
+    if (combat && !combat.over) startPlayerTurn();
   }
 
 
@@ -7165,6 +7462,84 @@
     return eatk;
   }
 
+  function applyDamageToVictim(victim, eatk, pierce, label) {
+    var dmg = 0;
+    if (victim.kind === "ally" && victim.ally) {
+      dmg = dealToAlly(victim.ally, eatk, pierce);
+      if (dmg > 0) {
+        appendLog($("combat-log"), combat.enemy.name + (label || "攻擊") + victim.ally.name + "，造成 " + dmg + " 傷害。", "dmg");
+      }
+    } else {
+      combat._incomingPierce = pierce || 0;
+      dmg = dealToPlayer(eatk);
+      combat._incomingPierce = null;
+      if (dmg > 0) {
+        appendLog($("combat-log"), combat.enemy.name + (label || "攻擊你") + (label ? "" : "") +
+          (label ? "，造成 " : "，造成 ") + dmg + " 傷害。" +
+          (combat.defending ? "（防禦減傷）" : ""), "dmg");
+      }
+    }
+    return dmg;
+  }
+
+  function enemyPerformAttack() {
+    if (!combat || combat.over || !combat.enemy || combat.enemy.hp <= 0) return;
+    var ai = combat.enemy.ai || "brute";
+    var pierce = combat.enemy.pierce || 0;
+    var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
+
+    // AOE：傷主角＋全部存活隊友
+    if (ai === "aoe" || (ai === "boss" && Math.random() < 0.55)) {
+      appendLog($("combat-log"), combat.enemy.name + "使出範圍攻擊！", "skill");
+      combat._incomingPierce = pierce;
+      var pd = dealToPlayer(eatk);
+      combat._incomingPierce = null;
+      appendLog($("combat-log"), "你受到範圍傷害 " + pd + "。" + (combat.defending ? "（防禦減傷）" : ""), "dmg");
+      livingAllies().forEach(function (a) {
+        var ad = dealToAlly(a, Math.floor(eatk * 0.85), pierce);
+        if (ad > 0) appendLog($("combat-log"), a.name + "受到範圍傷害 " + ad + "。", "dmg");
+      });
+      return;
+    }
+
+    var mode = ai === "assassin" ? "assassin" : "normal";
+    var victim = pickEnemyVictim(mode);
+
+    // 控制：眩暈／精神紊亂 1 回合
+    if (ai === "control" && Math.random() < 0.42) {
+      if (victim.kind === "ally" && victim.ally) {
+        victim.ally.stunTurns = Math.max(victim.ally.stunTurns || 0, 1);
+        appendLog($("combat-log"), combat.enemy.name + "對" + victim.ally.name + "施放精神紊亂！下回合無法行動。", "skill");
+      } else {
+        combat.playerStun = Math.max(combat.playerStun || 0, 1);
+        appendLog($("combat-log"), combat.enemy.name + "對你施放眩暈！下回合無法行動。", "skill");
+      }
+      // 控制技仍附帶一記較弱打擊
+      eatk = Math.max(1, Math.floor(eatk * 0.65));
+    }
+
+    var tag = "";
+    if (victim.kind === "ally" && victim.ally && victim.ally.tauntTurns > 0) tag = "（嘲諷）攻擊";
+    else if (mode === "assassin" && victim.kind === "ally") tag = "（刺客鎖定）攻擊";
+    else if (victim.kind === "ally") tag = "攻擊";
+    else tag = "攻擊你";
+
+    if (victim.kind === "ally" && victim.ally) {
+      var dmgA = dealToAlly(victim.ally, eatk, pierce);
+      if (dmgA > 0) {
+        appendLog($("combat-log"), combat.enemy.name + tag + victim.ally.name + "，造成 " + dmgA + " 傷害。", "dmg");
+      }
+    } else {
+      combat._incomingPierce = pierce;
+      var dmgP = dealToPlayer(eatk);
+      combat._incomingPierce = null;
+      if (dmgP > 0) {
+        appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmgP + " 傷害。" +
+          (combat.defending ? "（防禦減傷）" : ""), "dmg");
+      }
+    }
+  }
+
   function enemyStrikeOnly() {
     if (!combat || combat.over) return;
     if (combat.enemyStun > 0) {
@@ -7173,14 +7548,13 @@
       updateBars();
       return;
     }
-    var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
-    var dmg = dealToPlayer(eatk);
-    appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。", "dmg");
+    enemyPerformAttack();
     if (combat.playerPoison > 0) {
       state.hp -= 2;
       combat.playerPoison--;
       appendLog($("combat-log"), "你因中毒失去 2 HP。", "dmg");
     }
+    syncAlliesHpToState();
     updateBars();
     if (state.hp <= 0) {
       state.hp = 0;
@@ -7199,6 +7573,7 @@
     $("hp-enemy-n").textContent = combat.enemy.hp + "/" + combat.enemy.maxHp;
     updateCombatStatusHint();
     renderPartyStrip();
+    updateApUI();
   }
 
   function playerAttackPower() {
@@ -7208,15 +7583,19 @@
   function dealToEnemy(raw) {
     var def = combat.enemy.def || 0;
     var pierceExtra = 0;
+    var piercePct = 0;
     if (combat.pierceNext) {
-      def = 0;
+      piercePct = 1;
       combat.pierceNext = false;
       pierceExtra = combat.pierceBonus || 0;
       combat.pierceBonus = 0;
     }
     var bonus = tryConsumeMarkBonus();
     var incoming = (raw | 0) + bonus + pierceExtra;
-    var dmg = calcMitigatedDamage(incoming, def);
+    var dmg = calcMitigatedDamage(incoming, def, {
+      maxHp: combat.enemy.maxHp,
+      pierce: piercePct
+    });
     if (hasField("fog") && combat._isFireSkill) dmg += 5;
     combat.enemy.hp -= dmg;
     if (!combat._floatMute) {
@@ -7259,7 +7638,8 @@
     if (eatk < 1) eatk = 1;
     var def = st.defense + (combat.defending ? 8 + st.defBonus : 0);
     if (combat.guardHeal) def += 10;
-    var dmg = calcMitigatedDamage(eatk, def);
+    var pierce = (combat._incomingPierce != null) ? combat._incomingPierce : ((combat.enemy && combat.enemy.pierce) || 0);
+    var dmg = calcMitigatedDamage(eatk, def, { maxHp: st.maxHp, pierce: pierce });
     state.hp -= dmg;
     if (!combat._floatMute) {
       spawnDmgFloat(dmg, { target: "player" });
@@ -7286,32 +7666,23 @@
     return dmg;
   }
 
-  function afterPlayerAction() {
-    if (combat.over) return;
+  /** AP 花完或手動結束回合後：結算 DoT／再生 → 敵方行動 → 開新回合 */
+  function endPlayerTurn() {
+    if (!combat || combat.over) return;
     tickSkillCds();
-    // clear phase invuln after the player's action resolves
+    tickAllySkillCds();
     if (combat.invuln) combat.invuln = false;
-    // poison on enemy
-    if (combat.enemyPoison > 0 && combat.enemy.hp > 0) {
+    if (combat.enemyPoison > 0 && combat.enemy && combat.enemy.hp > 0) {
       var pd = combat._poisonDmg || 2;
       combat.enemy.hp -= pd;
       combat.enemyPoison--;
       appendLog($("combat-log"), "毒素生效，" + combat.enemy.name + "受到 " + pd + " 點傷害。", "dmg");
     }
-    // end-of-turn field / burn / bomb (before enemy acts)
     applyEndOfTurnFieldEffects();
-    if (combat.enemy.hp <= 0) {
+    if (combat.enemy && combat.enemy.hp <= 0) {
       onEnemyDown();
       return;
     }
-    // 隊友自動行動（玩家回合操主角之後）；先扣 CD 再行動，令剛用嘅技能唔即回合減 CD
-    tickAllySkillCds();
-    runAllyActions();
-    if (combat.enemy.hp <= 0) {
-      onEnemyDown();
-      return;
-    }
-    // regen
     var st = calcStats();
     if (st.regen > 0 && state.hp > 0) {
       state.hp = Math.min(st.maxHp, state.hp + st.regen);
@@ -7329,6 +7700,7 @@
       combat.defending = false;
       syncAlliesHpToState();
       updateBars();
+      if (!combat.over) startPlayerTurn();
       return;
     }
     if (combat.enemyStun > 0) {
@@ -7337,36 +7709,19 @@
       combat.defending = false;
       syncAlliesHpToState();
       updateBars();
+      if (!combat.over) startPlayerTurn();
       return;
     }
-    // ice slip chance
     if (hasField("ice") && Math.random() < 0.28) {
       appendLog($("combat-log"), combat.enemy.name + "在冰面上滑倒，無法行動！", "sys");
       combat.defending = false;
       syncAlliesHpToState();
       updateBars();
+      if (!combat.over) startPlayerTurn();
       return;
     }
-    var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
-    var victim = pickEnemyVictim();
-    var dmg = 0;
-    if (victim.kind === "ally" && victim.ally) {
-      dmg = dealToAlly(victim.ally, eatk);
-      if (dmg > 0) {
-        appendLog($("combat-log"), combat.enemy.name + "攻擊" + victim.ally.name + "（嘲諷），造成 " + dmg + " 傷害。", "dmg");
-      }
-      if (victim.ally.hp <= 0) {
-        appendLog($("combat-log"), victim.ally.name + "倒下！", "sys");
-      }
-    } else {
-      dmg = dealToPlayer(eatk);
-      if (dmg > 0) {
-        appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
-          (combat.defending ? "（防禦減傷）" : ""), "dmg");
-      }
-    }
+    enemyPerformAttack();
     combat.defending = false;
-
     if (combat.playerPoison > 0) {
       state.hp -= 2;
       combat.playerPoison--;
@@ -7377,13 +7732,34 @@
     if (state.hp <= 0) {
       state.hp = 0;
       onPlayerDown();
+      return;
     }
+    if (!combat.over) startPlayerTurn();
+  }
+
+  /** 兼容舊呼叫：一次行動花光剩餘邏輯改由 afterSpendAction；此函式＝直接結束回合 */
+  function afterPlayerAction() {
+    if (!combat || combat.over) return;
+    combat.ap = 0;
+    updateApUI();
+    endPlayerTurn();
   }
 
   function onEnemyDown() {
-    combat.over = true;
     stopBattleAuto();
     appendLog($("combat-log"), "【" + combat.enemy.name + "】倒下！", "loot");
+    // 群體：同波仲有剩餘
+    if ((combat.packLeft || 1) > 1) {
+      combat.packLeft--;
+      combat.over = false;
+      appendLog($("combat-log"), "同類衝出嚟！仲剩 " + combat.packLeft + " 隻。", "sys");
+      spawnStageEnemy();
+      updateBars();
+      showCombatActionsPanel(true);
+      startPlayerTurn();
+      return;
+    }
+    combat.over = true;
     // drops
     var pool = DROP_POOLS[combat.quest.id];
     var drops = [];
@@ -7505,7 +7881,7 @@
       } else if (wasEvent) {
         appendLog($("result-log"), "事件結束。異常標記已從任務板消失。", "sys");
       } else {
-        appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、去商店，或接下一個委託。", "sys");
+        appendLog($("result-log"), "主角略為回復。同伴 HP 唔會自動回滿——返鎮旅館／診所花金幣治療。", "sys");
       }
       toast("+" + gainedXp + "XP　+" + gainedGold + "金" + (itemGot ? "　" + ITEMS[itemGot].name : "") + (bonusTrait ? "　" + TRAITS[bonusTrait].name : "") + (eventTrait ? "　事件・" + TRAITS[eventTrait].name : ""));
 
@@ -7548,6 +7924,7 @@
 
   function actAttack() {
     if (!combat || combat.over) return;
+    if (!trySpendAp(AP_COST_ATK)) return;
     var st = calcStats();
     var raw = playerAttackPower() + Math.floor(Math.random() * 4);
     if (combat.phaseStrike) {
@@ -7587,18 +7964,20 @@
         return;
       }
     }
-    afterPlayerAction();
+    afterSpendAction();
   }
 
   function actDefend() {
     if (!combat || combat.over) return;
+    if (!trySpendAp(AP_COST_DEF)) return;
     combat.defending = true;
     appendLog($("combat-log"), "你採取防禦姿態，準備減傷。", "sys");
-    afterPlayerAction();
+    afterSpendAction();
   }
 
   function actFlee() {
     if (!combat || combat.over) return;
+    if (!trySpendAp(AP_COST_FLEE)) return;
     var st = calcStats();
     var chance = 35 + st.agi * 3 + st.fleeBonus;
     if (Math.random() * 100 < chance) {
@@ -7614,12 +7993,16 @@
       }, battleDelay(600));
     } else {
       appendLog($("combat-log"), "逃跑失敗！", "sys");
-      afterPlayerAction();
+      afterSpendAction();
     }
   }
 
   function showSkillPick() {
     if (!combat || combat.over) return;
+    if ((combat.ap || 0) < AP_COST_SKILL) {
+      toast("AP 不足（詞條大招要 " + AP_COST_SKILL + "）");
+      return;
+    }
     var skills = [];
     equippedDefs().forEach(function (d) {
       if (d.skill) skills.push({ def: d, skill: d.skill });
@@ -7657,8 +8040,9 @@
       toast("技能冷卻中（剩 " + leftCd + " 回合）");
       return;
     }
+    if (!trySpendAp(AP_COST_SKILL)) return;
     var st = calcStats();
-    appendLog($("combat-log"), "發動詞條技能【" + skill.name + "】！", "skill");
+    appendLog($("combat-log"), "發動詞條大招【" + skill.name + "】！（−" + AP_COST_SKILL + "AP）", "skill");
     var applyCd = defaultSkillCd(skill);
     if (applyCd > 0) {
       if (!combat.skillCd) combat.skillCd = {};
@@ -7956,7 +8340,7 @@
       onEnemyDown();
       return;
     }
-    afterPlayerAction();
+    afterSpendAction();
   }
 
   function restart() {
@@ -8125,6 +8509,7 @@
     $("btn-atk").onclick = actAttack;
     $("btn-def").onclick = actDefend;
     $("btn-skill").onclick = showSkillPick;
+    if ($("btn-end-turn")) $("btn-end-turn").onclick = actEndTurn;
     $("btn-item").onclick = showCombatItems;
     $("btn-flee").onclick = actFlee;
     $("btn-skill-back").onclick = function () { showScreen("screen-combat"); };
