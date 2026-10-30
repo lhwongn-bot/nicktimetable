@@ -202,6 +202,17 @@
   .inv-row .info { flex: 1; }
   .inv-row .meta { color: var(--muted); font-size: 0.8rem; }
   .inv-row button { min-height: 40px; padding: 8px 10px; font-size: 0.85rem; width: auto; }
+
+  .game-art {
+    display: block;
+    margin: 6px auto;
+    max-width: 112px;
+    max-height: 128px;
+    width: auto;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
 </style>
 </head>
 <body>
@@ -210,6 +221,7 @@
   <!-- TITLE -->
   <div id="screen-title" class="screen active">
     <h1>詞條冒險</h1>
+    <img class="game-art" src="trait-quest-art/hero.png" alt="" onerror="this.style.display='none'">
     <p class="sub">黑木森林邊陲 · 底層冒險者嘅故事</p>
     <div class="panel mb">
       <p>你係公會最底層嘅新人。喺呢片森林，擊敗魔物有機會攞到「詞條」——一種刻喺靈魂上面嘅能力碎片。</p>
@@ -227,6 +239,7 @@
   <!-- INTRO -->
   <div id="screen-intro" class="screen">
     <h2>序章</h2>
+    <img class="game-art" src="trait-quest-art/hero.png" alt="" onerror="this.style.display='none'">
     <div class="log" id="intro-log"></div>
     <button class="primary" id="btn-intro-next">進入城鎮</button>
   </div>
@@ -234,6 +247,7 @@
   <!-- TOWN -->
   <div id="screen-town" class="screen">
     <h2>邊陲小鎮 · 冒險者公會</h2>
+    <img class="game-art" src="trait-quest-art/town.png" alt="" onerror="this.style.display='none'">
     <div class="statline" id="town-stats"></div>
     <div class="panel" id="town-flavor"></div>
     <div class="btn-grid">
@@ -252,6 +266,7 @@
   <!-- STATUS -->
   <div id="screen-status" class="screen">
     <h2>狀態</h2>
+    <img class="game-art" src="trait-quest-art/trait.png" alt="" onerror="this.style.display='none'">
     <div class="panel" id="status-panel"></div>
     <h3>裝備詞條槽</h3>
     <div id="equip-slots"></div>
@@ -265,6 +280,7 @@
   <!-- FUSE -->
   <div id="screen-fuse" class="screen">
     <h2>詞條融合</h2>
+    <img class="game-art" src="trait-quest-art/trait.png" alt="" onerror="this.style.display='none'">
     <p class="statline mb">揀兩隻相容詞條融合。消耗兩隻，產出更高稀有度。</p>
     <div class="panel mb">
       <strong>已知配方（示範）</strong>
@@ -288,6 +304,7 @@
   <!-- COMBAT -->
   <div id="screen-combat" class="screen">
     <h2 id="combat-title">戰鬥</h2>
+    <img id="combat-art" class="game-art" src="trait-quest-art/hero.png" alt="" onerror="this.style.display='none'">
     <div class="bar-row"><span>你</span><div class="bar"><span id="hp-you"></span></div><span id="hp-you-n"></span></div>
     <div class="bar-row"><span>敵</span><div class="bar"><span id="hp-enemy"></span></div><span id="hp-enemy-n"></span></div>
     <p class="statline" id="enemy-name"></p>
@@ -337,6 +354,7 @@
   <!-- SHOP -->
   <div id="screen-shop" class="screen">
     <h2>雜貨商店</h2>
+    <img class="game-art" src="trait-quest-art/shop.png" alt="" onerror="this.style.display='none'">
     <div class="statline mb" id="shop-gold"></div>
     <div class="shop-tabs">
       <button type="button" id="tab-buy" class="active">買入</button>
@@ -909,6 +927,24 @@
   }
 
   // ---------- UI helpers ----------
+
+  function enemyArtSrc(name) {
+    var n = name || "";
+    if (/影|披風|頭目/.test(n)) return "trait-quest-art/boss-shadow.png";
+    if (/哥布林/.test(n)) return "trait-quest-art/enemy-goblin.png";
+    if (/蛛/.test(n)) return "trait-quest-art/enemy-spider.png";
+    if (/史萊姆|slime/i.test(n)) return "trait-quest-art/enemy-slime.png";
+    return "trait-quest-art/hero.png";
+  }
+
+  function setCombatArt(name) {
+    var img = $("combat-art");
+    if (!img) return;
+    img.style.display = "";
+    img.onerror = function () { img.style.display = "none"; };
+    img.src = enemyArtSrc(name);
+  }
+
   function $(id) { return document.getElementById(id); }
 
   function showScreen(id) {
@@ -1543,6 +1579,7 @@
     showScreen("screen-combat");
     $("combat-title").textContent = q.name + "（" + (combat.stage + 1) + "/" + q.stages.length + "）";
     $("enemy-name").textContent = "敵人：" + stage.name;
+    setCombatArt(stage.name);
     $("combat-log").innerHTML = "";
     $("combat-actions").classList.remove("hidden");
     $("combat-next-wrap").classList.add("hidden");
