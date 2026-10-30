@@ -1024,6 +1024,389 @@
   }
   .legacy-note-origin b { color: var(--fg); }
 
+  /* ---- Layout refactor 2026-10-31：圖卡／分頁／雙欄／戰鬥防移位 ---- */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+    align-content: start;
+  }
+  .inv-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 4px 8px 2px;
+    scrollbar-width: thin;
+    scrollbar-color: #555 #111;
+  }
+  .inv-scroll::-webkit-scrollbar { width: 6px; }
+  .inv-scroll::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+  .inv-scroll::-webkit-scrollbar-track { background: #111; }
+
+  .mini-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    min-height: 88px;
+    padding: 8px 6px 10px;
+    background: #141414;
+    border: 2px solid #555;
+    cursor: pointer;
+    touch-action: manipulation;
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .mini-card .mc-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .mini-card .mc-name {
+    font-weight: 700;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+  .mini-card .mc-meta {
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+  .mini-card .mc-qty {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #ffe9a8;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .mini-card .mc-lock {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+  .mini-card.selected {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+    background: #1e1e28;
+  }
+  .mini-card.dimmed { opacity: 0.38; }
+  .mini-card.locked-trait { border-style: dashed; }
+  .mini-card.equipped-mark::before {
+    content: "裝";
+    position: absolute;
+    bottom: 3px;
+    left: 4px;
+    font-size: 0.65rem;
+    color: #81c784;
+    font-weight: 700;
+  }
+  .mini-card.rarity-white { border-color: #cfcfcf; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); }
+  .mini-card.rarity-green { border-color: #4caf50; box-shadow: 0 0 8px rgba(76,175,80,0.25); }
+  .mini-card.rarity-blue { border-color: #42a5f5; box-shadow: 0 0 8px rgba(66,165,245,0.28); }
+  .mini-card.rarity-purple { border-color: #a335ee; box-shadow: 0 0 10px rgba(163,53,238,0.35); }
+  .mini-card.rarity-gold { border-color: #ffd54a; box-shadow: 0 0 10px rgba(255,213,74,0.4); }
+  .mini-card.tippable::after { display: none; }
+
+  /* 圖鑑改為小型圖卡網格 */
+  .index-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .index-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    min-height: 88px;
+    padding: 8px 6px;
+    border-width: 2px;
+  }
+  .index-card .iname { font-size: 0.8rem; line-height: 1.25; }
+  .index-card .tags { font-size: 0.68rem; margin-top: 0; }
+  .index-card .idesc { display: none; } /* 詳情改用 tooltip／點擊 */
+  .index-card.rarity-white { border-color: #cfcfcf; }
+  .index-card.rarity-green { border-color: #4caf50; }
+  .index-card.rarity-blue { border-color: #42a5f5; }
+  .index-card.rarity-purple { border-color: #a335ee; }
+  .index-card .ic-icon { font-size: 1.2rem; }
+
+  .split-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .split-left, .split-right { min-width: 0; }
+  .split-left {
+    border: 1px solid var(--border);
+    padding: 10px;
+    background: #0a0a0a;
+  }
+  @media (min-width: 520px) {
+    .split-layout {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    .split-left { flex: 0 0 42%; }
+    .split-right { flex: 1; }
+  }
+
+  .recipe-accordion {
+    border: 1px solid var(--border);
+    background: #0a0a0a;
+    margin-bottom: 8px;
+    padding: 0;
+  }
+  .recipe-accordion > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 12px 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  .recipe-accordion > summary::-webkit-details-marker { display: none; }
+  .recipe-accordion > summary::before {
+    content: "▸ ";
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  .recipe-accordion[open] > summary::before { content: "▾ "; }
+  .recipe-accordion .recipe-body {
+    padding: 0 14px 12px;
+    font-size: 0.85rem;
+    border-top: 1px solid #333;
+  }
+  .fuse-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    margin: 6px 0 10px;
+    font-size: 0.88rem;
+  }
+  .fuse-toolbar label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    min-height: 40px;
+  }
+  .fuse-toolbar input { width: 18px; height: 18px; }
+  #fuse-selected {
+    min-height: 56px;
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  #fuse-selected b { color: #fff; }
+  .fuse-pick-grid .mini-card { padding-top: 18px; }
+  .fuse-pick-grid .mini-card input.mc-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
+  .lock-btn {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    min-height: 28px !important;
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+    border-width: 1px !important;
+    width: auto !important;
+    z-index: 2;
+  }
+
+  /* 物品欄稀有度色邊框（列表／商店列） */
+  .inv-row.rarity-white { border-color: #cfcfcf; border-width: 2px; }
+  .inv-row.rarity-green { border-color: #4caf50; border-width: 2px; }
+  .inv-row.rarity-blue { border-color: #42a5f5; border-width: 2px; }
+  .inv-row.rarity-purple { border-color: #a335ee; border-width: 2px; }
+  .inv-row.rarity-gold { border-color: #ffd54a; border-width: 2px; }
+
+  #screen-bag .select-list.inv-scroll,
+  #screen-status .inv-scroll,
+  #screen-fuse .inv-scroll,
+  #screen-index .index-grid {
+    flex: 1 1 auto;
+    max-height: 400px;
+    min-height: 120px;
+  }
+
+  /* ---- B 戰鬥防移位 ---- */
+  #screen-combat .log#combat-log,
+  #combat-log.battle-log {
+    flex: 0 0 auto;
+    height: 120px;
+    max-height: 120px;
+    min-height: 120px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .battle-actions-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+    min-height: 168px; /* 動作區 + 繼續列預留，防推擠 */
+  }
+  .battle-actions,
+  #combat-actions.battle-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    min-height: 112px;
+    flex: 0 0 auto;
+  }
+  .battle-actions button,
+  #combat-actions.battle-actions button {
+    height: 48px;
+    min-height: 48px;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+  .battle-actions button:disabled,
+  #combat-actions.battle-actions button:disabled {
+    opacity: 0.55;
+    border-color: #444;
+    color: #777;
+    cursor: not-allowed;
+  }
+  /* 冷卻／結束：唔用 display:none，改 visibility 保位 */
+  #combat-next-wrap {
+    min-height: 48px;
+  }
+  #combat-next-wrap.soft-hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  #combat-actions.soft-hidden {
+    /* 保留格子高度，按鈕改 disabled；唔整塊消失 */
+    opacity: 1;
+  }
+  #hp-you-n, #hp-enemy-n {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    min-width: 5.8em;
+    text-align: right;
+    display: inline-block;
+  }
+  #field-tags, #combat-status-hint {
+    min-height: 24px;
+    line-height: 1.35;
+  }
+  #combat-status-hint {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 8px;
+    align-items: stretch;
+  }
+  .filter-bar input[type="search"],
+  .filter-bar select {
+    flex: 1 1 120px;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+    background: #111;
+    color: #eee;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
+  }
+  .filter-bar input[type="search"] { flex: 2 1 140px; }
+  .mc-actions {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .mc-actions button {
+    flex: 1;
+    min-height: 32px !important;
+    padding: 4px 6px !important;
+    font-size: 0.72rem !important;
+    border-width: 1px !important;
+  }
+
+  /* ---- 組隊／戰鬥同伴條（固定高度，防推掣） ---- */
+  .party-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    min-height: 72px;
+    max-height: 88px;
+    margin: 6px 0 8px;
+    flex: 0 0 auto;
+  }
+  .party-chip {
+    background: #161616;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    min-height: 72px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .party-chip.empty {
+    opacity: 0.35;
+    border-style: dashed;
+  }
+  .party-chip .pc-name { font-weight: 700; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .party-chip .pc-meta { color: var(--muted); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .party-chip .pc-bar {
+    height: 6px; background: #333; margin-top: 4px; border-radius: 2px; overflow: hidden;
+  }
+  .party-chip .pc-bar > span { display: block; height: 100%; background: #66bb6a; width: 100%; }
+  .party-chip.hero .pc-bar > span { background: #42a5f5; }
+  .party-chip.down { opacity: 0.55; }
+  .party-chip.taunt { border-color: #ff7043; box-shadow: 0 0 6px rgba(255,112,67,0.35); }
+  .party-card {
+    background: #141414;
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .party-card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .party-card .pc-blurb { color: var(--muted); font-size: 0.85rem; margin: 4px 0 8px; }
+  .party-card .pc-stats { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.82rem; margin-bottom: 8px; }
+  .party-card .btn-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .party-card .btn-row button { flex: 1 1 120px; min-height: 40px; }
+
+
 </style>
 </head>
 <body>
@@ -1085,6 +1468,7 @@
       <button id="btn-shop">商店</button>
       <button id="btn-bag">道具袋</button>
       <button id="btn-status">狀態／詞條</button>
+      <button id="btn-party">組隊／同伴</button>
       <button id="btn-fuse">融合詞條</button>
       <button id="btn-quests">接任務</button>
       <button id="btn-index">詞條圖鑑</button>
@@ -1101,18 +1485,52 @@
     <div class="log" id="town-log" style="max-height:28vh;min-height:80px;"></div>
   </div>
 
+
+  <!-- PARTY -->
+  <div id="screen-party" class="screen">
+    <h2>組隊／同伴</h2>
+    <p class="statline mb">詞條（精神波動）只裝備喺<strong>主角</strong>。同伴靠固定技能同成長率作戰；最多同時出戰 2 人。</p>
+    <div id="party-active-line" class="panel mb"></div>
+    <div id="party-list"></div>
+    <div class="btn-grid">
+      <button id="btn-party-back">返回</button>
+    </div>
+  </div>
+
   <!-- STATUS -->
   <div id="screen-status" class="screen">
     <h2>狀態</h2>
     <img class="game-art" src="trait-quest-art/trait.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="panel" id="status-panel"></div>
-    <h3>裝備詞條槽</h3>
-    <div id="equip-slots"></div>
-    <div id="set-active-line"></div>
-    <h3 class="mt">套裝效果</h3>
-    <div class="set-panel" id="set-panel"></div>
-    <h3 class="mt">持有詞條</h3>
-    <div id="trait-list" class="select-list"></div>
+    <div class="split-layout">
+      <div class="split-left">
+        <h3>裝備詞條槽</h3>
+        <div id="equip-slots"></div>
+        <div id="set-active-line"></div>
+        <h3 class="mt">套裝效果</h3>
+        <div class="set-panel" id="set-panel"></div>
+      </div>
+      <div class="split-right">
+        <h3>持有詞條</h3>
+        <div class="index-tabs" id="trait-inv-tabs">
+          <button type="button" class="active" data-tab="all">全部</button>
+          <button type="button" data-tab="attack">攻擊</button>
+          <button type="button" data-tab="defend">防禦</button>
+          <button type="button" data-tab="special">輔助特殊</button>
+          <button type="button" data-tab="set">套裝</button>
+        </div>
+        <div class="filter-bar" id="trait-inv-filters">
+          <input type="search" id="trait-inv-search" placeholder="搜尋詞條…" autocomplete="off" enterkeyhint="search">
+          <select id="trait-inv-sort" aria-label="排序">
+            <option value="rarity-desc">稀有度↓</option>
+            <option value="rarity-asc">稀有度↑</option>
+            <option value="name">名稱</option>
+            <option value="got">獲得時間</option>
+          </select>
+        </div>
+        <div id="trait-list" class="card-grid inv-scroll"></div>
+      </div>
+    </div>
     <div class="btn-grid">
       <button id="btn-status-back">返回</button>
     </div>
@@ -1122,13 +1540,28 @@
   <div id="screen-fuse" class="screen">
     <h2>詞條融合</h2>
     <img class="game-art" src="trait-quest-art/trait.png?v=manga1" alt="" onerror="this.style.display='none'">
-    <p class="statline mb">揀兩隻相容詞條融合。消耗兩隻，產出更高稀有度。</p>
-    <div class="panel mb">
-      <strong>已知配方（示範）</strong>
-      <p class="statline" style="margin-top:4px;">完整解鎖進度見「詞條圖鑑」。以下係示範配方。</p>
-      <div id="recipe-list" style="font-size:0.85rem;margin-top:6px;"></div>
+    <p class="statline mb">揀兩隻相容詞條融合。消耗兩隻，產出更高稀有度。鎖定詞條唔會被誤融。</p>
+    <details class="recipe-accordion mb" id="recipe-accordion">
+      <summary>已知配方（可收折）</summary>
+      <div class="recipe-body">
+        <p class="statline" style="margin-top:8px;">完整解鎖進度見「詞條圖鑑」。以下係示範配方。</p>
+        <div id="recipe-list" style="font-size:0.85rem;margin-top:6px;"></div>
+      </div>
+    </details>
+    <div class="fuse-toolbar">
+      <label><input type="checkbox" id="fuse-hide-unfusible"> 隱藏不可融合詞條</label>
     </div>
-    <div id="fuse-pick" class="select-list"></div>
+    <div class="split-layout">
+      <div class="split-left">
+        <h3>已選</h3>
+        <div id="fuse-selected">未揀（要剛好兩隻）</div>
+        <p class="statline">點圖卡勾選；鎖住嘅詞條唔可選。</p>
+      </div>
+      <div class="split-right">
+        <h3>庫存</h3>
+        <div id="fuse-pick" class="card-grid inv-scroll fuse-pick-grid"></div>
+      </div>
+    </div>
     <div class="btn-grid">
       <button class="primary" id="btn-do-fuse">融合</button>
       <button id="btn-fuse-back">返回</button>
@@ -1144,10 +1577,11 @@
     <p class="statline mb" id="index-progress">解鎖 0 / 0</p>
     <div class="index-tabs" id="index-tabs">
       <button class="active" data-tab="all">全部</button>
-      <button data-tab="unlocked">已解鎖</button>
-      <button data-tab="locked">未解鎖</button>
-      <button data-tab="recipes">配方</button>
+      <button data-tab="attack">攻擊</button>
+      <button data-tab="defend">防禦</button>
+      <button data-tab="special">輔助特殊</button>
       <button data-tab="sets">套裝</button>
+      <button data-tab="recipes">配方</button>
     </div>
     <div class="index-filters" id="index-filters">
       <input type="search" id="index-search" placeholder="搜尋詞條／配方…" autocomplete="off" enterkeyhint="search">
@@ -1158,19 +1592,21 @@
         <option value="blue">藍</option>
         <option value="purple">紫</option>
       </select>
-      <select id="index-type" aria-label="類型篩選">
-        <option value="">全部類型</option>
-        <option value="role:attack">攻擊</option>
-        <option value="role:defend">防禦</option>
-        <option value="role:special">特殊</option>
+      <select id="index-unlock" aria-label="解鎖狀態">
+        <option value="">全部狀態</option>
+        <option value="unlocked">已解鎖</option>
+        <option value="locked">未解鎖</option>
+      </select>
+      <select id="index-type" aria-label="標籤篩選">
+        <option value="">全部標籤</option>
         <option value="tag:beast">野獸</option>
         <option value="tag:poison">毒系</option>
         <option value="tag:shadow">影系</option>
         <option value="tag:fire">火系</option>
       </select>
       <select id="index-sort" aria-label="排序">
-        <option value="rarity-asc">稀有度↑</option>
         <option value="rarity-desc">稀有度↓</option>
+        <option value="rarity-asc">稀有度↑</option>
         <option value="name">名稱</option>
         <option value="role">類型</option>
       </select>
@@ -1196,23 +1632,31 @@
     <img id="combat-art" class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="bar-row"><span>你</span><div class="bar"><span id="hp-you"></span></div><span id="hp-you-n"></span></div>
     <div class="bar-row"><span>敵</span><div class="bar"><span id="hp-enemy"></span></div><span id="hp-enemy-n"></span></div>
+    <div class="party-strip" id="party-strip" aria-label="出戰同伴">
+      <div class="party-chip hero" id="party-chip-hero"></div>
+      <div class="party-chip empty" id="party-chip-0"></div>
+      <div class="party-chip empty" id="party-chip-1"></div>
+    </div>
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
+    <p class="statline" id="combat-status-hint">狀態：無</p>
     <div class="combat-speed-bar" id="combat-speed-bar">
       <button type="button" id="btn-spd-1" class="active" title="手動／正常節奏">1x</button>
       <button type="button" id="btn-spd-2" title="自動普攻（較快）">2x</button>
       <button type="button" id="btn-spd-skip" title="即時結算本任務戰鬥">跳過戰鬥</button>
     </div>
-    <div class="log" id="combat-log"></div>
-    <div class="btn-grid" id="combat-actions">
-      <button id="btn-atk">攻擊</button>
-      <button id="btn-def">防禦</button>
-      <button id="btn-skill">用詞條技能</button>
-      <button id="btn-item">道具</button>
-      <button id="btn-flee" class="danger">逃跑</button>
-    </div>
-    <div class="btn-grid one hidden" id="combat-next-wrap">
-      <button class="primary" id="btn-combat-next">繼續</button>
+    <div class="log battle-log" id="combat-log"></div>
+    <div class="battle-actions-wrap">
+      <div class="btn-grid battle-actions" id="combat-actions">
+        <button id="btn-atk">攻擊</button>
+        <button id="btn-def">防禦</button>
+        <button id="btn-skill">用詞條技能</button>
+        <button id="btn-item">道具</button>
+        <button id="btn-flee" class="danger">逃跑</button>
+      </div>
+      <div class="btn-grid one soft-hidden" id="combat-next-wrap">
+        <button class="primary" id="btn-combat-next">繼續</button>
+      </div>
     </div>
   </div>
 
@@ -1276,8 +1720,23 @@
   <!-- BAG -->
   <div id="screen-bag" class="screen">
     <h2>道具袋</h2>
-    <p class="statline mb">鎮內可用嘅道具喺呢度使用。</p>
-    <div id="bag-list" class="select-list"></div>
+    <p class="statline mb">鎮內可用嘅道具喺呢度使用。點圖卡睇詳情。</p>
+    <div class="index-tabs" id="bag-tabs">
+      <button type="button" class="active" data-tab="all">全部</button>
+      <button type="button" data-tab="consume">消耗恢復</button>
+      <button type="button" data-tab="battle">戰鬥增益</button>
+      <button type="button" data-tab="material">素材關鍵</button>
+    </div>
+    <div class="filter-bar" id="bag-filters">
+      <input type="search" id="bag-search" placeholder="搜尋道具…" autocomplete="off" enterkeyhint="search">
+      <select id="bag-sort" aria-label="排序">
+        <option value="rarity-desc">稀有度↓</option>
+        <option value="rarity-asc">稀有度↑</option>
+        <option value="name">名稱</option>
+        <option value="qty">數量</option>
+      </select>
+    </div>
+    <div id="bag-list" class="card-grid inv-scroll"></div>
     <button id="btn-bag-back">返回</button>
   </div>
 
@@ -1338,7 +1797,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=2 OF=5  （Tooltip 錨左空位；2026-10-30 21:45 HKT）
+  // Progress: SECTION=2 LEVEL=2 OF=5  （版面A+B＋防禦軟上限C＋組隊D；2026-10-31 01:45 HKT）
   var SAVE_KEY = "traitQuest_v1";
   var LEGACY_KEY = "traitQuest_legacy_v1";
   var SAVE_VERSION = 1;
@@ -1729,7 +2188,7 @@
     shadow: "影系",
     fire: "火系"
   };
-  var ROLE_LABEL = { attack: "攻擊", defend: "防禦", special: "特殊" };
+  var ROLE_LABEL = { attack: "攻擊", defend: "防禦", special: "輔助／特殊" };
   var ROLE_ORDER = { attack: 0, defend: 1, special: 2 };
 
   /** 詞條 tags（用於套裝；一詞條可多 tag） */
@@ -1862,9 +2321,150 @@
     return "special";
   }
 
+
   function traitRoleLabel(idOrDef) {
-    return ROLE_LABEL[traitRole(idOrDef)] || "特殊";
+    return ROLE_LABEL[traitRole(idOrDef)] || "輔助／特殊";
   }
+
+  function roleIcon(role) {
+    return ({ attack: "⚔", defend: "🛡", special: "✦" })[role] || "◆";
+  }
+
+  function itemRarityKey(it) {
+    var r = (it && it.rarity) || 1;
+    if (r >= 4) return "purple";
+    if (r >= 3) return "blue";
+    if (r >= 2) return "green";
+    return "white";
+  }
+
+  /** 道具分類：消耗恢復／戰鬥增益／素材關鍵 */
+  function itemCategory(it) {
+    if (!it) return "material";
+    var u = String(it.use || "");
+    var healish = {
+      heal: 1, antidote: 1, lotus_soup: 1, pork_congee: 1, calm_pill: 1,
+      xp: 1, moon_dew: 1, gorge_jerky: 1, overheal_chip: 1, purge: 1,
+      repair_kit: 1, shadow_salve: 1, holy_spray: 1
+    };
+    if (healish[u]) return "consume";
+    var buffish = {
+      buff_atk: 1, buff_def: 1, smoke: 1, tar: 1, freeze_can: 1, copper: 1,
+      sand_bag: 1, acid: 1, glow: 1, toxin_cap: 1, stim: 1, rage_drug: 1,
+      poison_oil: 1, calm_spray: 1, flashbang: 1, shock_grenade: 1,
+      mark_bolt: 1, bond_charm: 1, veil_oil: 1, ash_charm: 1, oil_barrel: 1,
+      bomb_paste: 1, burst_arrow: 1, armor_pierce: 1, shield_break: 1,
+      night_flare: 1, mist_lantern: 1, mire_sight: 1, west_flare_dust: 1,
+      west_mist_silk: 1, bat_whistle: 1, bee_hive: 1, slime_cap: 1,
+      vine_seed: 1, grav_disk: 1, antigrav_bag: 1, dry_agent: 1,
+      echo_bell: 1, time_hourglass: 1, tide_mirror: 1, void_shard: 1,
+      void_thread: 1, spirit_core: 1, unchain: 1
+    };
+    if (buffish[u] || (it.combat && !healish[u])) return "battle";
+    return "material";
+  }
+
+  function itemCatLabel(cat) {
+    return ({ consume: "消耗／恢復", battle: "戰鬥增益", material: "素材／關鍵" })[cat] || cat;
+  }
+
+  function itemCatIcon(cat) {
+    return ({ consume: "💊", battle: "💥", material: "🔑" })[cat] || "📦";
+  }
+
+  var _traitInvTab = "all";
+  var _traitInvSort = "rarity-desc";
+  var _traitInvQ = "";
+  var _bagTab = "all";
+  var _bagSort = "rarity-desc";
+  var _bagQ = "";
+  var _fuseHideUnfusible = false;
+  var _indexUnlock = "";
+
+  function rarityOrderKey(r) {
+    return ({ white: 0, green: 1, blue: 2, purple: 3, gold: 4 })[r] || 0;
+  }
+
+  function sortTraitInstances(list, mode) {
+    list = list.slice();
+    list.sort(function (a, b) {
+      var da = TRAITS[a.id], db = TRAITS[b.id];
+      if (!da || !db) return 0;
+      if (mode === "name") return (da.name || "").localeCompare(db.name || "", "zh-Hant");
+      if (mode === "got") return (b.gotAt || 0) - (a.gotAt || 0);
+      var oa = rarityOrderKey(da.rarity), ob = rarityOrderKey(db.rarity);
+      if (mode === "rarity-asc") {
+        if (oa !== ob) return oa - ob;
+      } else {
+        if (oa !== ob) return ob - oa;
+      }
+      return (da.name || "").localeCompare(db.name || "", "zh-Hant");
+    });
+    return list;
+  }
+
+  function traitFusableWithAny(inst) {
+    if (!inst || inst.locked) return false;
+    var id = inst.id;
+    for (var i = 0; i < RECIPES.length; i++) {
+      var r = RECIPES[i];
+      if (r.a !== id && r.b !== id) continue;
+      var need = r.a === id ? r.b : r.a;
+      for (var j = 0; j < state.traits.length; j++) {
+        var o = state.traits[j];
+        if (o.uid === inst.uid) continue;
+        if (o.locked) continue;
+        if (o.id === need) return true;
+      }
+    }
+    return false;
+  }
+
+  function toggleTraitLock(uid) {
+    var inst = state.traits.find(function (t) { return t.uid === uid; });
+    if (!inst) return;
+    inst.locked = !inst.locked;
+    toast(inst.locked ? "已鎖定詞條（防誤融）" : "已解除鎖定");
+    autoSave();
+  }
+
+  function setCombatActionsEnabled(on) {
+    var box = $("combat-actions");
+    if (!box) return;
+    box.querySelectorAll("button").forEach(function (b) {
+      b.disabled = !on;
+    });
+  }
+
+  function showCombatActionsPanel(showActions) {
+    var acts = $("combat-actions");
+    var next = $("combat-next-wrap");
+    if (acts) {
+      acts.classList.remove("hidden");
+      setCombatActionsEnabled(!!showActions);
+    }
+    if (next) {
+      next.classList.remove("hidden");
+      if (showActions) next.classList.add("soft-hidden");
+      else next.classList.remove("soft-hidden");
+    }
+  }
+
+  function updateCombatStatusHint() {
+    var el = $("combat-status-hint");
+    if (!el || !combat) return;
+    var bits = [];
+    if (combat.defending) bits.push("防禦姿勢");
+    if (combat.playerPoison > 0) bits.push("中毒×" + combat.playerPoison);
+    if (combat.enemyPoison > 0) bits.push("敵中毒×" + combat.enemyPoison);
+    if (combat.enemyStun > 0) bits.push("敵束縛");
+    if (combat.invuln) bits.push("相位無敵");
+    if (combat.guardNext) bits.push("影子替身");
+    if (combat.battleBuffAtk) bits.push("攻+" + combat.battleBuffAtk);
+    if (combat.battleBuffDef) bits.push("防+" + combat.battleBuffDef);
+    el.textContent = bits.length ? ("狀態：" + bits.join(" · ")) : "狀態：無";
+  }
+
 
   // ---------- Items ----------
   var ITEMS = {
@@ -2791,6 +3391,438 @@
     return pick;
   }
 
+
+  // ---------- Companions / Party（詞條只裝備主角） ----------
+  var PARTY_ACTIVE_MAX = 2;
+  /** 軟上限減傷：實際傷害 = atk * (100/(100+defEff))，至少 1。
+   *  遊戲防禦數值偏細，代入前 × DEF_MIT_SCALE，令中前期減傷有手感。 */
+  var DEF_MIT_SCALE = 5;
+
+  var COMPANION_DEFS = {
+    koran: {
+      id: "koran",
+      name: "鐵衛·柯嵐",
+      role: "tank",
+      blurb: "前排盾衛，靠體能同訓練擋刀。詞條精神波動只刻喺主角——佢唔著詞條。",
+      recruitCost: 35,
+      needCleared: "goblin",
+      base: { hp: 58, atk: 6, def: 9, agi: 3 },
+      growthRates: { hp: 8, atk: 1.1, def: 2.2, agi: 0.35 },
+      skill: {
+        id: "iron_taunt",
+        name: "鐵壁挑釁",
+        desc: "嘲諷敵人 2 回合；期間自身防禦＋8",
+        cd: 3,
+        type: "taunt",
+        turns: 2,
+        defBonus: 8
+      }
+    },
+    eilin: {
+      id: "eilin",
+      name: "咒詠·艾琳",
+      role: "support",
+      blurb: "後排詠唱者，癒合詠同魔力彈交替。唔著詞條，靠咒文節奏作戰。",
+      recruitCost: 50,
+      needCleared: "spider",
+      base: { hp: 40, atk: 9, def: 4, agi: 5 },
+      growthRates: { hp: 5.5, atk: 2.1, def: 0.7, agi: 1.0 },
+      skill: {
+        id: "aria_mend",
+        name: "癒合詠",
+        desc: "回復血量最低同伴（含主角）；若全員近滿則發射魔力彈",
+        cd: 3,
+        type: "heal_or_bolt",
+        heal: 20,
+        boltMult: 1.35
+      }
+    }
+  };
+
+  function calcMitigatedDamage(atk, def) {
+    atk = Math.max(0, Number(atk) || 0);
+    var defEff = Math.max(0, Number(def) || 0) * DEF_MIT_SCALE;
+    if (atk <= 0) return 0;
+    return Math.max(1, Math.floor(atk * 100 / (100 + defEff)));
+  }
+
+  function companionXpToNext(level) {
+    return 24 + level * 18;
+  }
+
+  function companionStatsAtLevel(def, level) {
+    level = Math.max(1, level | 0);
+    var g = def.growthRates || {};
+    var lv = level - 1;
+    return {
+      maxHp: Math.floor(def.base.hp + (g.hp || 0) * lv),
+      atk: Math.floor(def.base.atk + (g.atk || 0) * lv),
+      def: Math.floor(def.base.def + (g.def || 0) * lv),
+      agi: Math.floor(def.base.agi + (g.agi || 0) * lv)
+    };
+  }
+
+  function ensurePartyState() {
+    if (!state.party || typeof state.party !== "object") {
+      state.party = { roster: {}, active: [] };
+    }
+    if (!state.party.roster || typeof state.party.roster !== "object") state.party.roster = {};
+    if (!Array.isArray(state.party.active)) state.party.active = [];
+    // prune invalid
+    state.party.active = state.party.active.filter(function (id) {
+      return COMPANION_DEFS[id] && state.party.roster[id] && state.party.roster[id].recruited;
+    }).slice(0, PARTY_ACTIVE_MAX);
+  }
+
+  function getCompanionRec(id) {
+    ensurePartyState();
+    return state.party.roster[id] || null;
+  }
+
+  function canRecruitCompanion(id) {
+    var def = COMPANION_DEFS[id];
+    if (!def) return false;
+    ensurePartyState();
+    var rec = state.party.roster[id];
+    if (rec && rec.recruited) return false;
+    if (def.needCleared && !(state.cleared && state.cleared[def.needCleared])) return false;
+    return true;
+  }
+
+  function recruitCompanion(id) {
+    var def = COMPANION_DEFS[id];
+    if (!def) { toast("未知同伴"); return false; }
+    ensurePartyState();
+    if (state.party.roster[id] && state.party.roster[id].recruited) {
+      toast("已經招募咗");
+      return false;
+    }
+    if (def.needCleared && !(state.cleared && state.cleared[def.needCleared])) {
+      toast("未滿足招募條件");
+      return false;
+    }
+    if ((state.gold || 0) < def.recruitCost) {
+      toast("金幣唔夠（要 " + def.recruitCost + "）");
+      return false;
+    }
+    state.gold -= def.recruitCost;
+    var st = companionStatsAtLevel(def, 1);
+    state.party.roster[id] = {
+      recruited: true,
+      level: 1,
+      xp: 0,
+      xpToNext: companionXpToNext(1),
+      hp: st.maxHp
+    };
+    if (state.party.active.length < PARTY_ACTIVE_MAX) {
+      state.party.active.push(id);
+    }
+    autoSave();
+    toast("招募成功：" + def.name);
+    return true;
+  }
+
+  function setCompanionActive(id, on) {
+    ensurePartyState();
+    var rec = state.party.roster[id];
+    if (!rec || !rec.recruited) { toast("未招募"); return; }
+    var idx = state.party.active.indexOf(id);
+    if (on) {
+      if (idx >= 0) return;
+      if (state.party.active.length >= PARTY_ACTIVE_MAX) {
+        toast("出戰欄已滿（最多 " + PARTY_ACTIVE_MAX + " 人）");
+        return;
+      }
+      state.party.active.push(id);
+      toast(COMPANION_DEFS[id].name + " 加入出戰");
+    } else {
+      if (idx < 0) return;
+      state.party.active.splice(idx, 1);
+      toast(COMPANION_DEFS[id].name + " 退出出戰");
+    }
+    autoSave();
+  }
+
+  function healPartyFull() {
+    ensurePartyState();
+    Object.keys(state.party.roster).forEach(function (id) {
+      var def = COMPANION_DEFS[id];
+      var rec = state.party.roster[id];
+      if (!def || !rec || !rec.recruited) return;
+      var st = companionStatsAtLevel(def, rec.level || 1);
+      rec.hp = st.maxHp;
+    });
+  }
+
+  function gainCompanionXp(amount) {
+    if (!amount || amount <= 0) return;
+    ensurePartyState();
+    (state.party.active || []).forEach(function (id) {
+      var def = COMPANION_DEFS[id];
+      var rec = state.party.roster[id];
+      if (!def || !rec || !rec.recruited) return;
+      rec.xp = (rec.xp || 0) + amount;
+      var ups = 0;
+      while (rec.xp >= (rec.xpToNext || companionXpToNext(rec.level || 1))) {
+        rec.xp -= rec.xpToNext || companionXpToNext(rec.level || 1);
+        rec.level = (rec.level || 1) + 1;
+        rec.xpToNext = companionXpToNext(rec.level);
+        ups++;
+        var st = companionStatsAtLevel(def, rec.level);
+        // 升級跟 growthRates 自動加點；滿血補一截
+        rec.hp = Math.min(st.maxHp, (rec.hp || 0) + Math.floor(st.maxHp * 0.25) + 4);
+        if (rec.hp > st.maxHp) rec.hp = st.maxHp;
+      }
+      if (ups > 0) {
+        var msg = def.name + " 升到 Lv." + rec.level + "！（成長率自動加點）";
+        var logEl = $("combat-log");
+        if (logEl && $("screen-combat") && $("screen-combat").classList.contains("active")) {
+          appendLog(logEl, msg, "loot");
+        } else {
+          toast(msg);
+        }
+      }
+    });
+  }
+
+  function buildCombatAllies() {
+    ensurePartyState();
+    var list = [];
+    (state.party.active || []).forEach(function (id) {
+      var def = COMPANION_DEFS[id];
+      var rec = state.party.roster[id];
+      if (!def || !rec || !rec.recruited) return;
+      var st = companionStatsAtLevel(def, rec.level || 1);
+      var hp = Math.max(0, Math.min(st.maxHp, rec.hp != null ? rec.hp : st.maxHp));
+      list.push({
+        id: id,
+        name: def.name,
+        role: def.role,
+        level: rec.level || 1,
+        maxHp: st.maxHp,
+        hp: hp,
+        atk: st.atk,
+        def: st.def,
+        agi: st.agi,
+        skill: def.skill,
+        skillCd: 0,
+        tauntTurns: 0,
+        defBonusTemp: 0
+      });
+    });
+    return list;
+  }
+
+  function syncAlliesHpToState() {
+    if (!combat || !combat.allies) return;
+    ensurePartyState();
+    combat.allies.forEach(function (a) {
+      var rec = state.party.roster[a.id];
+      if (rec) rec.hp = Math.max(0, a.hp);
+    });
+  }
+
+  function renderPartyStrip() {
+    var hero = $("party-chip-hero");
+    if (hero && state) {
+      var st = calcStats();
+      hero.className = "party-chip hero" + (state.hp <= 0 ? " down" : "");
+      hero.innerHTML =
+        "<div class='pc-name'>" + escapeHtml(state.name || "主角") + " · 主角</div>" +
+        "<div class='pc-meta'>Lv." + state.level + "　HP " + state.hp + "/" + st.maxHp + "</div>" +
+        "<div class='pc-bar'><span style='width:" + Math.max(0, Math.min(100, state.hp / st.maxHp * 100)) + "%'></span></div>";
+    }
+    for (var i = 0; i < PARTY_ACTIVE_MAX; i++) {
+      var chip = $("party-chip-" + i);
+      if (!chip) continue;
+      var ally = combat && combat.allies && combat.allies[i];
+      if (!ally) {
+        chip.className = "party-chip empty";
+        chip.innerHTML = "<div class='pc-name'>空位</div><div class='pc-meta'>未編入同伴</div><div class='pc-bar'><span style='width:0'></span></div>";
+        continue;
+      }
+      var cd = ally.skillCd > 0 ? ("CD" + ally.skillCd) : "技能就緒";
+      var pct = ally.maxHp > 0 ? (ally.hp / ally.maxHp * 100) : 0;
+      chip.className = "party-chip" + (ally.hp <= 0 ? " down" : "") + (ally.tauntTurns > 0 ? " taunt" : "");
+      chip.innerHTML =
+        "<div class='pc-name'>" + escapeHtml(ally.name) + "</div>" +
+        "<div class='pc-meta'>Lv." + ally.level + "　HP " + Math.max(0, ally.hp) + "/" + ally.maxHp + "　" + cd +
+        (ally.tauntTurns > 0 ? "　嘲諷" + ally.tauntTurns : "") + "</div>" +
+        "<div class='pc-bar'><span style='width:" + Math.max(0, Math.min(100, pct)) + "%'></span></div>";
+    }
+  }
+
+  function showParty() {
+    showScreen("screen-party");
+    ensurePartyState();
+    var line = $("party-active-line");
+    var names = (state.party.active || []).map(function (id) {
+      return COMPANION_DEFS[id] ? COMPANION_DEFS[id].name : id;
+    });
+    if (line) {
+      line.innerHTML = names.length
+        ? "目前出戰：<b>" + names.map(escapeHtml).join("、") + "</b>（最多 " + PARTY_ACTIVE_MAX + " 人）"
+        : "目前出戰：<span style='color:#777'>無</span>——去下面招募／編入。";
+    }
+    var list = $("party-list");
+    if (!list) return;
+    list.innerHTML = "";
+    Object.keys(COMPANION_DEFS).forEach(function (id) {
+      var def = COMPANION_DEFS[id];
+      var rec = state.party.roster[id];
+      var recruited = !!(rec && rec.recruited);
+      var active = (state.party.active || []).indexOf(id) >= 0;
+      var st = companionStatsAtLevel(def, recruited ? (rec.level || 1) : 1);
+      var card = document.createElement("div");
+      card.className = "party-card";
+      var cond = def.needCleared
+        ? ("需通關「" + ((QUESTS.filter(function (q) { return q.id === def.needCleared; })[0] || {}).name || def.needCleared) + "」")
+        : "隨時可招募";
+      var unlocked = !def.needCleared || !!(state.cleared && state.cleared[def.needCleared]);
+      var body =
+        "<h3>" + escapeHtml(def.name) + " <span class='statline'>（" + (def.role === "tank" ? "盾衛" : "詠唱") + "）</span></h3>" +
+        "<div class='pc-blurb'>" + escapeHtml(def.blurb) + "</div>" +
+        "<div class='pc-stats'>成長率 HP+" + def.growthRates.hp + " 攻+" + def.growthRates.atk +
+        " 防+" + def.growthRates.def + " 敏+" + def.growthRates.agi + "</div>" +
+        "<div class='pc-stats'>技能【" + escapeHtml(def.skill.name) + "】CD" + def.skill.cd + "：" + escapeHtml(def.skill.desc) + "</div>";
+      if (recruited) {
+        body += "<div class='pc-stats'>Lv." + rec.level + "　XP " + rec.xp + "/" + rec.xpToNext +
+          "　HP " + rec.hp + "/" + st.maxHp + "　攻" + st.atk + " 防" + st.def + " 敏" + st.agi + "</div>";
+      } else {
+        body += "<div class='pc-stats'>招募費 " + def.recruitCost + " 金　｜　" + cond +
+          (unlocked ? " ✅" : " 🔒") + "</div>";
+        body += "<div class='pc-stats'>初始　HP" + st.maxHp + " 攻" + st.atk + " 防" + st.def + " 敏" + st.agi + "</div>";
+      }
+      card.innerHTML = body;
+      var row = document.createElement("div");
+      row.className = "btn-row";
+      if (!recruited) {
+        var rb = document.createElement("button");
+        rb.className = "primary";
+        rb.textContent = unlocked ? ("招募（" + def.recruitCost + "金）") : "未解鎖";
+        rb.disabled = !unlocked;
+        rb.onclick = function () {
+          if (recruitCompanion(id)) showParty();
+        };
+        row.appendChild(rb);
+      } else {
+        var ab = document.createElement("button");
+        ab.className = active ? "danger" : "primary";
+        ab.textContent = active ? "退出出戰" : "編入出戰";
+        ab.onclick = function () {
+          setCompanionActive(id, !active);
+          showParty();
+        };
+        row.appendChild(ab);
+      }
+      card.appendChild(row);
+      list.appendChild(card);
+    });
+  }
+
+  function allyEffectiveDef(ally) {
+    if (!ally) return 0;
+    return (ally.def || 0) + (ally.defBonusTemp || 0);
+  }
+
+  function dealToAlly(ally, raw) {
+    if (!ally || ally.hp <= 0) return 0;
+    var dmg = calcMitigatedDamage(raw, allyEffectiveDef(ally));
+    ally.hp -= dmg;
+    if (ally.hp < 0) ally.hp = 0;
+    if (!combat._floatMute) {
+      spawnDmgFloat(dmg, { target: "player" });
+      if (dmg > 0) shakeCombat();
+    }
+    return dmg;
+  }
+
+  function pickEnemyVictim() {
+    // 嘲諷優先；否則打主角（簡單可讀）
+    if (combat && combat.allies) {
+      for (var i = 0; i < combat.allies.length; i++) {
+        var a = combat.allies[i];
+        if (a && a.hp > 0 && a.tauntTurns > 0) return { kind: "ally", ally: a };
+      }
+    }
+    return { kind: "player" };
+  }
+
+  function tickAllySkillCds() {
+    if (!combat || !combat.allies) return;
+    combat.allies.forEach(function (a) {
+      if (a.skillCd > 0) a.skillCd--;
+      if (a.tauntTurns > 0) {
+        a.tauntTurns--;
+        if (a.tauntTurns <= 0) a.defBonusTemp = 0;
+      }
+    });
+  }
+
+  function allyUseSkill(ally) {
+    if (!ally || ally.hp <= 0 || !ally.skill) return false;
+    if (ally.skillCd > 0) return false;
+    var sk = ally.skill;
+    if (sk.type === "taunt") {
+      ally.tauntTurns = sk.turns || 2;
+      ally.defBonusTemp = sk.defBonus || 6;
+      ally.skillCd = sk.cd || 3;
+      appendLog($("combat-log"), ally.name + "使出【" + sk.name + "】！嘲諷敵人，自身防禦上升！", "skill");
+      return true;
+    }
+    if (sk.type === "heal_or_bolt") {
+      // find lowest hp ratio among hero + allies
+      var st = calcStats();
+      var candidates = [{ kind: "player", hp: state.hp, max: st.maxHp }];
+      combat.allies.forEach(function (a) {
+        if (a.hp > 0) candidates.push({ kind: "ally", ally: a, hp: a.hp, max: a.maxHp });
+      });
+      var needHeal = candidates.some(function (c) { return c.hp / c.max < 0.92; });
+      if (needHeal) {
+        candidates.sort(function (a, b) { return (a.hp / a.max) - (b.hp / b.max); });
+        var t = candidates[0];
+        var heal = sk.heal || 18;
+        if (t.kind === "player") {
+          state.hp = Math.min(st.maxHp, state.hp + heal);
+          appendLog($("combat-log"), ally.name + "詠唱【" + sk.name + "】，你回復 " + heal + " HP！", "skill");
+        } else {
+          t.ally.hp = Math.min(t.ally.maxHp, t.ally.hp + heal);
+          appendLog($("combat-log"), ally.name + "詠唱【" + sk.name + "】，" + t.ally.name + "回復 " + heal + " HP！", "skill");
+        }
+        if (!combat._floatMute) spawnDmgFloat(heal, { target: "player" }); // reuse float; heal color if class set
+      } else {
+        var bolt = Math.floor(ally.atk * (sk.boltMult || 1.3)) + Math.floor(Math.random() * 3);
+        var bd = dealToEnemy(bolt);
+        appendLog($("combat-log"), ally.name + "詠唱魔力彈，對敵人造成 " + bd + " 傷害！", "skill");
+      }
+      ally.skillCd = sk.cd || 3;
+      return true;
+    }
+    return false;
+  }
+
+  function allyBasicAttack(ally) {
+    if (!ally || ally.hp <= 0 || !combat || combat.enemy.hp <= 0) return;
+    var raw = ally.atk + Math.floor(Math.random() * 3);
+    var dmg = dealToEnemy(raw);
+    appendLog($("combat-log"), ally.name + "攻擊，造成 " + dmg + " 傷害。", "dmg");
+  }
+
+  function runAllyActions() {
+    if (!combat || combat.over || !combat.allies) return;
+    combat.allies.forEach(function (ally) {
+      if (combat.over || combat.enemy.hp <= 0) return;
+      if (!ally || ally.hp <= 0) return;
+      // 技能就緒就用，否則普攻
+      if (ally.skillCd <= 0) {
+        if (!allyUseSkill(ally)) allyBasicAttack(ally);
+      } else {
+        allyBasicAttack(ally);
+      }
+    });
+  }
+
+
   // ---------- State ----------
   var state = null;
   var combat = null;
@@ -2828,7 +3860,8 @@
       pendingLevelUps: 0,
       eventQuestId: null,
       eventBlurb: null,
-      shop: { shelf: null, refreshAt: 0 }
+      shop: { shelf: null, refreshAt: 0 },
+      party: { roster: {}, active: [] }
     };
   }
 
@@ -2851,6 +3884,9 @@
     while (s.equipped.length < 3) s.equipped.push(null);
     if (s.equipped.length > 3) s.equipped = s.equipped.slice(0, 3);
     if (!s.traitIndex || typeof s.traitIndex !== "object") s.traitIndex = {};
+    if (!s.party || typeof s.party !== "object") s.party = { roster: {}, active: [] };
+    if (!s.party.roster || typeof s.party.roster !== "object") s.party.roster = {};
+    if (!Array.isArray(s.party.active)) s.party.active = [];
     if (s.originId == null) s.originId = null;
     if (s.originPending == null) {
       // 舊存檔：已有開局詞條或已入城 → 唔再逼揀流派
@@ -2859,6 +3895,8 @@
     // 舊存檔：持有／裝備過嘅詞條自動記入圖鑑
     (s.traits || []).forEach(function (t) {
       if (t && t.id) s.traitIndex[t.id] = true;
+      if (t && t.gotAt == null) t.gotAt = 0;
+      if (t && t.locked == null) t.locked = false;
     });
     if (s.eventQuestId === undefined) s.eventQuestId = null;
     if (s.eventBlurb === undefined) s.eventBlurb = null;
@@ -3042,7 +4080,7 @@
   }
 
   function addTrait(traitId) {
-    state.traits.push({ uid: uid(), id: traitId });
+    state.traits.push({ uid: uid(), id: traitId, gotAt: Date.now(), locked: false });
     unlockTraitIndex(traitId);
   }
 
@@ -3377,7 +4415,7 @@
     var html = "<div class='tip-compare'><h4>同而家狀態比對</h4>";
     html += "<div class='tip-stats'>";
     html += "<div>而家 HP　<b>" + state.hp + "/" + st.maxHp + "</b>（缺 " + miss + "）</div>";
-    html += "<div>而家攻擊　<b>" + st.attack + "</b>　減傷 <b>" + st.defense + "</b></div>";
+    html += "<div>而家攻擊　<b>" + st.attack + "</b>　防禦 <b>" + st.defense + "</b>（軟上限）</div>";
     html += "<div>持有金錢　<b>" + state.gold + "</b></div>";
     if (it.buy != null) {
       var can = state.gold >= it.buy;
@@ -3533,15 +4571,16 @@
   function scheduleBattleAuto() {
     stopBattleAuto();
     if (battleSpeed < 2 || !combat || combat.over || battleSkipping) return;
-    // 只在戰鬥畫面且動作按鈕可見時自動
+    // 只在戰鬥畫面且動作按鈕可用時自動（disabled＝冷卻／結束，唔靠 display:none）
     var scr = $("screen-combat");
     if (!scr || !scr.classList.contains("active")) return;
-    if ($("combat-actions") && $("combat-actions").classList.contains("hidden")) return;
+    if ($("combat-actions") && ($("combat-actions").classList.contains("hidden") ||
+        ($("btn-atk") && $("btn-atk").disabled))) return;
     battleAutoTimer = setTimeout(function () {
       battleAutoTimer = null;
       if (battleSpeed < 2 || !combat || combat.over || battleSkipping) return;
       if (!$("screen-combat").classList.contains("active")) return;
-      if ($("combat-actions").classList.contains("hidden")) return;
+      if ($("combat-actions").classList.contains("hidden") || ($("btn-atk") && $("btn-atk").disabled)) return;
       actAttack();
       if (combat && !combat.over && battleSpeed >= 2) scheduleBattleAuto();
     }, battleDelay(420));
@@ -3692,7 +4731,8 @@
         setTimeout(step, battleDelay(50));
         return;
       }
-      if ($("combat-actions") && !$("combat-actions").classList.contains("hidden")) {
+      if ($("combat-actions") && !$("combat-actions").classList.contains("hidden") &&
+          !($("btn-atk") && $("btn-atk").disabled)) {
         actAttack();
       }
       setTimeout(step, battleDelay(18));
@@ -4251,6 +5291,7 @@
   }
 
   function enterTown(msg) {
+    ensurePartyState();
     showScreen("screen-town");
     var st = calcStats();
     if (state.hp > st.maxHp) state.hp = st.maxHp;
@@ -4299,14 +5340,24 @@
       return;
     }
     var st = calcStats();
-    if (state.hp >= st.maxHp) {
-      toast("HP 已滿，唔使休息");
+    ensurePartyState();
+    var allyNeed = false;
+    Object.keys(state.party.roster || {}).forEach(function (id) {
+      var def = COMPANION_DEFS[id];
+      var rec = state.party.roster[id];
+      if (!def || !rec || !rec.recruited) return;
+      var cs = companionStatsAtLevel(def, rec.level || 1);
+      if ((rec.hp || 0) < cs.maxHp) allyNeed = true;
+    });
+    if (state.hp >= st.maxHp && !allyNeed) {
+      toast("全員 HP 已滿，唔使休息");
       return;
     }
     state.gold -= cost;
     state.hp = st.maxHp;
-    enterTown("你付咗 " + cost + " 金，喺旅店瞓咗一覺。體力回復。");
-    toast("休息 −" + cost + "金，HP 回滿");
+    healPartyFull();
+    enterTown("你付咗 " + cost + " 金，喺旅店瞓咗一覺。體力（含同伴）回復。");
+    toast("休息 −" + cost + "金，全員 HP 回滿");
   }
 
   function showStatus() {
@@ -4318,7 +5369,8 @@
       "<p>經驗 " + state.xp + " / " + state.xpToNext + "</p>" +
       "<p>力量 " + st.str + "　敏捷 " + st.agi + "　體質 " + st.con +
       (state.levelDef ? "　等級防禦 +" + state.levelDef : "") + "</p>" +
-      "<p>攻擊力 " + st.attack + "　減傷 " + st.defense +
+      "<p>攻擊力 " + st.attack + "　防禦 " + st.defense +
+      " <span style='color:#888'>（軟上限減傷）</span>" +
       (st.regen ? "　再生 +" + st.regen : "") + "</p>" +
       "<p>下戰增益：攻 +" + (state.buffAtk || 0) + "　防 +" + (state.buffDef || 0) + "</p>" +
       "<p>詞條碎片 " + state.fragments + " / " + state.fragNeed + "（滿則隨機白詞條）</p>" +
@@ -4352,30 +5404,65 @@
     });
     updateEquipSetGlow();
 
+    var tabs = $("trait-inv-tabs");
+    if (tabs) {
+      tabs.querySelectorAll("button").forEach(function (b) {
+        b.classList.toggle("active", b.getAttribute("data-tab") === _traitInvTab);
+      });
+    }
+    var sortEl = $("trait-inv-sort");
+    if (sortEl && sortEl.value) _traitInvSort = sortEl.value;
+    var qEl = $("trait-inv-search");
+    if (qEl) _traitInvQ = String(qEl.value || "").trim().toLowerCase();
+
     var list = $("trait-list");
     list.innerHTML = "";
     if (!state.traits.length) {
       list.innerHTML = "<p class='statline'>未持有詞條</p>";
       return;
     }
-    state.traits.forEach(function (inst) {
+    var filtered = state.traits.filter(function (inst) {
+      var def = TRAITS[inst.id];
+      if (!def) return false;
+      var role = traitRole(def);
+      if (_traitInvTab === "attack" && role !== "attack") return false;
+      if (_traitInvTab === "defend" && role !== "defend") return false;
+      if (_traitInvTab === "special" && role !== "special") return false;
+      if (_traitInvTab === "set") {
+        if (!traitTags(def.id).length) return false;
+      }
+      if (_traitInvQ) {
+        var hay = (def.name + " " + (def.desc || "") + " " + traitRoleLabel(def) + " " + tagLabelList(traitTags(def.id))).toLowerCase();
+        if (hay.indexOf(_traitInvQ) < 0) return false;
+      }
+      return true;
+    });
+    filtered = sortTraitInstances(filtered, _traitInvSort);
+    if (!filtered.length) {
+      list.innerHTML = "<p class='statline'>冇符合條件嘅詞條。</p>";
+      return;
+    }
+    filtered.forEach(function (inst) {
       var def = TRAITS[inst.id];
       if (!def) return;
       var eqIdx = state.equipped.indexOf(inst.uid);
-      var row = document.createElement("div");
-      row.className = "trait rarity-" + def.rarity;
-      row.innerHTML =
-        "<div class='name'>" + escapeHtml(def.name) + "</div>" +
-        "<div class='meta'>" + rarityLabel(def.rarity) +
-        (eqIdx >= 0 ? "　已裝備 · 槽" + (eqIdx + 1) : "　未裝備") +
-        (traitTags(def.id).length ? "　[" + escapeHtml(tagLabelList(traitTags(def.id))) + "]" : "") +
-        "</div>" +
-        "<div class='meta'>" + escapeHtml(def.desc) + "</div>" +
-        (def.skill ? "<div class='meta'>技能：" + escapeHtml(def.skill.name) + "</div>" : "");
+      var role = traitRole(def);
+      var card = document.createElement("div");
+      card.className = "mini-card rarity-" + def.rarity +
+        (eqIdx >= 0 ? " equipped-mark" : "") +
+        (inst.locked ? " locked-trait" : "");
+      card.innerHTML =
+        (inst.locked ? "<span class='mc-lock' title='已鎖定'>🔒</span>" : "") +
+        "<div class='mc-icon'>" + roleIcon(role) + "</div>" +
+        "<div class='mc-name'>" + escapeHtml(def.name) + "</div>" +
+        "<div class='mc-meta'>" + rarityLabel(def.rarity) + " · " + escapeHtml(traitRoleLabel(def)) + "</div>";
+      var acts = document.createElement("div");
+      acts.className = "mc-actions";
       if (eqIdx < 0) {
         var b = document.createElement("button");
         b.textContent = "裝備";
-        b.onclick = function () {
+        b.onclick = function (ev) {
+          ev.stopPropagation();
           var empty = state.equipped.indexOf(null);
           if (empty < 0) {
             toast("詞條槽已滿，先卸下一隻");
@@ -4385,14 +5472,33 @@
           showStatus();
           toast("已裝備「" + def.name + "」");
         };
-        row.appendChild(b);
-      }
-      bindTippable(row, (function (d, eq) {
-        return function () {
-          showTraitTip(d, eq >= 0 ? ("已裝備 · 槽" + (eq + 1)) : "未裝備");
+        acts.appendChild(b);
+      } else {
+        var ub = document.createElement("button");
+        ub.textContent = "卸下";
+        ub.onclick = function (ev) {
+          ev.stopPropagation();
+          state.equipped[eqIdx] = null;
+          showStatus();
+          toast("已卸下");
         };
-      })(def, eqIdx));
-      list.appendChild(row);
+        acts.appendChild(ub);
+      }
+      var lb = document.createElement("button");
+      lb.textContent = inst.locked ? "解鎖" : "鎖定";
+      lb.onclick = function (ev) {
+        ev.stopPropagation();
+        toggleTraitLock(inst.uid);
+        showStatus();
+      };
+      acts.appendChild(lb);
+      card.appendChild(acts);
+      bindTippable(card, (function (d, eq, locked) {
+        return function () {
+          showTraitTip(d, (eq >= 0 ? ("已裝備 · 槽" + (eq + 1)) : "未裝備") + (locked ? " · 已鎖定" : ""));
+        };
+      })(def, eqIdx, !!inst.locked));
+      list.appendChild(card);
     });
   }
 
@@ -4428,10 +5534,12 @@
     var rEl = $("index-rarity");
     var tEl = $("index-type");
     var sEl = $("index-sort");
+    var uEl = $("index-unlock");
     _indexFilter.q = qEl ? String(qEl.value || "").trim().toLowerCase() : "";
     _indexFilter.rarity = rEl ? (rEl.value || "") : "";
     _indexFilter.type = tEl ? (tEl.value || "") : "";
-    _indexFilter.sort = sEl ? (sEl.value || "rarity-asc") : "rarity-asc";
+    _indexFilter.sort = sEl ? (sEl.value || "rarity-desc") : "rarity-desc";
+    _indexUnlock = uEl ? (uEl.value || "") : "";
   }
 
   function syncIndexFilterUi() {
@@ -4439,14 +5547,16 @@
     if (!filters) return;
     var hide = (_indexTab === "sets");
     filters.classList.toggle("hidden", hide);
-    // 配方頁保留搜尋，隱藏稀有／類型／排序
+    // 配方頁保留搜尋，隱藏稀有／類型／排序／解鎖
     var rEl = $("index-rarity");
     var tEl = $("index-type");
     var sEl = $("index-sort");
+    var uEl = $("index-unlock");
     var recipeMode = (_indexTab === "recipes");
     if (rEl) rEl.style.display = recipeMode ? "none" : "";
     if (tEl) tEl.style.display = recipeMode ? "none" : "";
     if (sEl) sEl.style.display = recipeMode ? "none" : "";
+    if (uEl) uEl.style.display = recipeMode ? "none" : "";
   }
 
   function traitMatchesTypeFilter(id, typeVal) {
@@ -4553,8 +5663,12 @@
     ids.forEach(function (id) {
       var def = TRAITS[id];
       var unlocked = isTraitUnlocked(id);
-      if (_indexTab === "unlocked" && !unlocked) return;
-      if (_indexTab === "locked" && unlocked) return;
+      var role = traitRole(id);
+      if (_indexTab === "attack" && role !== "attack") return;
+      if (_indexTab === "defend" && role !== "defend") return;
+      if (_indexTab === "special" && role !== "special") return;
+      if (_indexUnlock === "unlocked" && !unlocked) return;
+      if (_indexUnlock === "locked" && unlocked) return;
       if (_indexFilter.rarity && def.rarity !== _indexFilter.rarity) return;
       if (!traitMatchesTypeFilter(id, _indexFilter.type)) return;
       if (q) {
@@ -4562,7 +5676,6 @@
         if (unlocked) {
           hay = (def.name + " " + (def.desc || "") + " " + traitRoleLabel(id) + " " + tagLabelList(traitTags(id))).toLowerCase();
         } else {
-          // 未解鎖只准用稀有度／類型篩，唔洩露名；搜尋字若非空則跳過未解鎖（除非搜「???」）
           hay = "??? " + rarityLabel(def.rarity) + " " + traitRoleLabel(id);
         }
         if (hay.indexOf(q) < 0) return;
@@ -4572,12 +5685,17 @@
       card.className = "index-card" + (unlocked ? " rarity-" + def.rarity : " locked");
       if (unlocked) {
         card.innerHTML =
+          "<div class='ic-icon'>" + roleIcon(role) + "</div>" +
           "<div class='iname'>" + escapeHtml(def.name) + "</div>" +
           "<div class='tags'>[" + rarityLabel(def.rarity) + "]　" + escapeHtml(traitRoleLabel(id)) +
           (traitTags(id).length ? "　" + escapeHtml(tagLabelList(traitTags(id))) : "") + "</div>" +
           "<div class='idesc'>" + escapeHtml(def.desc) + "</div>";
+        bindTippable(card, (function (d) {
+          return function () { showTraitTip(d, "圖鑑"); };
+        })(def));
       } else {
         card.innerHTML =
+          "<div class='ic-icon'>?</div>" +
           "<div class='iname'>???</div>" +
           "<div class='tags'>[" + rarityLabel(def.rarity) + "]　" + escapeHtml(traitRoleLabel(id)) + "　未解鎖</div>" +
           "<div class='idesc'>？？？</div>";
@@ -4638,9 +5756,35 @@
     }, isNewIndex ? 2400 : 1600);
   }
 
+  function updateFuseSelectedLine() {
+    var el = $("fuse-selected");
+    if (!el) return;
+    var boxes = $("fuse-pick") ? $("fuse-pick").querySelectorAll("input[type=checkbox]:checked") : [];
+    if (!boxes.length) {
+      el.innerHTML = "未揀（要剛好兩隻）";
+      return;
+    }
+    var names = [];
+    for (var i = 0; i < boxes.length; i++) {
+      var id = boxes[i].getAttribute("data-id");
+      var def = TRAITS[id];
+      names.push(def ? def.name : "?");
+    }
+    el.innerHTML = "已選 <b>" + names.map(escapeHtml).join("</b> ＋ <b>") + "</b>" +
+      (boxes.length === 2 ? "　（可以融合）" : "　（仲差 " + (2 - boxes.length) + " 隻）");
+  }
+
   function showFuse() {
     showScreen("screen-fuse");
-    $("fuse-log").innerHTML = "";
+    // 唔清 fuse-log，方便睇上次結果；首次先空
+    if (!$("fuse-log").dataset.ready) {
+      $("fuse-log").innerHTML = "";
+      $("fuse-log").dataset.ready = "1";
+    }
+    var hideEl = $("fuse-hide-unfusible");
+    if (hideEl) {
+      hideEl.checked = !!_fuseHideUnfusible;
+    }
     var rl = $("recipe-list");
     rl.innerHTML = RECIPES.map(function (r) {
       return "<div>· " + escapeHtml(r.hint) + "</div>";
@@ -4650,22 +5794,90 @@
     pick.innerHTML = "";
     if (state.traits.length < 2) {
       pick.innerHTML = "<p class='statline'>至少需要兩隻詞條先可以融合。</p>";
+      updateFuseSelectedLine();
       return;
     }
+    var shown = 0;
     state.traits.forEach(function (inst) {
       var def = TRAITS[inst.id];
       if (!def) return;
-      var lab = document.createElement("label");
-      lab.className = "rarity-" + def.rarity;
-      lab.innerHTML =
-        "<input type='checkbox' data-uid='" + inst.uid + "' data-id='" + inst.id + "'>" +
-        "<span class='pick-body'>" +
-        "<span class='name'>" + escapeHtml(def.name) + "</span>" +
-        "<span class='meta'>" + rarityLabel(def.rarity) + "</span>" +
-        "<span class='meta'>" + escapeHtml(def.desc) + "</span>" +
-        "</span>";
-      pick.appendChild(lab);
+      var canFuse = traitFusableWithAny(inst);
+      if (_fuseHideUnfusible && (!canFuse || inst.locked)) return;
+      shown++;
+      var role = traitRole(def);
+      var card = document.createElement("div");
+      card.className = "mini-card rarity-" + def.rarity +
+        (inst.locked ? " locked-trait" : "") +
+        (!canFuse || inst.locked ? " dimmed" : "");
+      var chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.className = "mc-check";
+      chk.setAttribute("data-uid", inst.uid);
+      chk.setAttribute("data-id", inst.id);
+      if (inst.locked) {
+        chk.disabled = true;
+        chk.title = "已鎖定";
+      }
+      chk.onchange = function () {
+        var all = pick.querySelectorAll("input[type=checkbox]:checked");
+        if (all.length > 2) {
+          chk.checked = false;
+          toast("最多揀兩隻");
+        }
+        updateFuseSelectedLine();
+        // sync selected visual
+        pick.querySelectorAll(".mini-card").forEach(function (c) {
+          var inp = c.querySelector("input.mc-check");
+          c.classList.toggle("selected", !!(inp && inp.checked));
+        });
+      };
+      card.appendChild(chk);
+      if (inst.locked) {
+        var lk = document.createElement("span");
+        lk.className = "mc-lock";
+        lk.textContent = "🔒";
+        card.appendChild(lk);
+      }
+      var icon = document.createElement("div");
+      icon.className = "mc-icon";
+      icon.textContent = roleIcon(role);
+      card.appendChild(icon);
+      var nm = document.createElement("div");
+      nm.className = "mc-name";
+      nm.textContent = def.name;
+      card.appendChild(nm);
+      var meta = document.createElement("div");
+      meta.className = "mc-meta";
+      meta.textContent = rarityLabel(def.rarity) + (canFuse ? " · 可融" : " · 無配");
+      card.appendChild(meta);
+      var lb = document.createElement("button");
+      lb.className = "lock-btn";
+      lb.textContent = inst.locked ? "解鎖" : "鎖";
+      lb.onclick = function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        toggleTraitLock(inst.uid);
+        showFuse();
+      };
+      card.appendChild(lb);
+      card.addEventListener("click", function (ev) {
+        if (ev.target === chk || ev.target === lb || (lb.contains && lb.contains(ev.target))) return;
+        if (chk.disabled) {
+          toast("詞條已鎖定，先解鎖先可以融合");
+          return;
+        }
+        chk.checked = !chk.checked;
+        chk.onchange();
+      });
+      bindTippable(card, (function (d, locked) {
+        return function () { showTraitTip(d, locked ? "已鎖定 · 防誤融" : "融合候選"); };
+      })(def, !!inst.locked));
+      pick.appendChild(card);
     });
+    if (!shown) {
+      pick.innerHTML = "<p class='statline'>冇可顯示詞條（試下取消「隱藏不可融合」）。</p>";
+    }
+    updateFuseSelectedLine();
   }
 
   function doFuse() {
@@ -4678,6 +5890,12 @@
     var idB = boxes[1].getAttribute("data-id");
     var uidA = boxes[0].getAttribute("data-uid");
     var uidB = boxes[1].getAttribute("data-uid");
+    var instA = state.traits.find(function (t) { return t.uid === uidA; });
+    var instB = state.traits.find(function (t) { return t.uid === uidB; });
+    if ((instA && instA.locked) || (instB && instB.locked)) {
+      toast("鎖定詞條唔可以融合，請先解鎖");
+      return;
+    }
 
     var recipe = null;
     for (var i = 0; i < RECIPES.length; i++) {
@@ -5399,7 +6617,7 @@
         keys.forEach(function (id) {
           var it = ITEMS[id];
           var row = document.createElement("div");
-          row.className = "inv-row";
+          row.className = "inv-row rarity-" + itemRarityKey(it);
           row.innerHTML =
             "<div class='info'><b>" + escapeHtml(it.name) + "</b>" +
             "<div class='meta'>持有 ×" + invCount(id) + "　售價 " + it.sell + " 金</div>" +
@@ -5462,6 +6680,17 @@
   function showBag() {
     showScreen("screen-bag");
     updateStickyHud();
+    var tabs = $("bag-tabs");
+    if (tabs) {
+      tabs.querySelectorAll("button").forEach(function (b) {
+        b.classList.toggle("active", b.getAttribute("data-tab") === _bagTab);
+      });
+    }
+    var sortEl = $("bag-sort");
+    if (sortEl && sortEl.value) _bagSort = sortEl.value;
+    var qEl = $("bag-search");
+    if (qEl) _bagQ = String(qEl.value || "").trim().toLowerCase();
+
     var list = $("bag-list");
     list.innerHTML = "";
     var keys = Object.keys(state.inventory || {}).filter(function (k) { return invCount(k) > 0 && ITEMS[k]; });
@@ -5469,33 +6698,66 @@
       list.innerHTML = "<p class='statline'>道具袋係空嘅。去商店睇睇？</p>";
       return;
     }
+    keys = keys.filter(function (id) {
+      var it = ITEMS[id];
+      var cat = itemCategory(it);
+      if (_bagTab === "consume" && cat !== "consume") return false;
+      if (_bagTab === "battle" && cat !== "battle") return false;
+      if (_bagTab === "material" && cat !== "material") return false;
+      if (_bagQ) {
+        var hay = (it.name + " " + (it.desc || "") + " " + itemCatLabel(cat)).toLowerCase();
+        if (hay.indexOf(_bagQ) < 0) return false;
+      }
+      return true;
+    });
+    keys.sort(function (a, b) {
+      var ia = ITEMS[a], ib = ITEMS[b];
+      if (_bagSort === "name") return (ia.name || "").localeCompare(ib.name || "", "zh-Hant");
+      if (_bagSort === "qty") return invCount(b) - invCount(a);
+      var ra = ia.rarity || 1, rb = ib.rarity || 1;
+      if (_bagSort === "rarity-asc") {
+        if (ra !== rb) return ra - rb;
+      } else {
+        if (ra !== rb) return rb - ra;
+      }
+      return (ia.name || "").localeCompare(ib.name || "", "zh-Hant");
+    });
+    if (!keys.length) {
+      list.innerHTML = "<p class='statline'>冇符合條件嘅道具。</p>";
+      return;
+    }
     keys.forEach(function (id) {
       var it = ITEMS[id];
-      var row = document.createElement("div");
-      row.className = "inv-row";
-      row.innerHTML =
-        "<div class='info'><b>" + escapeHtml(it.name) + "</b>" +
-        "<div class='meta'>持有 ×" + invCount(id) +
-        (it.town ? "　鎮內可用" : "　戰鬥用") + "</div>" +
-        "<div class='meta'>" + escapeHtml(it.desc) + "</div></div>";
+      var cat = itemCategory(it);
+      var rk = itemRarityKey(it);
+      var card = document.createElement("div");
+      card.className = "mini-card rarity-" + rk;
+      card.innerHTML =
+        "<span class='mc-qty'>×" + invCount(id) + "</span>" +
+        "<div class='mc-icon'>" + itemCatIcon(cat) + "</div>" +
+        "<div class='mc-name'>" + escapeHtml(it.name) + "</div>" +
+        "<div class='mc-meta'>" + escapeHtml(itemCatLabel(cat)) + (it.town ? " · 可用" : " · 戰鬥") + "</div>";
       if (it.town) {
+        var acts = document.createElement("div");
+        acts.className = "mc-actions";
         var b = document.createElement("button");
         b.textContent = "使用";
         b.onclick = (function (itemId) {
-          return function () {
+          return function (ev) {
+            ev.stopPropagation();
             if (useItem(itemId, false)) {
               if (state.pendingLevelUps > 0) return;
               showBag();
-              // refresh stats toast already
             }
           };
         })(id);
-        row.appendChild(b);
+        acts.appendChild(b);
+        card.appendChild(acts);
       }
-      bindTippable(row, (function (item) {
+      bindTippable(card, (function (item) {
         return function () { showItemTip(item, "道具袋"); };
       })(it));
-      list.appendChild(row);
+      list.appendChild(card);
     });
   }
 
@@ -5776,7 +7038,8 @@
       noEnemyExtra: false,
       skillCd: {},
       _lastCrit: false,
-      _floatMute: false
+      _floatMute: false,
+      allies: buildCombatAllies()
     };
     beginStage();
   }
@@ -5794,6 +7057,14 @@
     combat.defending = false;
     combat.guardHeal = false;
     combat.over = false;
+    // 每關重置同伴技能 CD／嘲諷；HP 跨關保留
+    if (!combat.allies) combat.allies = buildCombatAllies();
+    combat.allies.forEach(function (a) {
+      a.skillCd = 0;
+      a.tauntTurns = 0;
+      a.defBonusTemp = 0;
+      if (a.hp > a.maxHp) a.hp = a.maxHp;
+    });
     // apply next-battle buffs once at first stage of a quest
     if (combat.stage === 0) {
       combat.battleBuffAtk = state.buffAtk || 0;
@@ -5815,10 +7086,10 @@
     $("combat-log").innerHTML = "";
     var fxLayer = $("combat-fx-layer");
     if (fxLayer) fxLayer.innerHTML = "";
-    $("combat-actions").classList.remove("hidden");
-    $("combat-next-wrap").classList.add("hidden");
+    showCombatActionsPanel(true);
     syncSpeedButtons();
     updateBars();
+    updateCombatStatusHint();
     if (battleSpeed >= 2 && !battleSkipping) scheduleBattleAuto();
     appendLog($("combat-log"), stage.flavor);
     if (combat.stage === 0) {
@@ -5934,6 +7205,8 @@
     $("hp-you-n").textContent = state.hp + "/" + st.maxHp;
     updateStickyHud();
     $("hp-enemy-n").textContent = combat.enemy.hp + "/" + combat.enemy.maxHp;
+    updateCombatStatusHint();
+    renderPartyStrip();
   }
 
   function playerAttackPower() {
@@ -5950,7 +7223,8 @@
       combat.pierceBonus = 0;
     }
     var bonus = tryConsumeMarkBonus();
-    var dmg = Math.max(1, (raw | 0) + bonus + pierceExtra - def);
+    var incoming = (raw | 0) + bonus + pierceExtra;
+    var dmg = calcMitigatedDamage(incoming, def);
     if (hasField("fog") && combat._isFireSkill) dmg += 5;
     combat.enemy.hp -= dmg;
     if (!combat._floatMute) {
@@ -5991,9 +7265,9 @@
     }
     var eatk = (raw | 0) - (combat.enemyAtkPenalty || 0);
     if (eatk < 1) eatk = 1;
-    var reduce = st.defense + (combat.defending ? 3 + st.defBonus : 0);
-    if (combat.guardHeal) reduce += 8;
-    var dmg = Math.max(1, eatk - reduce);
+    var def = st.defense + (combat.defending ? 8 + st.defBonus : 0);
+    if (combat.guardHeal) def += 10;
+    var dmg = calcMitigatedDamage(eatk, def);
     state.hp -= dmg;
     if (!combat._floatMute) {
       spawnDmgFloat(dmg, { target: "player" });
@@ -6038,6 +7312,13 @@
       onEnemyDown();
       return;
     }
+    // 隊友自動行動（玩家回合操主角之後）；先扣 CD 再行動，令剛用嘅技能唔即回合減 CD
+    tickAllySkillCds();
+    runAllyActions();
+    if (combat.enemy.hp <= 0) {
+      onEnemyDown();
+      return;
+    }
     // regen
     var st = calcStats();
     if (st.regen > 0 && state.hp > 0) {
@@ -6054,6 +7335,7 @@
       combat.skipNextEnemy = false;
       appendLog($("combat-log"), "（敵方已用過先制，本回合不再攻擊）", "sys");
       combat.defending = false;
+      syncAlliesHpToState();
       updateBars();
       return;
     }
@@ -6061,6 +7343,7 @@
       combat.enemyStun--;
       appendLog($("combat-log"), combat.enemy.name + "被束縛，無法行動！", "sys");
       combat.defending = false;
+      syncAlliesHpToState();
       updateBars();
       return;
     }
@@ -6068,14 +7351,27 @@
     if (hasField("ice") && Math.random() < 0.28) {
       appendLog($("combat-log"), combat.enemy.name + "在冰面上滑倒，無法行動！", "sys");
       combat.defending = false;
+      syncAlliesHpToState();
       updateBars();
       return;
     }
     var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
-    var dmg = dealToPlayer(eatk);
-    if (dmg > 0) {
-      appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
-        (combat.defending ? "（防禦減傷）" : ""), "dmg");
+    var victim = pickEnemyVictim();
+    var dmg = 0;
+    if (victim.kind === "ally" && victim.ally) {
+      dmg = dealToAlly(victim.ally, eatk);
+      if (dmg > 0) {
+        appendLog($("combat-log"), combat.enemy.name + "攻擊" + victim.ally.name + "（嘲諷），造成 " + dmg + " 傷害。", "dmg");
+      }
+      if (victim.ally.hp <= 0) {
+        appendLog($("combat-log"), victim.ally.name + "倒下！", "sys");
+      }
+    } else {
+      dmg = dealToPlayer(eatk);
+      if (dmg > 0) {
+        appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
+          (combat.defending ? "（防禦減傷）" : ""), "dmg");
+      }
     }
     combat.defending = false;
 
@@ -6084,6 +7380,7 @@
       combat.playerPoison--;
       appendLog($("combat-log"), "你因中毒失去 2 HP。", "dmg");
     }
+    syncAlliesHpToState();
     updateBars();
     if (state.hp <= 0) {
       state.hp = 0;
@@ -6148,9 +7445,10 @@
     } else {
       appendLog($("combat-log"), "今次冇掉落詞條。", "sys");
     }
+    syncAlliesHpToState();
     updateBars();
-    $("combat-actions").classList.add("hidden");
-    $("combat-next-wrap").classList.remove("hidden");
+    updateCombatStatusHint();
+    showCombatActionsPanel(false);
   }
 
   function combatNext() {
@@ -6172,6 +7470,8 @@
       var gainedXp = rw.xp;
       var gainedGold = rw.gold;
       gainXp(gainedXp);
+      gainCompanionXp(Math.max(1, Math.floor(gainedXp * 0.85)));
+      syncAlliesHpToState();
       state.gold += gainedGold;
       var itemGot = null;
       if (Math.random() < rw.itemChance) {
@@ -6238,7 +7538,9 @@
     combat.over = true;
     stopBattleAuto();
     battleSkipping = false;
-    $("combat-actions").classList.add("hidden");
+    syncAlliesHpToState();
+    showCombatActionsPanel(false);
+    setCombatActionsEnabled(false);
     showScreen("screen-endlose");
     $("endlose-text").textContent =
       state.name + "嘅意識沉入黑暗。詞條嘅微光一閃即滅。公會名單上，又多咗一個「失蹤」。";
@@ -6310,7 +7612,9 @@
     if (Math.random() * 100 < chance) {
       appendLog($("combat-log"), "你成功逃離戰鬥！", "sys");
       combat.over = true;
-      $("combat-actions").classList.add("hidden");
+      syncAlliesHpToState();
+      showCombatActionsPanel(false);
+      setCombatActionsEnabled(false);
       stopBattleAuto();
       setTimeout(function () {
         combat = null;
@@ -6708,6 +8012,8 @@
     $("btn-lu-agi").onclick = function () { applyLevelChoice("agi"); };
     $("btn-status").onclick = showStatus;
     $("btn-status-back").onclick = function () { enterTown(); };
+    if ($("btn-party")) $("btn-party").onclick = showParty;
+    if ($("btn-party-back")) $("btn-party-back").onclick = function () { enterTown(); };
     $("btn-fuse").onclick = showFuse;
     $("btn-fuse-back").onclick = function () { enterTown(); };
     $("btn-do-fuse").onclick = doFuse;
@@ -6725,7 +8031,7 @@
       if (!$("screen-index") || !$("screen-index").classList.contains("active")) return;
       showIndex();
     }
-    ["index-rarity", "index-type", "index-sort"].forEach(function (id) {
+    ["index-rarity", "index-type", "index-sort", "index-unlock"].forEach(function (id) {
       var el = $(id);
       if (el) el.onchange = refreshIndexFilters;
     });
@@ -6735,6 +8041,63 @@
       searchEl.oninput = function () {
         clearTimeout(_indexSearchTm);
         _indexSearchTm = setTimeout(refreshIndexFilters, 120);
+      };
+    }
+    if ($("trait-inv-tabs")) {
+      $("trait-inv-tabs").onclick = function (ev) {
+        var t = ev.target;
+        if (!t || !t.getAttribute) return;
+        var tab = t.getAttribute("data-tab");
+        if (!tab) return;
+        _traitInvTab = tab;
+        if ($("screen-status") && $("screen-status").classList.contains("active")) showStatus();
+      };
+    }
+    var tis = $("trait-inv-sort");
+    if (tis) tis.onchange = function () {
+      _traitInvSort = tis.value || "rarity-desc";
+      if ($("screen-status") && $("screen-status").classList.contains("active")) showStatus();
+    };
+    var tiq = $("trait-inv-search");
+    if (tiq) {
+      var _tisTm = null;
+      tiq.oninput = function () {
+        clearTimeout(_tisTm);
+        _tisTm = setTimeout(function () {
+          if ($("screen-status") && $("screen-status").classList.contains("active")) showStatus();
+        }, 120);
+      };
+    }
+    if ($("bag-tabs")) {
+      $("bag-tabs").onclick = function (ev) {
+        var t = ev.target;
+        if (!t || !t.getAttribute) return;
+        var tab = t.getAttribute("data-tab");
+        if (!tab) return;
+        _bagTab = tab;
+        if ($("screen-bag") && $("screen-bag").classList.contains("active")) showBag();
+      };
+    }
+    var bs = $("bag-sort");
+    if (bs) bs.onchange = function () {
+      _bagSort = bs.value || "rarity-desc";
+      if ($("screen-bag") && $("screen-bag").classList.contains("active")) showBag();
+    };
+    var bq = $("bag-search");
+    if (bq) {
+      var _bqTm = null;
+      bq.oninput = function () {
+        clearTimeout(_bqTm);
+        _bqTm = setTimeout(function () {
+          if ($("screen-bag") && $("screen-bag").classList.contains("active")) showBag();
+        }, 120);
+      };
+    }
+    var fhu = $("fuse-hide-unfusible");
+    if (fhu) {
+      fhu.onchange = function () {
+        _fuseHideUnfusible = !!fhu.checked;
+        if ($("screen-fuse") && $("screen-fuse").classList.contains("active")) showFuse();
       };
     }
     $("btn-quests").onclick = showQuests;
