@@ -2073,7 +2073,8 @@
     s1_l3:   { xp: 80, gold: 58, itemChance: 0.48 },
     s1_l4:   { xp: 95, gold: 70, itemChance: 0.5 },
     s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 },
-    s2_l1:   { xp: 135, gold: 100, itemChance: 0.52 }
+    s2_l1:   { xp: 135, gold: 100, itemChance: 0.52 },
+    s2_l2:   { xp: 150, gold: 112, itemChance: 0.54 }
   };
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
@@ -2149,6 +2150,15 @@
       greenChance: 0.24,
       blueChance: 0.08,
       fragChance: 0.55
+    },
+    s2_l2: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "rage_mark", "slime_core", "web_bind"],
+      blue: ["cloak_shade", "shadow_step", "venom_blade", "blade_dance"],
+      whiteChance: 0.31,
+      greenChance: 0.25,
+      blueChance: 0.09,
+      fragChance: 0.56
     }
   };
 
@@ -2365,6 +2375,36 @@
       ],
       need: "s1_l5",
       clearText: "影殘散成灰藍餘燼。你喺裂縫邊釘低公會標記，抄低西向霧沼方向。接待員蓋章：「西林影潮·第1關——清殘完成。下一個委託：霧沼哨站探路。影潮仲未停。」"
+    },
+    {
+      id: "s2_l2",
+      name: "霧沼哨站·探路",
+      desc: "第二節·西林影潮其二。格蘭公會委託：沿西向標記切入霧沼舊哨站，確認燈火來源、標出可通行泥路，並查清影潮有冇滲入沼心。",
+      startField: { fog: 7, mud: 4, wet: 3 },
+      stages: [
+        {
+          name: "沼面霧鰻",
+          hp: 74, atk: 16, def: 3,
+          flavor: "泥水沒過腳踝。一條灰白霧鰻從浮藻下鑽出，身側掛住碎哨燈鐵環——像有人曾用燈誘過佢，再冇人返嚟收。"
+        },
+        {
+          name: "哨燈影蟲",
+          hp: 96, atk: 19, def: 4,
+          flavor: "半倒嘅瞭望架上，殘燈忽明忽暗。幾隻影蟲圍住燈芯飛，翅膜映住極夜冷光；一靠近，霧就厚一層。"
+        },
+        {
+          name: "泥沼巡影",
+          hp: 122, atk: 21, def: 5,
+          flavor: "柵欄缺口站住半透明巡影，手勢像舊時守兵巡更，嘴裡複讀：「……通行……證明……」——證明紙早溶喺沼裡，只剩影潮口音。"
+        },
+        {
+          name: "霧沼哨魂",
+          hp: 142, atk: 23, def: 6,
+          flavor: "哨站中央水窪升起一團帶斗篷輪廓嘅哨魂。燈火喺佢胸口跳咗一下，又暗返。「西峽標記……我收到。斷橋鎮……仲有人喊。」擊敗佢後，南向斷橋方向裂開一條較乾嘅泥路。"
+        }
+      ],
+      need: "s2_l1",
+      clearText: "哨魂散成濕霧，你喺瞭望架釘低第二枚公會標記，抄低南向斷橋路徑。接待員蓋章：「西林影潮·第2關——探路完成。下一個委託：斷橋鎮求援。影潮已咬住橋柱。」"
     }
   ];
 
@@ -2803,8 +2843,8 @@
 
   function enemyArtSrc(name) {
     var n = name || "";
-    if (/蝠/.test(n)) return "trait-quest-art/enemy-nightbat.png?v=bat1";
-    if (/影|披風|頭目/.test(n)) return "trait-quest-art/boss-shadow.png?v=manga1";
+    if (/蝠|鰻|影蟲/.test(n)) return "trait-quest-art/enemy-nightbat.png?v=bat1";
+    if (/影|披風|頭目|哨魂/.test(n)) return "trait-quest-art/boss-shadow.png?v=manga1";
     if (/哥布林/.test(n)) return "trait-quest-art/enemy-goblin.png?v=manga1";
     if (/蛛/.test(n)) return "trait-quest-art/enemy-spider.png?v=manga1";
     if (/史萊姆|slime/i.test(n)) return "trait-quest-art/enemy-slime.png?v=manga1";
@@ -5195,6 +5235,13 @@
       var siphon = 2 + Math.floor(Math.random() * 3);
       state.hp -= siphon;
       appendLog($("combat-log"), combat.enemy.name + "捲起冷煙，吸走 " + siphon + " HP！", "dmg");
+    }
+    // 西林影潮·霧沼探路：泥霧拖拽（偶發減速感＝額外傷＋短暫降敏由 atk bump 代表）
+    if (combat.quest.id === "s2_l2" && /霧|沼|影|哨/.test(combat.enemy.name) && Math.random() < 0.24) {
+      var drag = 2 + Math.floor(Math.random() * 3);
+      state.hp -= drag;
+      appendLog($("combat-log"), combat.enemy.name + "捲起泥霧拖住你的腳步，額外 " + drag + " 傷害！", "dmg");
+      eatk = eatk + 1;
     }
     return eatk;
   }
