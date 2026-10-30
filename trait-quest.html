@@ -554,6 +554,61 @@
   .index-filters input:focus { outline: 1px solid #fff; }
   .index-empty { color: var(--muted); font-size: 0.9rem; padding: 8px 2px; }
 
+  /* ---- 2B: 套裝觸發光暈／戰鬥浮字／日誌分色 ---- */
+  #equip-slots.set-glow {
+    border: 2px solid #a5d6a7;
+    box-shadow: 0 0 18px rgba(129, 199, 132, 0.5), inset 0 0 14px rgba(129, 199, 132, 0.1);
+    padding: 10px;
+    background: linear-gradient(180deg, #0e160e 0%, #0a0a0a 100%);
+    animation: setGlowPulse 1.5s ease-in-out infinite alternate;
+  }
+  #equip-slots.set-glow .slot.filled {
+    border-color: #81c784;
+    box-shadow: 0 0 8px rgba(129, 199, 132, 0.35);
+  }
+  @keyframes setGlowPulse {
+    0% { box-shadow: 0 0 12px rgba(129, 199, 132, 0.35), inset 0 0 10px rgba(129, 199, 132, 0.08); }
+    100% { box-shadow: 0 0 22px rgba(129, 199, 132, 0.65), inset 0 0 16px rgba(129, 199, 132, 0.16); }
+  }
+  .set-banner-float {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    transform: translateX(-50%);
+    z-index: 8;
+    pointer-events: none;
+    max-width: 92%;
+    padding: 10px 14px;
+    border: 2px solid #81c784;
+    background: rgba(8, 24, 12, 0.92);
+    color: #c8e6c9;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 8px rgba(129, 199, 132, 0.55);
+    box-shadow: 0 0 18px rgba(129, 199, 132, 0.4);
+    animation: setBannerIn 2.4s ease-out forwards;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  @keyframes setBannerIn {
+    0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.92); }
+    12% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.02); }
+    75% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(0.98); }
+  }
+  /* 戰鬥日誌分色：出傷黃／紅；受傷藍／白；技能／套裝綠 */
+  #combat-log .dmg-out { color: #ffd54a; font-weight: 600; }
+  #combat-log .dmg-out.hot { color: #ff7043; }
+  #combat-log .dmg-in { color: #bbdefb; }
+  #combat-log .dmg-in.heavy { color: #e3f2fd; font-weight: 600; }
+  #combat-log .skill { color: #81c784; font-weight: 600; }
+  #combat-log .loot { color: #ffe082; font-weight: 600; }
+  /* 舊 .dmg 喺戰鬥日誌預設當受傷（藍白）；出傷請用 dmg-out */
+  #combat-log .dmg { color: #90caf9; }
+
+
   .game-art {
     display: block;
     margin: 6px auto;
@@ -1163,7 +1218,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=1 OF=5  （2A：融合NEW圖鑑提示＋圖鑑篩選搜尋；批次1–4保留；2026-10-30）
+  // Progress: SECTION=2 LEVEL=2 OF=5  （2B：套裝觸發光暈／戰鬥浮字＋日誌分色；2A＋批次1–4保留；2026-10-30）
   var SAVE_KEY = "traitQuest_v1";
   var LEGACY_KEY = "traitQuest_legacy_v1";
   var SAVE_VERSION = 1;
@@ -3368,12 +3423,63 @@
 
 
 
+  /** 2B：戰鬥日誌分色 — 出傷黃／紅、受傷藍／白、技能／套裝綠；跟現有 appendLog(cls) */
+  function refineCombatLogClass(html, cls) {
+    var t = String(html == null ? "" : html).replace(/<[^>]*>/g, "");
+    if (/套裝發動|已觸發.*套裝|發動詞條技能|【影遁步】|【毒血反噬】|痛苦鏈接|影子替身就位|相位穿梭|相位狀態|不屈意志：|展開守護|展開影|技能無效|弱點偵測|狀態逆轉|詛咒轉移|孢子附體|時間加速：結算|引雷爆發|相位重擊|憑敏捷捉到破綻/.test(t)) {
+      return "skill";
+    }
+    if (/攻擊你.*傷害|你因中毒失去|吞走 \d+ HP|吸走 \d+ HP|拖住你.*傷害|你反噬受傷/.test(t)) {
+      return /吞走|吸走|影噬|拖住/.test(t) ? "dmg-in heavy" : "dmg-in";
+    }
+    if (/戰利品|【.+】倒下|獲得【/.test(t)) return cls || "loot";
+    if (/你發動攻擊.*傷害|敏捷連擊|追加造成.*傷害|造成 \d+.*傷|敵人受到|反彈 \d+|灼燒敵人|引爆！造成|敵人自傷|真實傷害|連斬造成|吸血：傷|衝擊傷害|雷傷|火傷|巨額/.test(t)) {
+      if (/攻擊你/.test(t)) return "dmg-in";
+      return /暴擊|巨額|真實傷害|雙倍|絕地反擊/.test(t) ? "dmg-out hot" : "dmg-out";
+    }
+    if (cls === "dmg") {
+      if (/攻擊你|你因中毒|失去 \d+ HP|吞走|吸走|拖住你/.test(t)) return "dmg-in";
+      return "dmg-out";
+    }
+    if (cls === "loot") {
+      if (/戰利品|倒下/.test(t)) return "loot";
+      return "skill";
+    }
+    return cls;
+  }
+
   function appendLog(el, html, cls) {
     var p = document.createElement("p");
-    if (cls) p.className = cls;
+    var useCls = cls;
+    if (el && el.id === "combat-log") {
+      useCls = refineCombatLogClass(html, cls);
+    }
+    if (useCls) p.className = useCls;
     p.innerHTML = html;
     el.appendChild(p);
     el.scrollTop = el.scrollHeight;
+  }
+
+  /** 2B：戰鬥開始套裝浮字 */
+  function spawnSetBanner(setNames) {
+    var layer = $("combat-fx-layer");
+    if (!layer || !setNames || !setNames.length) return;
+    var el = document.createElement("div");
+    el.className = "set-banner-float";
+    el.textContent = "已觸發【精神共鳴／" + setNames.join("、") + "】套裝效果！";
+    layer.appendChild(el);
+    var life = battleSpeed >= 2 ? 1600 : 2600;
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, life);
+  }
+
+  /** 2B：狀態頁裝備槽套裝光暈 */
+  function updateEquipSetGlow() {
+    var slots = $("equip-slots");
+    if (!slots) return;
+    var on = activeSets().length > 0;
+    slots.classList.toggle("set-glow", on);
   }
 
   function rarityLabel(r) {
@@ -3822,6 +3928,7 @@
       }
       slots.appendChild(div);
     });
+    updateEquipSetGlow();
 
     var list = $("trait-list");
     list.innerHTML = "";
@@ -5177,7 +5284,9 @@
     if (combat.stage === 0) {
       var setsNow = activeSets();
       if (setsNow.length) {
-        appendLog($("combat-log"), "套裝發動：" + setsNow.map(function (s) { return s.name; }).join("、"), "loot");
+        var setNames = setsNow.map(function (s) { return s.name; });
+        appendLog($("combat-log"), "已觸發【精神共鳴／" + setNames.join("、") + "】套裝效果！", "skill");
+        spawnSetBanner(setNames);
       }
     }
     // 關卡預設戰場 tag（節章氛圍）；唔清玩家技設置嘅既有 tag，只補／刷新
@@ -5616,7 +5725,7 @@
       combat._lastCrit = false;
     }
     var dmg = dealToEnemy(raw);
-    appendLog($("combat-log"), "你發動攻擊，造成 " + dmg + " 傷害。");
+    appendLog($("combat-log"), "你發動攻擊，造成 " + dmg + " 傷害。", "dmg-out");
     updateBars();
     if (combat.enemy.hp <= 0) {
       onEnemyDown();
@@ -5706,7 +5815,7 @@
       return;
     }
     var st = calcStats();
-    appendLog($("combat-log"), "發動詞條技能【" + skill.name + "】！");
+    appendLog($("combat-log"), "發動詞條技能【" + skill.name + "】！", "skill");
     var applyCd = defaultSkillCd(skill);
     if (applyCd > 0) {
       if (!combat.skillCd) combat.skillCd = {};
