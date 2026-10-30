@@ -2088,9 +2088,9 @@
     },
     unchain: {
       id: "unchain", name: "不屈藥膏",
-      desc: "致死留 1 HP 一次。鎮內／戰鬥。",
+      desc: "致死留 1 HP 一次。鎮內／戰鬥。已移出貨架（斷橋輪換優先前線貨）。",
       buy: 60, sell: 24, use: "unchain", town: true, combat: true,
-      minSection: 1, rarity: 3, staple: false, weight: 2
+      minSection: 1, rarity: 3, staple: false, weight: 2, shop: false
     },
     poison_oil: {
       id: "poison_oil", name: "武器塗毒膏",
@@ -2291,6 +2291,12 @@
       desc: "本戰敏＋5；若有霧則清霧 1 層。影潮織女抽嘅霧絲。",
       buy: 46, sell: 18, use: "west_mist_silk", town: false, combat: true, agi: 5,
       minSection: 2, rarity: 2, staple: false, weight: 8
+    },
+    span_board: {
+      id: "span_board", name: "斷橋踏板",
+      desc: "本戰護甲＋12；濕潤／泥沼再回 16 HP。斷橋臨時木板，求援必備。",
+      buy: 50, sell: 20, use: "span_board", town: false, combat: true, val: 12, heal: 16,
+      minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
 
@@ -2324,7 +2330,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "spirit_tea", "west_mist_silk"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "spirit_tea", "west_mist_silk", "span_board", "span_spike"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -5168,6 +5174,20 @@
             combat.field.fog = Math.max(0, combat.field.fog - 1);
             if (combat.field.fog <= 0) delete combat.field.fog;
             note += "、霧薄 1 層";
+          }
+          toast(note);
+        })();
+        break;
+      case "span_board":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var arm = def.val || 12;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "斷橋踏板：護甲＋" + arm;
+          if (hasField("wet") || hasField("mud")) {
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + (def.heal || 16));
+            note += "、濕／泥中回 " + (state.hp - before);
           }
           toast(note);
         })();
