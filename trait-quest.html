@@ -3112,7 +3112,8 @@
 
   function enemyArtSrc(name) {
     var n = name || "";
-    if (/蝠|鰻|影蟲/.test(n)) return "trait-quest-art/enemy-nightbat.png?v=bat1";
+    if (/霧鰻|鰻|misteel/i.test(n)) return "trait-quest-art/enemy-misteel.png?v=misteel1";
+    if (/蝠|影蟲/.test(n)) return "trait-quest-art/enemy-nightbat.png?v=bat1";
     if (/影|披風|頭目|哨魂/.test(n)) return "trait-quest-art/boss-shadow.png?v=manga1";
     if (/哥布林/.test(n)) return "trait-quest-art/enemy-goblin.png?v=manga1";
     if (/蛛/.test(n)) return "trait-quest-art/enemy-spider.png?v=manga1";
