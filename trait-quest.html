@@ -515,6 +515,93 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
+
+  /* ---- Batch2: 傷害跳字／戰鬥速度／CD標示 ---- */
+  #screen-combat { position: relative; }
+  #combat-fx-layer {
+    position: absolute;
+    left: 0; right: 0;
+    top: 40px;
+    height: 140px;
+    pointer-events: none;
+    z-index: 6;
+    overflow: visible;
+  }
+  .dmg-float {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fff;
+    text-shadow: 0 0 4px #000, 0 1px 2px #000;
+    animation: dmgFloatUp var(--dmg-dur, 0.9s) ease-out forwards;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 7;
+  }
+  .dmg-float.to-enemy { color: #ffe9a8; left: 68%; }
+  .dmg-float.to-player { color: #ff9a9a; left: 32%; }
+  .dmg-float.crit {
+    font-size: 1.9rem;
+    color: #ffef5a;
+    letter-spacing: 0.04em;
+  }
+  .dmg-float.crit::after {
+    content: " 暴擊";
+    font-size: 0.7em;
+    color: #ffc;
+  }
+  .dmg-float.heal { color: #9f9; }
+  .dmg-float.zero { color: #aaa; font-size: 1rem; }
+  @keyframes dmgFloatUp {
+    0% { opacity: 1; transform: translate(-50%, 8px) scale(0.85); }
+    25% { opacity: 1; transform: translate(-50%, -6px) scale(1.08); }
+    100% { opacity: 0; transform: translate(-50%, -52px) scale(1); }
+  }
+  #screen-combat.hit-shake {
+    animation: combatShake 0.28s ease-out;
+  }
+  @keyframes combatShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(2px); }
+  }
+  .combat-speed-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 6px;
+    margin: 2px 0 4px;
+  }
+  .combat-speed-bar button {
+    min-height: 40px;
+    padding: 8px 4px;
+    font-size: 0.85rem;
+  }
+  .combat-speed-bar button.active {
+    background: #fff;
+    color: #000;
+    font-weight: 600;
+  }
+  .cost-tag {
+    display: inline-block;
+    margin-top: 4px;
+    margin-right: 6px;
+    padding: 2px 8px;
+    border: 1px solid #666;
+    font-size: 0.78rem;
+    color: #ccc;
+    vertical-align: middle;
+  }
+  .cost-tag.cd { border-color: #7a8ab8; color: #b8c8f0; }
+  .cost-tag.cd-ready { border-color: #5a7; color: #9d9; }
+  .cost-tag.hp { border-color: #a66; color: #faa; }
+  .cost-tag.use { border-color: #777; color: #bbb; }
+  .cost-tag.free { border-color: #555; color: #888; }
+  .list-btn.on-cd { opacity: 0.5; border-color: #444; }
+
 </style>
 </head>
 <body>
@@ -631,11 +718,17 @@
   <!-- COMBAT -->
   <div id="screen-combat" class="screen">
     <h2 id="combat-title">戰鬥</h2>
+    <div id="combat-fx-layer" aria-hidden="true"></div>
     <img id="combat-art" class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="bar-row"><span>你</span><div class="bar"><span id="hp-you"></span></div><span id="hp-you-n"></span></div>
     <div class="bar-row"><span>敵</span><div class="bar"><span id="hp-enemy"></span></div><span id="hp-enemy-n"></span></div>
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
+    <div class="combat-speed-bar" id="combat-speed-bar">
+      <button type="button" id="btn-spd-1" class="active" title="手動／正常節奏">1x</button>
+      <button type="button" id="btn-spd-2" title="自動普攻（較快）">2x</button>
+      <button type="button" id="btn-spd-skip" title="即時結算本任務戰鬥">跳過戰鬥</button>
+    </div>
     <div class="log" id="combat-log"></div>
     <div class="btn-grid" id="combat-actions">
       <button id="btn-atk">攻擊</button>
@@ -738,7 +831,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=1 OF=5  （西林影潮；2026-10-30 商店貨架硬上限10｜未來10–15｜踢護符／螢光粉；加沼眼晶片）
+  // Progress: SECTION=2 LEVEL=1 OF=5  （批次2：跳字／速度1x2x跳過／技能CD標示；2026-10-30）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -1999,6 +2092,10 @@
   // ---------- State ----------
   var state = null;
   var combat = null;
+  var battleSpeed = 1; // 1 = 手動, 2 = 自動普攻
+  var battleAutoTimer = null;
+  var battleSkipping = false;
+
 
   function defaultState(name) {
     return {
@@ -2378,6 +2475,211 @@
     clearTimeout(toast._tm);
     toast._tm = setTimeout(function () { t.classList.remove("show"); }, 1800);
   }
+
+  // ---------- Batch2: 傷害跳字／速度／CD ----------
+  function battleDelay(ms) {
+    var m = battleSpeed >= 2 ? Math.max(60, Math.floor(ms / 2)) : ms;
+    return m;
+  }
+
+  function stopBattleAuto() {
+    if (battleAutoTimer) {
+      clearTimeout(battleAutoTimer);
+      battleAutoTimer = null;
+    }
+  }
+
+  function syncSpeedButtons() {
+    var b1 = $("btn-spd-1"), b2 = $("btn-spd-2");
+    if (!b1 || !b2) return;
+    b1.classList.toggle("active", battleSpeed === 1 && !battleSkipping);
+    b2.classList.toggle("active", battleSpeed === 2 && !battleSkipping);
+  }
+
+  function setBattleSpeed(spd) {
+    battleSpeed = spd === 2 ? 2 : 1;
+    battleSkipping = false;
+    syncSpeedButtons();
+    stopBattleAuto();
+    if (battleSpeed === 2 && combat && !combat.over) {
+      scheduleBattleAuto();
+      toast("2x：自動普攻中");
+    } else {
+      toast("1x：手動操作");
+    }
+  }
+
+  function scheduleBattleAuto() {
+    stopBattleAuto();
+    if (battleSpeed < 2 || !combat || combat.over || battleSkipping) return;
+    // 只在戰鬥畫面且動作按鈕可見時自動
+    var scr = $("screen-combat");
+    if (!scr || !scr.classList.contains("active")) return;
+    if ($("combat-actions") && $("combat-actions").classList.contains("hidden")) return;
+    battleAutoTimer = setTimeout(function () {
+      battleAutoTimer = null;
+      if (battleSpeed < 2 || !combat || combat.over || battleSkipping) return;
+      if (!$("screen-combat").classList.contains("active")) return;
+      if ($("combat-actions").classList.contains("hidden")) return;
+      actAttack();
+      if (combat && !combat.over && battleSpeed >= 2) scheduleBattleAuto();
+    }, battleDelay(420));
+  }
+
+  function spawnDmgFloat(amount, opts) {
+    opts = opts || {};
+    var layer = $("combat-fx-layer");
+    if (!layer) return;
+    var el = document.createElement("div");
+    var cls = "dmg-float " + (opts.target === "player" ? "to-player" : "to-enemy");
+    if (opts.crit) cls += " crit";
+    if (opts.heal) cls += " heal";
+    if (!amount && !opts.heal) cls += " zero";
+    el.className = cls;
+    el.textContent = (opts.heal ? "+" : "") + (amount | 0);
+    el.style.setProperty("--dmg-dur", (battleSpeed >= 2 ? 0.55 : 0.9) + "s");
+    // slight horizontal jitter so multi-hits don't stack perfectly
+    var jitter = (Math.random() * 24) - 12;
+    el.style.marginLeft = jitter + "px";
+    el.style.top = (28 + Math.random() * 36) + "%";
+    layer.appendChild(el);
+    var life = battleSpeed >= 2 ? 600 : 950;
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, life);
+  }
+
+  function shakeCombat() {
+    var scr = $("screen-combat");
+    if (!scr) return;
+    scr.classList.remove("hit-shake");
+    void scr.offsetWidth;
+    scr.classList.add("hit-shake");
+    setTimeout(function () { scr.classList.remove("hit-shake"); }, 300);
+  }
+
+  function skillCdKey(skill) {
+    return (skill && (skill.name || skill.type)) || "skill";
+  }
+
+  function defaultSkillCd(skill) {
+    if (!skill) return 1;
+    if (typeof skill.cd === "number") return skill.cd;
+    var t = skill.type || "";
+    if (skill.self && skill.self >= 6) return 3;
+    if (t === "heal" || t === "guard_heal" || t === "survive" || t === "invuln" || t === "dodge_next" || t === "guard") return 3;
+    if (t === "rage" || t === "execute" || t === "backstab" || t === "aoe_dmg" || t === "lifesteal" || t === "lowhp_atk") return 2;
+    if (t.indexOf("terrain_") === 0 || t === "quake" || t === "thunder" || t === "thunder_wet" || t === "bomb" || t === "dot_burst") return 2;
+    if (t === "cloak_strike" || t === "double" || t === "poison_strike" || t === "pull_dmg" || t === "burn_consume") return 2;
+    if (typeof skill.cost === "number" && skill.cost > 0) return 0; // 有消耗欄位則以消耗為主
+    return 1;
+  }
+
+  function getSkillCdLeft(skill) {
+    if (!combat || !combat.skillCd) return 0;
+    return combat.skillCd[skillCdKey(skill)] || 0;
+  }
+
+  function tickSkillCds() {
+    if (!combat || !combat.skillCd) return;
+    // 剛設嘅 CD 今回合唔扣，等「冷卻 N 回合」名副其實
+    if (combat._justSetSkillCd) {
+      combat._justSetSkillCd = false;
+      return;
+    }
+    Object.keys(combat.skillCd).forEach(function (k) {
+      if (combat.skillCd[k] > 0) combat.skillCd[k]--;
+      if (combat.skillCd[k] <= 0) delete combat.skillCd[k];
+    });
+  }
+
+  function formatSkillCostHtml(skill) {
+    var tags = [];
+    var cd = defaultSkillCd(skill);
+    var left = getSkillCdLeft(skill);
+    if (left > 0) {
+      tags.push("<span class='cost-tag cd'>冷卻中 " + left + " 回合</span>");
+    } else if (cd > 0) {
+      tags.push("<span class='cost-tag cd-ready'>冷卻 " + cd + " 回合</span>");
+    } else {
+      tags.push("<span class='cost-tag free'>無冷卻</span>");
+    }
+    if (typeof skill.cost === "number" && skill.cost > 0) {
+      tags.push("<span class='cost-tag hp'>消耗 " + skill.cost + "</span>");
+    }
+    if (skill.self) {
+      tags.push("<span class='cost-tag hp'>自傷 " + skill.self + "</span>");
+    }
+    return tags.join("");
+  }
+
+  function formatItemCostHtml(it) {
+    var tags = [];
+    tags.push("<span class='cost-tag use'>消耗 ×1</span>");
+    if (it.costHp) {
+      tags.push("<span class='cost-tag hp'>代價 HP −" + it.costHp + "</span>");
+    }
+    if (typeof it.cd === "number" && it.cd > 0) {
+      tags.push("<span class='cost-tag cd'>冷卻 " + it.cd + " 回合</span>");
+    }
+    return tags.join("");
+  }
+
+  function skipBattleResolve() {
+    if (!combat) {
+      toast("而家唔係戰鬥中");
+      return;
+    }
+    // 允許喺「繼續」階段啟動（上一波剛打完）
+    var canResumeNext = $("combat-next-wrap") && !$("combat-next-wrap").classList.contains("hidden");
+    if (combat.over && !canResumeNext) {
+      toast("而家唔係戰鬥中");
+      return;
+    }
+    if (battleSkipping) return;
+    battleSkipping = true;
+    stopBattleAuto();
+    syncSpeedButtons();
+    if (combat) combat._floatMute = true;
+    toast("跳過戰鬥：自動結算中…");
+    if ($("combat-log") && $("screen-combat") && $("screen-combat").classList.contains("active")) {
+      appendLog($("combat-log"), "【跳過戰鬥】以普攻節奏快速結算……", "sys");
+    }
+    var guard = 0;
+    function stepDone() {
+      battleSkipping = false;
+      if (combat) combat._floatMute = false;
+      syncSpeedButtons();
+    }
+    function step() {
+      guard++;
+      if (!combat || guard > 900) { stepDone(); return; }
+      // 戰敗／結果／升級／返鎮：停止
+      if ($("screen-endlose") && $("screen-endlose").classList.contains("active")) { stepDone(); return; }
+      if ($("screen-result") && $("screen-result").classList.contains("active")) { stepDone(); return; }
+      if ($("screen-levelup") && $("screen-levelup").classList.contains("active")) { stepDone(); return; }
+      if ($("screen-town") && $("screen-town").classList.contains("active")) { stepDone(); return; }
+      // 關卡間「繼續」
+      if ($("combat-next-wrap") && !$("combat-next-wrap").classList.contains("hidden")) {
+        var nb = $("btn-combat-next");
+        if (nb) nb.click();
+        setTimeout(step, battleDelay(40));
+        return;
+      }
+      if (combat.over) { stepDone(); return; }
+      if (!$("screen-combat") || !$("screen-combat").classList.contains("active")) {
+        setTimeout(step, battleDelay(50));
+        return;
+      }
+      if ($("combat-actions") && !$("combat-actions").classList.contains("hidden")) {
+        actAttack();
+      }
+      setTimeout(step, battleDelay(18));
+    }
+    step();
+  }
+
+
 
   function appendLog(el, html, cls) {
     var p = document.createElement("p");
@@ -3485,7 +3787,7 @@
       var btn = document.createElement("button");
       btn.className = "list-btn";
       btn.innerHTML = "<b>" + escapeHtml(it.name) + "</b>" +
-        "<span class='desc'>持有 ×" + invCount(id) + "</span>" +
+        "<span class='desc'>" + formatItemCostHtml(it) + "　持有 ×" + invCount(id) + "</span>" +
         "<span class='desc'>" + escapeHtml(it.desc) + "</span>";
       btn.onclick = (function (itemId) {
         return function () {
@@ -3742,7 +4044,10 @@
       pierceNext: false,
       weaponPoison: 0,
       enemyAtkPenalty: 0,
-      noEnemyExtra: false
+      noEnemyExtra: false,
+      skillCd: {},
+      _lastCrit: false,
+      _floatMute: false
     };
     beginStage();
   }
@@ -3779,9 +4084,13 @@
     $("enemy-name").textContent = "敵人：" + stage.name;
     setCombatArt(stage.name);
     $("combat-log").innerHTML = "";
+    var fxLayer = $("combat-fx-layer");
+    if (fxLayer) fxLayer.innerHTML = "";
     $("combat-actions").classList.remove("hidden");
     $("combat-next-wrap").classList.add("hidden");
+    syncSpeedButtons();
     updateBars();
+    if (battleSpeed >= 2 && !battleSkipping) scheduleBattleAuto();
     appendLog($("combat-log"), stage.flavor);
     if (combat.stage === 0) {
       var setsNow = activeSets();
@@ -3898,6 +4207,10 @@
     var dmg = Math.max(1, (raw | 0) + bonus + pierceExtra - def);
     if (hasField("fog") && combat._isFireSkill) dmg += 5;
     combat.enemy.hp -= dmg;
+    if (!combat._floatMute) {
+      spawnDmgFloat(dmg, { target: "enemy", crit: !!combat._lastCrit });
+      combat._lastCrit = false;
+    }
     if (combat.weaponPoison > 0) {
       combat.enemyPoison = Math.max(combat.enemyPoison || 0, combat.weaponPoison);
       combat._poisonDmg = Math.max(combat._poisonDmg || 2, 3);
@@ -3906,6 +4219,7 @@
       var zap = 4 + (combat.copperBonus || 0);
       combat.enemy.hp -= zap;
       appendLog($("combat-log"), "引雷爆發！追加閃電 " + zap + "！", "loot");
+      if (!combat._floatMute) spawnDmgFloat(zap, { target: "enemy" });
       combat.thunderMark = false;
     }
     return dmg;
@@ -3935,11 +4249,16 @@
     if (combat.guardHeal) reduce += 8;
     var dmg = Math.max(1, eatk - reduce);
     state.hp -= dmg;
+    if (!combat._floatMute) {
+      spawnDmgFloat(dmg, { target: "player" });
+      if (dmg > 0) shakeCombat();
+    }
     var reflectTotal = (combat.reflectPct || 0) + (st.setReflectPct || 0);
     if (reflectTotal > 0 && combat.enemy && combat.enemy.hp > 0) {
       var rd = Math.max(1, Math.floor(dmg * reflectTotal / 100));
       combat.enemy.hp -= rd;
       appendLog($("combat-log"), (combat.reflectPct ? "痛苦鏈接" : "【毒血反噬】") + "反彈 " + rd + " 傷害！", "loot");
+      if (!combat._floatMute) spawnDmgFloat(rd, { target: "enemy" });
     }
     var poisonHit = Math.max(combat.poisonOnHit || 0, st.setPoisonOnHit || 0);
     if (poisonHit > 0) {
@@ -3957,6 +4276,7 @@
 
   function afterPlayerAction() {
     if (combat.over) return;
+    tickSkillCds();
     // clear phase invuln after the player's action resolves
     if (combat.invuln) combat.invuln = false;
     // poison on enemy
@@ -4027,6 +4347,7 @@
 
   function onEnemyDown() {
     combat.over = true;
+    stopBattleAuto();
     appendLog($("combat-log"), "【" + combat.enemy.name + "】倒下！", "loot");
     // drops
     var pool = DROP_POOLS[combat.quest.id];
@@ -4169,6 +4490,8 @@
 
   function onPlayerDown() {
     combat.over = true;
+    stopBattleAuto();
+    battleSkipping = false;
     $("combat-actions").classList.add("hidden");
     showScreen("screen-endlose");
     $("endlose-text").textContent =
@@ -4197,7 +4520,10 @@
     if (critGate < 8) critGate = 8;
     if (Math.random() * critGate < st.agi) {
       raw = Math.floor(raw * 1.15);
+      combat._lastCrit = true;
       appendLog($("combat-log"), "憑敏捷捉到破綻！", "sys");
+    } else {
+      combat._lastCrit = false;
     }
     var dmg = dealToEnemy(raw);
     appendLog($("combat-log"), "你發動攻擊，造成 " + dmg + " 傷害。");
@@ -4239,10 +4565,11 @@
       appendLog($("combat-log"), "你成功逃離戰鬥！", "sys");
       combat.over = true;
       $("combat-actions").classList.add("hidden");
+      stopBattleAuto();
       setTimeout(function () {
         combat = null;
         enterTown("你狼狽返到鎮上。至少仲活住。");
-      }, 600);
+      }, battleDelay(600));
     } else {
       appendLog($("combat-log"), "逃跑失敗！", "sys");
       afterPlayerAction();
@@ -4265,9 +4592,17 @@
     skills.forEach(function (s) {
       var btn = document.createElement("button");
       btn.className = "list-btn";
+      var left = getSkillCdLeft(s.skill);
+      if (left > 0) btn.classList.add("on-cd");
       btn.innerHTML = escapeHtml(s.skill.name) +
+        "<span class='desc'>" + formatSkillCostHtml(s.skill) + "</span>" +
         "<span class='desc'>" + escapeHtml(s.def.name) + "：" + escapeHtml(s.skill.desc) + "</span>";
-      btn.onclick = function () { useSkill(s.skill); };
+      if (left > 0) {
+        btn.disabled = true;
+        btn.onclick = function () { toast("技能冷卻中（剩 " + left + " 回合）"); };
+      } else {
+        btn.onclick = function () { useSkill(s.skill); };
+      }
       list.appendChild(btn);
     });
   }
@@ -4275,8 +4610,19 @@
   function useSkill(skill) {
     showScreen("screen-combat");
     if (!combat || combat.over) return;
+    var leftCd = getSkillCdLeft(skill);
+    if (leftCd > 0) {
+      toast("技能冷卻中（剩 " + leftCd + " 回合）");
+      return;
+    }
     var st = calcStats();
     appendLog($("combat-log"), "發動詞條技能【" + skill.name + "】！");
+    var applyCd = defaultSkillCd(skill);
+    if (applyCd > 0) {
+      if (!combat.skillCd) combat.skillCd = {};
+      combat.skillCd[skillCdKey(skill)] = applyCd;
+      combat._justSetSkillCd = true;
+    }
     combat._fromSkill = true;
     combat._isFireSkill = false;
     switch (skill.type) {
