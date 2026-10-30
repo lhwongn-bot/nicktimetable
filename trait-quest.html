@@ -2277,7 +2277,7 @@
       id: "span_spike", name: "橋隙拒釘",
       desc: "本戰敵攻－5；濕潤／泥沼中再造成約 14 物傷並暈 1。斷橋防線。",
       buy: 48, sell: 18, use: "span_spike", town: false, combat: true, val: 5, dmg: 14,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     // ---- 原創批次 2026-10-30 21:40 HKT（入庫＋輪換；唔加常駐、唔撐爆貨架）----
     spirit_tea: {
@@ -2308,6 +2308,12 @@
       id: "rescue_ladder", name: "求援纜梯",
       desc: "本戰護甲＋10、敏＋4；濕潤／泥沼中再回復約 14 HP。斷橋求援攀援用。",
       buy: 52, sell: 21, use: "rescue_ladder", town: false, combat: true, val: 10, agi: 4, heal: 14,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    ruin_wedge: {
+      id: "ruin_wedge", name: "廢堡破門楔",
+      desc: "本戰攻＋5、下次穿甲；霧／夜中再造成約 15 物傷。影潮廢堡突入用。",
+      buy: 54, sell: 22, use: "ruin_wedge", town: false, combat: true, atk: 5, dmg: 15,
       minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
@@ -2343,7 +2349,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -5257,6 +5263,19 @@
             var before = state.hp;
             state.hp = Math.min(st.maxHp, state.hp + (def.heal || 14));
             note += "、濕／泥中回 " + (state.hp - before);
+          }
+          toast(note);
+        })();
+        break;
+      case "ruin_wedge":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (def.atk || 5);
+          combat.pierceNext = true;
+          var note = "廢堡破門楔：攻＋" + (def.atk || 5) + "、下次穿甲";
+          if (hasField("fog") || hasField("night")) {
+            var d = dealToEnemy(def.dmg || 15);
+            note += "、霧／夜中傷 " + d;
           }
           toast(note);
         })();
