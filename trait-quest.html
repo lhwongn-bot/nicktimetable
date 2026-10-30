@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  個人 Demo 文字冒險遊戲（Personal demo game）
+  二元戰紀：精神波動 — 個人 Demo 文字冒險遊戲（Personal demo game）
   靈感取材自「底層冒險者靠詞條成長」類型的網路小說氛圍，但劇情、角色、詞條與系統皆為原創，
   並非該小說之官方、衍生或授權作品，亦與原作及作者無關（not affiliated）。
   僅供私人示範／娛樂用途。
@@ -10,7 +10,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>詞條冒險 · Trait Quest</title>
+<title>二元戰紀：精神波動</title>
 <style>
   :root {
     --bg: #000;
@@ -394,11 +394,11 @@
 
   <!-- TITLE -->
   <div id="screen-title" class="screen active">
-    <h1>詞條冒險</h1>
+    <h1>二元戰紀：精神波動</h1>
     <img class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
-    <p class="sub">黑木森林邊陲 · 底層冒險者嘅故事</p>
+    <p class="sub">黑木森林邊陲 · 精神波動與底層冒險者</p>
     <div class="panel mb">
-      <p>你係公會最底層嘅新人。喺呢片森林，擊敗魔物有機會攞到「詞條」——一種刻喺靈魂上面嘅能力碎片。</p>
+      <p>你係公會最底層嘅新人。喺呢片森林，擊敗魔物有機會攞到「詞條」——刻喺靈魂上嘅精神波動碎片。</p>
       <p class="mt">融合詞條，變強，活落去。</p>
     </div>
     <label class="mb">冒險者名</label>
@@ -407,7 +407,7 @@
       <button class="primary" id="btn-newgame">開始冒險</button>
       <button id="btn-continue" class="hidden">繼續進度</button>
     </div>
-    <p class="footer-note">個人 Demo · 非任何小說官方作品</p>
+    <p class="footer-note">二元戰紀：精神波動 · 個人 Demo · 非任何小說官方作品</p>
   </div>
 
   <!-- INTRO -->
@@ -578,7 +578,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=1 OF=5  （西林影潮；2026-10-30 商店貨架／分節道具／15分重整）
+  // Progress: SECTION=2 LEVEL=1 OF=5  （西林影潮；2026-10-30 商店貨架硬上限10｜未來10–15｜踢護符／螢光粉；加沼眼晶片）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -953,7 +953,7 @@
       id: "amulet", name: "護符",
       desc: "下一場戰鬥防禦 +5（進戰時生效）。",
       buy: 32, sell: 13, use: "buff_def", val: 5, town: true, combat: false,
-      minSection: 1, rarity: 1, staple: false, weight: 7
+      minSection: 1, rarity: 1, staple: false, weight: 7, shop: false
     },
     xp_scroll: {
       id: "xp_scroll", name: "經驗書",
@@ -963,76 +963,76 @@
     },
     ration: {
       id: "ration", name: "乾糧",
-      desc: "充飢回復 18 HP（僅鎮內）。便宜常備。",
+      desc: "充飢回復 18 HP（僅鎮內）。便宜；已移出常駐（弱於傷藥）。",
       buy: 12, sell: 5, use: "heal", val: 18, town: true, combat: false,
-      minSection: 1, rarity: 1, staple: true, weight: 10
+      minSection: 1, rarity: 1, staple: false, weight: 2, shop: false
     },
     vita_tonic: {
       id: "vita_tonic", name: "元氣補湯",
       desc: "回復 45 HP。鎮內／戰鬥可用。",
       buy: 38, sell: 15, use: "heal", val: 45, town: true, combat: true,
-      minSection: 1, rarity: 2, staple: false, weight: 6
+      minSection: 1, rarity: 2, staple: false, weight: 6, shop: false
     },
     lotus_soup: {
       id: "lotus_soup", name: "蓮藕湯",
       desc: "回 35 HP，並下戰防＋2。鎮內／戰鬥。",
       buy: 30, sell: 12, use: "lotus_soup", val: 35, buff: 2, town: true, combat: true,
-      minSection: 1, rarity: 1, staple: false, weight: 5
+      minSection: 1, rarity: 1, staple: false, weight: 5, shop: false
     },
     calm_pill: {
       id: "calm_pill", name: "定心丸",
       desc: "下戰防＋5；鎮內順便清毒。",
       buy: 36, sell: 14, use: "calm_pill", val: 5, town: true, combat: false,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     iron_candy: {
       id: "iron_candy", name: "鐵膽糖",
       desc: "下一場戰鬥攻擊 +7。",
       buy: 42, sell: 17, use: "buff_atk", val: 7, town: true, combat: false,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     pork_congee: {
       id: "pork_congee", name: "瘦肉粥",
       desc: "回 30 HP，並下戰攻＋2。鎮內／戰鬥。",
       buy: 26, sell: 10, use: "pork_congee", val: 30, buff: 2, town: true, combat: true,
-      minSection: 1, rarity: 1, staple: false, weight: 5
+      minSection: 1, rarity: 1, staple: false, weight: 5, shop: false
     },
     // ---- 戰鬥工具（S1 輪換）----
     tar_bomb: {
       id: "tar_bomb", name: "焦油彈",
       desc: "敵減速（降攻連）並可被火點燃。",
       buy: 30, sell: 12, use: "tar", town: false, combat: true,
-      minSection: 1, rarity: 2, staple: false, weight: 5
+      minSection: 1, rarity: 2, staple: false, weight: 5, shop: false
     },
     freeze_can: {
       id: "freeze_can", name: "冷凍氣體罐",
       desc: "濕潤則凍結；否則 12 冰傷。",
       buy: 34, sell: 13, use: "freeze_can", town: false, combat: true, val: 12,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     copper_dust: {
       id: "copper_dust", name: "導電銅粉",
       desc: "本戰雷傷＋12。",
       buy: 32, sell: 13, use: "copper", town: false, combat: true, val: 12,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     sand_bag: {
       id: "sand_bag", name: "吸水沙囊",
       desc: "清除濕潤與濃霧，並小回 8 HP。",
       buy: 22, sell: 9, use: "sand_bag", town: false, combat: true, val: 8,
-      minSection: 1, rarity: 1, staple: false, weight: 6
+      minSection: 1, rarity: 1, staple: false, weight: 6, shop: false
     },
     acid_flask: {
       id: "acid_flask", name: "濃縮酸液",
       desc: "永久降低敵防 3。",
       buy: 38, sell: 15, use: "acid", town: false, combat: true, val: 3,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     glow_dust: {
       id: "glow_dust", name: "螢光粉",
       desc: "本戰暴擊＋8；濃霧中額外＋命中（清霧 2 層）。",
       buy: 26, sell: 10, use: "glow", town: false, combat: true, val: 8,
-      minSection: 1, rarity: 1, staple: false, weight: 6
+      minSection: 1, rarity: 1, staple: false, weight: 6, shop: false
     },
     toxin_cap: {
       id: "toxin_cap", name: "毒氣膠囊",
@@ -1068,61 +1068,61 @@
       id: "shock_grenade", name: "衝擊手榴彈",
       desc: "造成約 20 物傷。",
       buy: 40, sell: 16, use: "shock_grenade", town: false, combat: true, val: 20,
-      minSection: 1, rarity: 2, staple: false, weight: 5
+      minSection: 1, rarity: 2, staple: false, weight: 5, shop: false
     },
     grav_disk: {
       id: "grav_disk", name: "重力壓制盤",
       desc: "敵攻－4、難以連擊。",
       buy: 34, sell: 13, use: "grav_disk", town: false, combat: true, val: 4,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     antigrav_bag: {
       id: "antigrav_bag", name: "反重力氣囊",
       desc: "本戰敏捷＋7。",
       buy: 34, sell: 13, use: "antigrav_bag", town: false, combat: true, val: 7,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     mark_bolt: {
       id: "mark_bolt", name: "弱點印記彈",
       desc: "本戰暴擊＋12、攻擊＋3。",
       buy: 38, sell: 15, use: "mark_bolt", town: false, combat: true, val: 12, atk: 3,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     purge_potion: {
       id: "purge_potion", name: "淨化藥水",
       desc: "清毒並回 15 HP。鎮內／戰鬥。",
       buy: 28, sell: 11, use: "purge", val: 15, town: true, combat: true,
-      minSection: 1, rarity: 1, staple: false, weight: 5
+      minSection: 1, rarity: 1, staple: false, weight: 5, shop: false
     },
     rage_drug: {
       id: "rage_drug", name: "狂暴誘發劑",
       desc: "敵狂暴自傷並降防 3。",
       buy: 42, sell: 16, use: "rage_drug", town: false, combat: true, val: 6,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     bomb_paste: {
       id: "bomb_paste", name: "延遲粘膏",
       desc: "2 回合後爆炸 28 傷。",
       buy: 44, sell: 17, use: "bomb_paste", town: false, combat: true, turns: 2, dmg: 28,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     shield_break: {
       id: "shield_break", name: "破盾之錘粉",
       desc: "下次攻擊無視防禦並＋6 傷。",
       buy: 40, sell: 16, use: "shield_break", town: false, combat: true, val: 6,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     overheal_chip: {
       id: "overheal_chip", name: "護盾過載",
       desc: "臨時護甲＋12。",
       buy: 46, sell: 18, use: "overheal_chip", town: false, combat: true, val: 12,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     stim_potion: {
       id: "stim_potion", name: "潛能激發藥",
       desc: "耗 8 HP 換本戰暴擊＋15。鎮內／戰鬥。",
       buy: 48, sell: 19, use: "stim", town: true, combat: true, costHp: 8, crit: 15,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     calm_spray: {
       id: "calm_spray", name: "鎮靜噴霧",
@@ -1134,7 +1134,7 @@
       id: "time_hourglass", name: "時間沙漏",
       desc: "立即結算敵方持續傷害（毒／灼／粘膏）。",
       buy: 42, sell: 16, use: "time_hourglass", town: false, combat: true,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     unchain: {
       id: "unchain", name: "不屈藥膏",
@@ -1146,7 +1146,7 @@
       id: "poison_oil", name: "武器塗毒膏",
       desc: "之後攻擊附加毒素（強度 4）。",
       buy: 34, sell: 13, use: "poison_oil", town: false, combat: true, val: 4,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     armor_pierce: {
       id: "armor_pierce", name: "穿甲彈頭膠",
@@ -1158,85 +1158,85 @@
       id: "burst_arrow", name: "爆裂箭配件",
       desc: "一次爆炸傷害 24。",
       buy: 44, sell: 17, use: "burst_arrow", town: false, combat: true, val: 24,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     oil_barrel: {
       id: "oil_barrel", name: "易燃油桶",
       desc: "敵火弱並立刻灼燒。",
       buy: 30, sell: 12, use: "oil_barrel", town: false, combat: true,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     repair_kit: {
       id: "repair_kit", name: "防具修復錘",
       desc: "鎮內：回 28 HP 並下戰防＋3。",
       buy: 38, sell: 15, use: "repair_kit", town: true, combat: false, heal: 28, buff: 3,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     bee_hive: {
       id: "bee_hive", name: "劇毒蜂巢",
       desc: "敵中劇毒（5 回／每回 4）。",
       buy: 38, sell: 15, use: "bee_hive", town: false, combat: true, val: 5, dmg: 4,
-      minSection: 1, rarity: 2, staple: false, weight: 3
+      minSection: 1, rarity: 2, staple: false, weight: 3, shop: false
     },
     slime_cap: {
       id: "slime_cap", name: "史萊姆膠囊",
       desc: "本戰防禦＋7。",
       buy: 34, sell: 13, use: "slime_cap", town: false, combat: true, val: 7,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     vine_seed: {
       id: "vine_seed", name: "藤蔓種子",
       desc: "束縛敵人 1 回合並鋪藤蔓。",
       buy: 30, sell: 12, use: "vine_seed", town: false, combat: true,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     shadow_whistle: {
       id: "shadow_whistle", name: "暗影犬笛",
       desc: "影襲 18 傷；極夜再＋10。",
       buy: 48, sell: 19, use: "shadow_whistle", town: false, combat: true, val: 18,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     light_crystal: {
       id: "light_crystal", name: "光靈水晶",
       desc: "回 40 HP；日光場再＋10。鎮內／戰鬥。",
       buy: 42, sell: 16, use: "heal", town: true, combat: true, val: 40,
-      minSection: 1, rarity: 2, staple: false, weight: 4
+      minSection: 1, rarity: 2, staple: false, weight: 4, shop: false
     },
     bat_whistle: {
       id: "bat_whistle", name: "蝙蝠哨",
       desc: "造成 14 傷並吸一半血；極夜＋4 傷。",
       buy: 42, sell: 16, use: "bat_whistle", town: false, combat: true, val: 14,
-      minSection: 1, rarity: 3, staple: false, weight: 3
+      minSection: 1, rarity: 3, staple: false, weight: 3, shop: false
     },
     spirit_core: {
       id: "spirit_core", name: "傳說精神核",
       desc: "精神波貫穿真實傷 28。",
       buy: 70, sell: 28, use: "spirit_core", town: false, combat: true, val: 28,
-      minSection: 1, rarity: 4, staple: false, weight: 1
+      minSection: 1, rarity: 4, staple: false, weight: 1, shop: false
     },
     void_shard: {
       id: "void_shard", name: "虛空碎片",
       desc: "無視防禦真實傷 22。",
       buy: 72, sell: 28, use: "void_shard", town: false, combat: true, val: 22,
-      minSection: 1, rarity: 4, staple: false, weight: 1
+      minSection: 1, rarity: 4, staple: false, weight: 1, shop: false
     },
     hero_blood: {
       id: "hero_blood", name: "英雄之血結晶",
       desc: "大回復 85 HP。鎮內／戰鬥。",
       buy: 90, sell: 36, use: "heal", town: true, combat: true, val: 85,
-      minSection: 1, rarity: 4, staple: false, weight: 1
+      minSection: 1, rarity: 4, staple: false, weight: 1, shop: false
     },
     legend_log: {
       id: "legend_log", name: "冒險日誌",
       desc: "鎮內：獲得 55 經驗。",
       buy: 78, sell: 30, use: "xp", town: true, combat: false, val: 55,
-      minSection: 1, rarity: 4, staple: false, weight: 1
+      minSection: 1, rarity: 4, staple: false, weight: 1, shop: false
     },
     bond_charm: {
       id: "bond_charm", name: "羈絆護符",
       desc: "攻＋5、防＋4（本戰或下戰）。",
       buy: 55, sell: 22, use: "bond_charm", town: true, combat: true, atk: 5, deff: 4,
-      minSection: 1, rarity: 3, staple: false, weight: 2
+      minSection: 1, rarity: 3, staple: false, weight: 2, shop: false
     },
     // ---- Section2 西林影潮專屬（通關 s1_l5 後上架）----
     mist_lantern: {
@@ -1255,63 +1255,74 @@
       id: "night_flare", name: "破夜閃焰",
       desc: "18 傷並短暫轉日光；影系敵額外暈。",
       buy: 52, sell: 20, use: "night_flare", town: false, combat: true, val: 18,
-      minSection: 2, rarity: 3, staple: false, weight: 5
+      minSection: 2, rarity: 3, staple: false, weight: 8
     },
     gorge_jerky: {
       id: "gorge_jerky", name: "西峽燻肉",
       desc: "回 36 HP，並下戰攻＋4。鎮內／戰鬥。",
       buy: 40, sell: 16, use: "gorge_jerky", val: 36, buff: 4, town: true, combat: true,
-      minSection: 2, rarity: 2, staple: false, weight: 6
+      minSection: 2, rarity: 2, staple: false, weight: 9
     },
     echo_bell: {
       id: "echo_bell", name: "峽谷回聲鈴",
       desc: "霧中：真實傷 14＋暈；否則 12 普傷。",
       buy: 48, sell: 19, use: "echo_bell", town: false, combat: true, val: 12, fogVal: 14,
-      minSection: 2, rarity: 2, staple: false, weight: 5
+      minSection: 2, rarity: 2, staple: false, weight: 8
     },
     veil_oil: {
       id: "veil_oil", name: "夜幕塗油",
       desc: "本戰攻＋5、敏＋4；極夜再攻＋4。",
       buy: 54, sell: 21, use: "veil_oil", town: false, combat: true, atk: 5, agi: 4, nightAtk: 4,
-      minSection: 2, rarity: 3, staple: false, weight: 4
+      minSection: 2, rarity: 3, staple: false, weight: 7
     },
     ash_charm: {
       id: "ash_charm", name: "餘煙護符",
       desc: "下戰防＋5；進戰時若有霧則額外防＋2。",
       buy: 42, sell: 16, use: "ash_charm", val: 5, fogDef: 2, town: true, combat: false,
-      minSection: 2, rarity: 2, staple: false, weight: 5
+      minSection: 2, rarity: 2, staple: false, weight: 7
     },
     void_thread: {
       id: "void_thread", name: "虛空絲線",
       desc: "真實傷 16，並令下次攻擊無視防禦。",
       buy: 68, sell: 27, use: "void_thread", town: false, combat: true, val: 16,
-      minSection: 2, rarity: 3, staple: false, weight: 3
+      minSection: 2, rarity: 3, staple: false, weight: 5
     },
     moon_dew: {
       id: "moon_dew", name: "月露淨水",
       desc: "回 55 HP＋清毒；極夜再＋15。鎮內／戰鬥。",
       buy: 58, sell: 23, use: "moon_dew", val: 55, nightBonus: 15, town: true, combat: true,
-      minSection: 2, rarity: 3, staple: false, weight: 4
+      minSection: 2, rarity: 3, staple: false, weight: 7
     },
     tide_mirror: {
       id: "tide_mirror", name: "影潮鏡片",
       desc: "臨時護甲＋14；極夜／濃霧再＋4。",
       buy: 60, sell: 24, use: "tide_mirror", town: false, combat: true, val: 14, bonus: 4,
-      minSection: 2, rarity: 3, staple: false, weight: 3
+      minSection: 2, rarity: 3, staple: false, weight: 5
     },
     west_flare_dust: {
       id: "west_flare_dust", name: "西峽螢塵",
       desc: "清霧一半並暴擊＋14；對影敵額外 8 傷。",
       buy: 44, sell: 17, use: "west_flare_dust", town: false, combat: true, val: 14, dmg: 8,
-      minSection: 2, rarity: 2, staple: false, weight: 5
+      minSection: 2, rarity: 2, staple: false, weight: 8
+    }    ,
+    mire_sight: {
+      id: "mire_sight", name: "沼眼晶片",
+      desc: "本戰敏＋6；若有霧則清霧 1 層並回 10 HP。探霧沼必備。",
+      buy: 48, sell: 19, use: "mire_sight", town: false, combat: true, agi: 6, val: 10,
+      minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
 
   // 舊版相容：仍保留完整 id 列表（真正貨架由 getShopShelf 權重抽）
   var SHOP_ORDER = Object.keys(ITEMS);
 
-  // 商店：常駐＋輪換；每 15 分重整；手動 15 金可即時重整輪換格
-  var SHOP_ROTATE_SLOTS = 7;
+  // 商店貨架規則（寫死）：
+  // - 常駐（staple）＋輪換合計＝顯示總數；唔好再「常駐一堆＋固定 N 格」超標。
+  // - 而家目標 SHOP_SHELF_TARGET=10；未來每次更新維持 10–15 項。
+  // - SHOP_SHELF_MAX=15 係程式硬上限（唔好超過）。
+  // - 每 15 分自動重整；手動 15 金即時重整輪換格。
+  var SHOP_SHELF_TARGET = 10;
+  var SHOP_SHELF_MAX = 15;
   var SHOP_REFRESH_MS = 15 * 60 * 1000;
   var SHOP_REROLL_COST = 15;
 
@@ -1802,13 +1813,25 @@
     return out;
   }
 
-  /** 重整貨架：常駐 staple + 權重抽輪換格；force 或過期則刷新 */
+  /** 貨架上限：min(TARGET, MAX)；常駐優先，餘額用權重抽輪換。未來更新改 TARGET（10–15）。 */
+  function shopShelfCap() {
+    var t = SHOP_SHELF_TARGET != null ? SHOP_SHELF_TARGET : 10;
+    var m = SHOP_SHELF_MAX != null ? SHOP_SHELF_MAX : 15;
+    if (t < 1) t = 1;
+    if (m < t) m = t;
+    return Math.min(t, m);
+  }
+
+  /** 重整貨架：常駐 staple + 權重抽輪換；合計硬上限 shopShelfCap()；force 或過期則刷新 */
   function refreshShopShelf(force) {
     ensureShopState();
     var now = Date.now();
     if (!force && state.shop.shelf && state.shop.shelf.length && now < state.shop.refreshAt) {
-      return state.shop.shelf;
+      // 舊存檔若超標，強制裁切並重整
+      if (state.shop.shelf.length <= shopShelfCap()) return state.shop.shelf;
+      force = true;
     }
+    var cap = shopShelfCap();
     var staples = [];
     var rotating = [];
     var weights = [];
@@ -1818,21 +1841,26 @@
       if (it.staple) staples.push(id);
       else {
         rotating.push(id);
-        // 稀有度愈高權重愈低，避免成日神器
+        // 稀有度愈高權重愈低；本節專屬（minSection===當前節）加權，優先上架
         var rar = it.rarity || 1;
         var base = it.weight != null ? it.weight : Math.max(1, 10 - rar * 2);
+        var sec = currentSection();
+        if ((it.minSection || 1) === sec && sec >= 2) base = Math.floor(base * 2.2);
         weights.push(base);
       }
     });
-    var picked = weightedPick(rotating, weights, SHOP_ROTATE_SLOTS);
+    // 常駐唔好超過上限；超出時保留先出現嘅（傷藥類應排前）
+    if (staples.length > cap) staples = staples.slice(0, cap);
+    var rotateSlots = Math.max(0, cap - staples.length);
+    var picked = weightedPick(rotating, weights, rotateSlots);
     var shelf = staples.concat(picked);
-    // 去重（以防萬一）
+    // 去重＋硬裁切
     var seen = {};
     shelf = shelf.filter(function (id) {
       if (seen[id]) return false;
       seen[id] = true;
       return true;
-    });
+    }).slice(0, cap);
     state.shop.shelf = shelf;
     state.shop.refreshAt = now + SHOP_REFRESH_MS;
     state.shop.sectionWhenBuilt = currentSection();
@@ -2723,6 +2751,21 @@
           toast("西峽螢塵：暴擊↑、霧淡" + (extra ? "、影傷 " + extra : ""));
         })();
         break;
+      case "mire_sight":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 6);
+          var note = "沼眼晶片：敏＋" + (def.agi || 6);
+          if (hasField("fog") && combat.field && combat.field.fog) {
+            combat.field.fog = Math.max(0, combat.field.fog - 1);
+            if (combat.field.fog <= 0) delete combat.field.fog;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + (def.val || 10));
+            note += "、霧薄 1 層、回 " + (state.hp - before);
+          }
+          toast(note);
+        })();
+        break;
       default:
         toast("無效道具");
         addItem(id, 1);
@@ -2765,9 +2808,10 @@
         var remain = shopRefreshRemainMs();
         var sec = currentSection();
         var secName = sec >= 2 ? "第2節·西林影潮" : "第1節·格蘭起程";
+        var shelfNow = (state.shop && state.shop.shelf) ? state.shop.shelf.length : shopShelfCap();
         infoEl.textContent = "貨架：" + secName + "　｜　" +
           (remain > 0 ? ("自動重整剩餘 " + formatRemain(remain)) : "即將自動重整") +
-          "　｜　常駐＋輪換" + SHOP_ROTATE_SLOTS + "格　｜　每15分重整";
+          "　｜　共" + shelfNow + "/" + shopShelfCap() + "項（上限" + SHOP_SHELF_MAX + "）　｜　每15分重整";
         infoEl.style.display = "";
       } else {
         infoEl.textContent = "";
