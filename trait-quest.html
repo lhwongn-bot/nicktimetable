@@ -314,6 +314,7 @@
 (function () {
   "use strict";
 
+  // Progress: SECTION=1 LEVEL=1 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -452,6 +453,14 @@
       whiteChance: 0.35,
       greenChance: 0.22,
       fragChance: 0.45
+    },
+    // Section 1 pools (lookup by quest id)
+    s1_l1: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["rage_mark", "iron_bone", "venom_fang", "night_eye"],
+      whiteChance: 0.4,
+      greenChance: 0.16,
+      fragChance: 0.5
     }
   };
 
@@ -493,6 +502,35 @@
       ],
       need: "spider",
       clearText: "核心潰散成碎光。你感覺詞條槽隱隱發熱——成長還未完，但呢一片森林，暫時安靜咗。"
+    },
+    {
+      id: "s1_l1",
+      name: "格蘭鎮·演習場",
+      desc: "公會要新人做實戰演習，順便打聽鄰國怪物傳聞。",
+      stages: [
+        {
+          name: "草編靶傀",
+          hp: 42, atk: 10, def: 2,
+          flavor: "格蘭鎮城牆外，演習場鋪住沙。一具草編靶傀抬起木臂——公會師傅隔空喊：「當佢係真怪！唔好收力！」"
+        },
+        {
+          name: "演習狼犬",
+          hp: 56, atk: 12, def: 2,
+          flavor: "鐵鏈一鬆，灰毛狼犬撲近。旁邊有人咬住煙斗：「北窟嗰邊成日有怪響，演習先當熱身啦。」"
+        },
+        {
+          name: "試煉兵·銅盾",
+          hp: 70, atk: 14, def: 3,
+          flavor: "銅牌試煉兵抬起圓盾：「傳聞話鄰國邊界出咗黑影披風——你聽過未？邊打邊答都得。」"
+        },
+        {
+          name: "監考官·鐵腕",
+          hp: 84, atk: 15, def: 4,
+          flavor: "監考官踏入場中央，鐵護腕反光。「及格線係企到最後。及格之後……北窟嘅委託紙已經寫好一半。」"
+        }
+      ],
+      need: "slime",
+      clearText: "北窟有異響，公會準備下一個委託。"
     }
   ];
 
@@ -1024,15 +1062,13 @@
       $("result-log").innerHTML = "";
       appendLog($("result-log"), combat.quest.clearText);
       appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、融合詞條，或接下一個委託。", "sys");
-      if (combat.quest.id === "slime") {
-        $("btn-result-ok").onclick = function () {
-          showWin();
-        };
-      } else {
-        $("btn-result-ok").onclick = function () {
-          enterTown("完成咗「" + combat.quest.name + "」。");
-        };
-      }
+      // Prologue (goblin/spider/slime) + Section levels: return to town.
+      // showWin() reserved for later section-finale; do not softlock after slime/s1_l1.
+      var clearedName = combat.quest.name;
+      $("btn-result-ok").onclick = function () {
+        toast("完成：「" + clearedName + "」");
+        enterTown("完成咗「" + clearedName + "」。");
+      };
       combat = null;
     } else {
       beginStage();
