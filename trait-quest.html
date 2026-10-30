@@ -797,6 +797,28 @@
     font-size: 0.68rem;
   }
 
+  /* Batch4: 遺產／存檔導出匯入 */
+  .legacy-pick { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .legacy-pick button {
+    text-align: left;
+    font-size: 0.88rem;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .legacy-pick button.selected {
+    background: #fff;
+    color: #000;
+  }
+  .legacy-banner {
+    border: 1px solid var(--border);
+    padding: 10px;
+    background: var(--dim);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+  .legacy-banner b { color: var(--fg); }
+  #save-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
 </style>
 </head>
 <body>
@@ -813,9 +835,14 @@
     </div>
     <label class="mb">冒險者名</label>
     <input type="text" id="name-input" value="李維" maxlength="12" autocomplete="off">
+    <div id="title-legacy" class="legacy-banner hidden"></div>
     <div class="btn-grid one mt">
       <button class="primary" id="btn-newgame">開始冒險</button>
       <button id="btn-continue" class="hidden">繼續進度</button>
+    </div>
+    <div class="btn-grid mt">
+      <button type="button" id="btn-export-save-title">導出存檔</button>
+      <button type="button" id="btn-import-save-title">匯入存檔</button>
     </div>
     <p class="footer-note">二元戰紀：精神波動 · 個人 Demo · 非任何小說官方作品</p>
   </div>
@@ -843,6 +870,8 @@
       <button id="btn-quests">接任務</button>
       <button id="btn-index">詞條圖鑑</button>
       <button id="btn-save">儲存</button>
+      <button id="btn-export-save">導出存檔</button>
+      <button id="btn-import-save">匯入存檔</button>
       <button id="btn-title">標題畫面</button>
     </div>
     <div class="log" id="town-log" style="max-height:28vh;min-height:80px;"></div>
@@ -956,7 +985,16 @@
     <h1>你倒下咗</h1>
     <p class="sub">黑木森林吞沒咗又一個名字。</p>
     <div class="panel mb" id="endlose-text"></div>
-    <button class="primary" id="btn-restart-lose">重新開始</button>
+    <div class="panel mb" id="endlose-legacy">
+      <h3>遺產（下一輪可繼承）</h3>
+      <p class="statline" id="endlose-legacy-summary"></p>
+      <p class="statline mt">可再揀 <b>1</b> 個白詞條帶走（或不揀）：</p>
+      <div class="legacy-pick" id="endlose-legacy-traits"></div>
+      <p class="statline" id="endlose-legacy-choice"></p>
+    </div>
+    <div class="btn-grid one">
+      <button class="primary" id="btn-restart-lose">帶住遺產，返回標題</button>
+    </div>
   </div>
   <div id="screen-endwin" class="screen">
     <h1>通關</h1>
@@ -1043,12 +1081,17 @@
   </div>
 </div>
 
+<input type="file" id="save-file-input" accept="application/json,.json">
+
 <script>
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=1 OF=5  （批次3：手機固定狀態欄／商店背包Tooltip+Compare；批次2保留；2026-10-30）
+  // Progress: SECTION=2 LEVEL=1 OF=5  （批次4：自動存檔／導出匯入／遺產；批次1–3保留；2026-10-30）
   var SAVE_KEY = "traitQuest_v1";
+  var LEGACY_KEY = "traitQuest_legacy_v1";
+  var SAVE_VERSION = 1;
+  var legacyPickTraitId = null;
 
   // ---------- Trait catalog ----------
   var TRAITS = {
@@ -3197,16 +3240,30 @@
     return ({ white: "白", green: "綠", blue: "藍", purple: "紫" })[r] || r;
   }
 
-  // ---------- Persist ----------
-  function saveGame() {
+  // ---------- Persist（批次4：自動存檔／導出匯入／遺產） ----------
+  function saveGame(opts) {
+    opts = opts || {};
     try {
+      if (!state) {
+        if (!opts.silent) toast("無進度可儲存");
+        return false;
+      }
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-      toast("已儲存");
+      if (!opts.silent) toast(opts.msg || "已儲存");
       return true;
     } catch (e) {
-      toast("儲存失敗");
+      if (!opts.silent) toast("儲存失敗（可能空間已滿）");
       return false;
     }
+  }
+
+  /** 關鍵節點靜默寫入；倒下畫面唔寫，避免把死亡態當可續玩存檔 */
+  function autoSave() {
+    if (!state) return false;
+    if (state.hp <= 0) return false;
+    var lose = $("screen-endlose");
+    if (lose && lose.classList.contains("active")) return false;
+    return saveGame({ silent: true });
   }
 
   function loadGame() {
@@ -3224,6 +3281,257 @@
     try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
   }
 
+  function loadLegacyObj() {
+    try {
+      var raw = localStorage.getItem(LEGACY_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== "object") return null;
+      return o;
+    } catch (e) { return null; }
+  }
+
+  function computeLegacyGold() {
+    if (!state) return 0;
+    var fromGold = Math.floor((state.gold || 0) * 0.15);
+    var fromLevel = Math.floor((state.level || 1) * 2);
+    return Math.min(80, Math.max(0, fromGold + fromLevel));
+  }
+
+  function ownedWhiteTraitIds() {
+    var seen = {};
+    var ids = [];
+    (state && state.traits ? state.traits : []).forEach(function (t) {
+      if (!t || !t.id || seen[t.id]) return;
+      var d = TRAITS[t.id];
+      if (d && d.rarity === "white") {
+        seen[t.id] = true;
+        ids.push(t.id);
+      }
+    });
+    return ids;
+  }
+
+  function syncLegacyPickUI() {
+    var box = $("endlose-legacy-traits");
+    if (!box) return;
+    Array.prototype.forEach.call(box.querySelectorAll("button"), function (btn) {
+      var tid = btn.getAttribute("data-tid");
+      var sel;
+      if (!btn.hasAttribute("data-tid")) sel = legacyPickTraitId == null;
+      else sel = tid === legacyPickTraitId;
+      btn.classList.toggle("selected", !!sel);
+    });
+    var ch = $("endlose-legacy-choice");
+    if (!ch) return;
+    var gold = computeLegacyGold();
+    var line = "將繼承：遺產金 " + gold;
+    if (legacyPickTraitId && TRAITS[legacyPickTraitId]) {
+      line += "　＋　白詞條「" + TRAITS[legacyPickTraitId].name + "」";
+    } else {
+      line += "　（無詞條）";
+    }
+    ch.innerHTML = "<b>" + escapeHtml(line) + "</b>";
+  }
+
+  function renderEndloseLegacy() {
+    legacyPickTraitId = null;
+    var gold = computeLegacyGold();
+    var sum = $("endlose-legacy-summary");
+    if (sum) {
+      sum.innerHTML =
+        "倒下後可帶走少許「迴響」——降低挫敗感。<br>" +
+        "· <b>遺產金 " + gold + "</b>（約本輪金錢 15%＋等級加成，上限 80）<br>" +
+        "· 同／或 <b>1</b> 個低階（白）詞條<br>" +
+        "其餘進度、圖鑑、裝備、道具唔會保留。";
+    }
+    var box = $("endlose-legacy-traits");
+    if (!box) return;
+    box.innerHTML = "";
+    var noneBtn = document.createElement("button");
+    noneBtn.type = "button";
+    noneBtn.textContent = "唔繼承詞條（只帶走遺產金）";
+    noneBtn.className = "selected";
+    noneBtn.onclick = function () {
+      legacyPickTraitId = null;
+      syncLegacyPickUI();
+    };
+    box.appendChild(noneBtn);
+    var ids = ownedWhiteTraitIds();
+    ids.forEach(function (id) {
+      var d = TRAITS[id];
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("data-tid", id);
+      btn.textContent = "[白] " + d.name + "　—　" + (d.desc || "");
+      btn.onclick = function () {
+        legacyPickTraitId = id;
+        syncLegacyPickUI();
+      };
+      box.appendChild(btn);
+    });
+    if (!ids.length) {
+      var p = document.createElement("p");
+      p.className = "statline";
+      p.textContent = "你冇白詞條可繼承。";
+      box.appendChild(p);
+    }
+    syncLegacyPickUI();
+  }
+
+  function refreshTitleLegacy() {
+    var el = $("title-legacy");
+    if (!el) return;
+    var leg = loadLegacyObj();
+    var hasGold = leg && (Number(leg.gold) || 0) > 0;
+    var hasTrait = leg && leg.traitId && TRAITS[leg.traitId];
+    if (!leg || (!hasGold && !leg.traitId)) {
+      el.classList.add("hidden");
+      el.innerHTML = "";
+      return;
+    }
+    el.classList.remove("hidden");
+    var parts = [];
+    if (hasGold) parts.push("遺產金 <b>" + Math.min(80, Number(leg.gold) || 0) + "</b>");
+    if (hasTrait) parts.push("白詞條「<b>" + escapeHtml(TRAITS[leg.traitId].name) + "</b>」");
+    else if (leg.traitId) parts.push("詞條（資料缺失，會略過）");
+    var from = leg.fromName ? ("（來自「" + escapeHtml(leg.fromName) + "」）") : "";
+    el.innerHTML =
+      "<b>上一世遺產待命</b>" + from + "<br>" + parts.join("　＋　") +
+      "<br><span class='statline'>撳「開始冒險」就會繼承；畫面會講清楚帶咗咩。</span>";
+  }
+
+  function applyLegacyToNewRun() {
+    var leg = loadLegacyObj();
+    if (!leg) return null;
+    var applied = { gold: 0, traitId: null, traitName: null };
+    var g = Math.max(0, Math.min(80, Number(leg.gold) || 0));
+    if (g > 0) {
+      state.gold += g;
+      applied.gold = g;
+    }
+    if (leg.traitId && TRAITS[leg.traitId] && TRAITS[leg.traitId].rarity === "white") {
+      addTrait(leg.traitId);
+      applied.traitId = leg.traitId;
+      applied.traitName = TRAITS[leg.traitId].name;
+    }
+    try { localStorage.removeItem(LEGACY_KEY); } catch (e) {}
+    return applied;
+  }
+
+  function legacyMsg(applied) {
+    if (!applied) return "";
+    var bits = [];
+    if (applied.gold) bits.push("遺產金 +" + applied.gold);
+    if (applied.traitName) bits.push("繼承白詞條「" + applied.traitName + "」");
+    if (!bits.length) return "";
+    return "【遺產覺醒】" + bits.join("；") + "。";
+  }
+
+  function commitLegacyAndRestart() {
+    var gold = state ? computeLegacyGold() : 0;
+    var tid = legacyPickTraitId;
+    if (tid && (!TRAITS[tid] || TRAITS[tid].rarity !== "white")) tid = null;
+    var leg = {
+      gold: gold,
+      traitId: tid || null,
+      fromName: state ? state.name : "",
+      at: new Date().toISOString()
+    };
+    try {
+      localStorage.setItem(LEGACY_KEY, JSON.stringify(leg));
+    } catch (e) {
+      toast("遺產寫入失敗");
+    }
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    state = null;
+    combat = null;
+    legacyPickTraitId = null;
+    var tl = $("town-log");
+    if (tl) tl.innerHTML = "";
+    hideTip();
+    refreshContinueBtn();
+    refreshTitleLegacy();
+    showScreen("screen-title");
+    toast("遺產已封存，下一輪開始時生效");
+  }
+
+  function getExportState() {
+    if (state) return state;
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      return migrateState(JSON.parse(raw));
+    } catch (e) { return null; }
+  }
+
+  function exportSave() {
+    var st = getExportState();
+    if (!st) {
+      toast("無存檔可導出");
+      return;
+    }
+    var payload = {
+      version: SAVE_VERSION,
+      game: "二元戰紀：精神波動",
+      exportedAt: new Date().toISOString(),
+      state: st,
+      legacy: loadLegacyObj()
+    };
+    try {
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      var d = new Date();
+      var stamp = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+      a.href = URL.createObjectURL(blob);
+      a.download = "二元戰紀-存檔-" + stamp + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2500);
+      toast("已導出 JSON 存檔");
+    } catch (e) {
+      toast("導出失敗");
+    }
+  }
+
+  function importSaveFromText(raw) {
+    try {
+      var data = JSON.parse(raw);
+      var st = (data && data.state) ? data.state : data;
+      if (!st || typeof st !== "object" || st.name == null) {
+        toast("檔案格式唔啱");
+        return;
+      }
+      var label = String(st.name || "?") + "　Lv." + (st.level != null ? st.level : "?");
+      if (!confirm("匯入會覆蓋而家嘅本地存檔同進度，確定？\n（檔案角色：" + label + "）")) {
+        return;
+      }
+      state = migrateState(st);
+      if (data && data.legacy && typeof data.legacy === "object") {
+        try { localStorage.setItem(LEGACY_KEY, JSON.stringify(data.legacy)); } catch (e) {}
+      }
+      combat = null;
+      saveGame({ silent: true });
+      refreshContinueBtn();
+      refreshTitleLegacy();
+      enterTown("匯入成功。歡迎返嚟，" + state.name + "。");
+      toast("匯入完成");
+    } catch (e) {
+      toast("匯入失敗：檔案損壞或格式錯誤");
+    }
+  }
+
+  function triggerImportSave() {
+    var inp = $("save-file-input");
+    if (!inp) {
+      toast("匯入控件缺失");
+      return;
+    }
+    inp.value = "";
+    inp.click();
+  }
+
   // ---------- Screens ----------
   function refreshContinueBtn() {
     var btn = $("btn-continue");
@@ -3239,7 +3547,9 @@
     state.equipped[0] = state.traits[0].uid;
     addItem("potion", 2);
     addItem("ration", 1);
+    state._legacyApplied = applyLegacyToNewRun();
     showIntro();
+    autoSave();
   }
 
   function showIntro() {
@@ -3310,6 +3620,7 @@
       setTimeout(showLevelUp, 50);
     }
     updateStickyHud();
+    autoSave();
   }
 
   function doRest() {
@@ -5466,7 +5777,13 @@
       }
     };
     $("btn-intro-next").onclick = function () {
-      enterTown("你站喺公會大廳。從任務板開始啦。");
+      var msg = "你站喺公會大廳。從任務板開始啦。";
+      if (state && state._legacyApplied) {
+        var lm = legacyMsg(state._legacyApplied);
+        if (lm) msg = lm + " " + msg;
+        state._legacyApplied = null;
+      }
+      enterTown(msg);
     };
     $("btn-rest").onclick = doRest;
     $("btn-shop").onclick = function () { showShop("buy"); };
@@ -5497,10 +5814,31 @@
     }
     $("btn-quests").onclick = showQuests;
     $("btn-quests-back").onclick = function () { enterTown(); };
-    $("btn-save").onclick = saveGame;
+    $("btn-save").onclick = function () { saveGame(); };
+    function wireExportImport(exportId, importId) {
+      var be = $(exportId);
+      var bi = $(importId);
+      if (be) be.onclick = exportSave;
+      if (bi) bi.onclick = triggerImportSave;
+    }
+    wireExportImport("btn-export-save", "btn-import-save");
+    wireExportImport("btn-export-save-title", "btn-import-save-title");
+    var fileInp = $("save-file-input");
+    if (fileInp) {
+      fileInp.onchange = function () {
+        var f = fileInp.files && fileInp.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () { importSaveFromText(String(reader.result || "")); };
+        reader.onerror = function () { toast("讀取檔案失敗"); };
+        reader.readAsText(f);
+      };
+    }
     $("btn-title").onclick = function () {
-      if (confirm("返回標題？（記得先儲存）")) {
+      if (confirm("返回標題？（會自動儲存而家進度）")) {
+        autoSave();
         refreshContinueBtn();
+        refreshTitleLegacy();
         showScreen("screen-title");
       }
     };
@@ -5513,7 +5851,7 @@
     $("btn-combat-items-back").onclick = function () { showScreen("screen-combat"); };
     $("btn-combat-next").onclick = combatNext;
     $("btn-result-ok").onclick = function () { enterTown(); };
-    $("btn-restart-lose").onclick = restart;
+    $("btn-restart-lose").onclick = commitLegacyAndRestart;
     $("btn-restart-win").onclick = restart;
 
     // Batch3: sticky nav + tooltip overlay
@@ -5536,6 +5874,11 @@
 
   bind();
   refreshContinueBtn();
+  refreshTitleLegacy();
+  window.addEventListener("beforeunload", function () { autoSave(); });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") autoSave();
+  });
 })();
 </script>
 </body>
