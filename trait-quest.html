@@ -314,7 +314,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=1 LEVEL=1 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
+  // Progress: SECTION=1 LEVEL=2 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -461,6 +461,13 @@
       whiteChance: 0.4,
       greenChance: 0.16,
       fragChance: 0.5
+    },
+    s1_l2: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "web_bind", "slime_core", "rage_mark"],
+      whiteChance: 0.38,
+      greenChance: 0.2,
+      fragChance: 0.52
     }
   };
 
@@ -531,6 +538,35 @@
       ],
       need: "slime",
       clearText: "北窟有異響，公會準備下一個委託。"
+    },
+    {
+      id: "s1_l2",
+      name: "黑木北窟·探路",
+      desc: "格蘭公會聽聞黑木林北緣洞窟有回音怪響，叫你入去探路，睇吓係咪有怪聚埋。",
+      stages: [
+        {
+          name: "濕石洞蝠",
+          hp: 48, atk: 11, def: 2,
+          flavor: "北窟入口涼氣撲面。水珠滴落石壁，回音一層疊一層。幾隻濕翼洞蝠撲過頭頂，尖嘯刺耳。"
+        },
+        {
+          name: "岩隙蜥蜴",
+          hp: 62, atk: 13, def: 3,
+          flavor: "通道轉窄，腳下青苔滑溜。一條岩隙蜥蜴從縫隙躥出，尾巴拍石「啪」一聲，回音好似有人應咗句。"
+        },
+        {
+          name: "回音石衛",
+          hp: 78, atk: 15, def: 4,
+          flavor: "半身石像擋路——唔係雕刻，係自己郁。石衛每踩一步，洞穴就答一句悶響。深處似有黑布一閃……未睇清就冇咗。"
+        },
+        {
+          name: "北窟石傀",
+          hp: 95, atk: 17, def: 5,
+          flavor: "探路最深點，石傀撐住塌半邊嘅拱門。傀身裂縫滲出冷氣；傳聞話再入面先有『影披』蹤跡——呢次夠膽探到呢度已經交差。"
+        }
+      ],
+      need: "s1_l1",
+      clearText: "你標記咗安全路線返格蘭。公會接待員睇完草圖：「邊陲村恰達嗰邊有人求援——下一個委託紙，應該就係嗰度。」"
     }
   ];
 
@@ -1063,7 +1099,7 @@
       appendLog($("result-log"), combat.quest.clearText);
       appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、融合詞條，或接下一個委託。", "sys");
       // Prologue (goblin/spider/slime) + Section levels: return to town.
-      // showWin() reserved for later section-finale; do not softlock after slime/s1_l1.
+      // showWin() reserved for later section-finale; section levels (s1_l1/s1_l2/…) return to town — do not softlock.
       var clearedName = combat.quest.name;
       $("btn-result-ok").onclick = function () {
         toast("完成：「" + clearedName + "」");
