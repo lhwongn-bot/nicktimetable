@@ -504,6 +504,55 @@
     0% { opacity: 1; transform: translate(0,0) scale(1); }
     100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); }
   }
+  /* ---- 2A: 融合 NEW 提示／圖鑑篩選 ---- */
+  #fuse-fx .fx-new-badge {
+    display: none;
+    margin-top: 14px;
+    padding: 8px 12px;
+    border: 2px solid #ffd54a;
+    background: linear-gradient(180deg, #3a2e00 0%, #1a1400 100%);
+    color: #ffe082;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 8px rgba(255, 213, 74, 0.55);
+    animation: newBadgePulse 0.9s ease-in-out infinite alternate;
+  }
+  #fuse-fx.is-new .fx-new-badge { display: block; }
+  #fuse-fx.is-new .fx-card {
+    border-color: #ffd54a;
+    box-shadow: 0 0 24px rgba(255, 213, 74, 0.35);
+  }
+  @keyframes newBadgePulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1.04); filter: brightness(1.15); }
+  }
+  .index-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 10px;
+    align-items: stretch;
+  }
+  .index-filters.hidden { display: none; }
+  .index-filters input[type="search"],
+  .index-filters select {
+    flex: 1 1 120px;
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    background: #111;
+    color: #eee;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .index-filters input[type="search"] { flex: 2 1 160px; }
+  .index-filters select:focus,
+  .index-filters input:focus { outline: 1px solid #fff; }
+  .index-empty { color: var(--muted); font-size: 0.9rem; padding: 8px 2px; }
 
   .game-art {
     display: block;
@@ -925,6 +974,32 @@
       <button data-tab="recipes">配方</button>
       <button data-tab="sets">套裝</button>
     </div>
+    <div class="index-filters" id="index-filters">
+      <input type="search" id="index-search" placeholder="搜尋詞條／配方…" autocomplete="off" enterkeyhint="search">
+      <select id="index-rarity" aria-label="稀有度篩選">
+        <option value="">全部稀有度</option>
+        <option value="white">白</option>
+        <option value="green">綠</option>
+        <option value="blue">藍</option>
+        <option value="purple">紫</option>
+      </select>
+      <select id="index-type" aria-label="類型篩選">
+        <option value="">全部類型</option>
+        <option value="role:attack">攻擊</option>
+        <option value="role:defend">防禦</option>
+        <option value="role:special">特殊</option>
+        <option value="tag:beast">野獸</option>
+        <option value="tag:poison">毒系</option>
+        <option value="tag:shadow">影系</option>
+        <option value="tag:fire">火系</option>
+      </select>
+      <select id="index-sort" aria-label="排序">
+        <option value="rarity-asc">稀有度↑</option>
+        <option value="rarity-desc">稀有度↓</option>
+        <option value="name">名稱</option>
+        <option value="role">類型</option>
+      </select>
+    </div>
     <div id="index-list" class="select-list index-grid"></div>
     <div class="btn-grid">
       <button id="btn-index-back">返回</button>
@@ -1078,6 +1153,7 @@
     <div class="fx-rarity" id="fuse-fx-rarity"></div>
     <div class="fx-name" id="fuse-fx-name"></div>
     <div class="fx-desc" id="fuse-fx-desc"></div>
+    <div class="fx-new-badge" id="fuse-fx-new">NEW! 新詞條已登錄圖鑑</div>
   </div>
 </div>
 
@@ -1087,7 +1163,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=1 OF=5  （批次4：自動存檔／導出匯入／遺產；批次1–3保留；2026-10-30）
+  // Progress: SECTION=2 LEVEL=1 OF=5  （2A：融合NEW圖鑑提示＋圖鑑篩選搜尋；批次1–4保留；2026-10-30）
   var SAVE_KEY = "traitQuest_v1";
   var LEGACY_KEY = "traitQuest_legacy_v1";
   var SAVE_VERSION = 1;
@@ -1436,6 +1512,8 @@
     shadow: "影系",
     fire: "火系"
   };
+  var ROLE_LABEL = { attack: "攻擊", defend: "防禦", special: "特殊" };
+  var ROLE_ORDER = { attack: 0, defend: 1, special: 2 };
 
   /** 詞條 tags（用於套裝；一詞條可多 tag） */
   var TRAIT_TAGS = {
@@ -1552,6 +1630,22 @@
     return (tags || []).map(function (t) { return TAG_LABEL[t] || t; }).join("·");
   }
 
+  /** 2A：詞條類型（攻擊／防禦／特殊）— 跟現有數值欄位推斷，方便圖鑑篩選 */
+  function traitRole(idOrDef) {
+    var def = typeof idOrDef === "string" ? TRAITS[idOrDef] : idOrDef;
+    if (!def) return "special";
+    var atk = (def.atk || 0) + (def.str || 0);
+    var defn = (def.defBonus || 0) + (def.con || 0) + Math.floor((def.hp || 0) / 8) + (def.regen || 0);
+    var special = (def.agi || 0) + (def.fleeBonus ? 2 : 0) + (def.skill ? 3 : 0);
+    if (atk >= defn && atk >= special && atk > 0) return "attack";
+    if (defn > atk && defn >= special && defn > 0) return "defend";
+    return "special";
+  }
+
+  function traitRoleLabel(idOrDef) {
+    return ROLE_LABEL[traitRole(idOrDef)] || "特殊";
+  }
+
   // ---------- Items ----------
   var ITEMS = {
     // ---- 常駐／基礎（S1）----
@@ -1593,9 +1687,9 @@
     },
     xp_scroll: {
       id: "xp_scroll", name: "經驗書",
-      desc: "閱讀後獲得 28 點經驗。",
+      desc: "閱讀後獲得 28 點經驗。已移出貨架（霧沼輪換優先戰鬥貨）。",
       buy: 45, sell: 18, use: "xp", val: 28, town: true, combat: false,
-      minSection: 1, rarity: 2, staple: false, weight: 5
+      minSection: 1, rarity: 2, staple: false, weight: 5, shop: false
     },
     ration: {
       id: "ration", name: "乾糧",
@@ -1946,6 +2040,12 @@
       desc: "本戰敏＋6；若有霧則清霧 1 層並回 10 HP。探霧沼必備。",
       buy: 48, sell: 19, use: "mire_sight", town: false, combat: true, agi: 6, val: 10,
       minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    bridge_coil: {
+      id: "bridge_coil", name: "斷橋錨索",
+      desc: "束縛敵：本戰敵攻－4；濕潤／濃霧再暈 1。斷橋求援用得著。",
+      buy: 50, sell: 20, use: "bridge_coil", town: false, combat: true, val: 4,
+      minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
 
@@ -1978,7 +2078,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -3752,10 +3852,75 @@
   }
 
   var _indexTab = "all";
+  var _indexFilter = { q: "", rarity: "", type: "", sort: "rarity-asc" };
+
+  function readIndexFilters() {
+    var qEl = $("index-search");
+    var rEl = $("index-rarity");
+    var tEl = $("index-type");
+    var sEl = $("index-sort");
+    _indexFilter.q = qEl ? String(qEl.value || "").trim().toLowerCase() : "";
+    _indexFilter.rarity = rEl ? (rEl.value || "") : "";
+    _indexFilter.type = tEl ? (tEl.value || "") : "";
+    _indexFilter.sort = sEl ? (sEl.value || "rarity-asc") : "rarity-asc";
+  }
+
+  function syncIndexFilterUi() {
+    var filters = $("index-filters");
+    if (!filters) return;
+    var hide = (_indexTab === "sets");
+    filters.classList.toggle("hidden", hide);
+    // 配方頁保留搜尋，隱藏稀有／類型／排序
+    var rEl = $("index-rarity");
+    var tEl = $("index-type");
+    var sEl = $("index-sort");
+    var recipeMode = (_indexTab === "recipes");
+    if (rEl) rEl.style.display = recipeMode ? "none" : "";
+    if (tEl) tEl.style.display = recipeMode ? "none" : "";
+    if (sEl) sEl.style.display = recipeMode ? "none" : "";
+  }
+
+  function traitMatchesTypeFilter(id, typeVal) {
+    if (!typeVal) return true;
+    if (typeVal.indexOf("role:") === 0) {
+      return traitRole(id) === typeVal.slice(5);
+    }
+    if (typeVal.indexOf("tag:") === 0) {
+      return traitTags(id).indexOf(typeVal.slice(4)) >= 0;
+    }
+    return true;
+  }
+
+  function sortTraitIds(ids, mode) {
+    var order = { white: 0, green: 1, blue: 2, purple: 3 };
+    ids.sort(function (a, b) {
+      var da = TRAITS[a], db = TRAITS[b];
+      if (mode === "name") {
+        return (da.name || "").localeCompare(db.name || "", "zh-Hant");
+      }
+      if (mode === "role") {
+        var ra = ROLE_ORDER[traitRole(a)] || 9;
+        var rb = ROLE_ORDER[traitRole(b)] || 9;
+        if (ra !== rb) return ra - rb;
+        return (da.name || "").localeCompare(db.name || "", "zh-Hant");
+      }
+      var oa = order[da.rarity] || 0;
+      var ob = order[db.rarity] || 0;
+      if (mode === "rarity-desc") {
+        if (oa !== ob) return ob - oa;
+      } else {
+        if (oa !== ob) return oa - ob;
+      }
+      return (da.name || "").localeCompare(db.name || "", "zh-Hant");
+    });
+    return ids;
+  }
 
   function showIndex(tab) {
     if (tab) _indexTab = tab;
     showScreen("screen-index");
+    readIndexFilters();
+    syncIndexFilterUi();
     var total = Object.keys(TRAITS).length;
     var unlocked = countUnlockedTraits();
     $("index-progress").textContent = "解鎖 " + unlocked + " / " + total +
@@ -3768,7 +3933,10 @@
     }
     var list = $("index-list");
     list.innerHTML = "";
+    var q = _indexFilter.q;
+
     if (_indexTab === "recipes") {
+      var recipeShown = 0;
       RECIPES.forEach(function (r) {
         var aOk = isTraitUnlocked(r.a);
         var bOk = isTraitUnlocked(r.b);
@@ -3776,6 +3944,9 @@
         var aN = aOk ? TRAITS[r.a].name : "???";
         var bN = bOk ? TRAITS[r.b].name : "???";
         var oN = oOk ? TRAITS[r.out].name : "???";
+        var hay = (aN + " " + bN + " " + oN + " " + (r.hint || "")).toLowerCase();
+        if (q && hay.indexOf(q) < 0) return;
+        recipeShown++;
         var card = document.createElement("div");
         card.className = "index-card" + (oOk ? "" : " locked");
         card.innerHTML =
@@ -3783,6 +3954,9 @@
           "<div class='idesc'>" + (oOk || (aOk && bOk) ? escapeHtml(r.hint) : "未解鎖配方細節") + "</div>";
         list.appendChild(card);
       });
+      if (!recipeShown) {
+        list.innerHTML = "<p class='index-empty'>冇符合搜尋嘅配方。</p>";
+      }
       return;
     }
     if (_indexTab === "sets") {
@@ -3803,49 +3977,63 @@
       });
       return;
     }
+
     var ids = Object.keys(TRAITS);
-    ids.sort(function (a, b) {
-      var order = { white: 0, green: 1, blue: 2, purple: 3 };
-      var ra = order[TRAITS[a].rarity] || 0;
-      var rb = order[TRAITS[b].rarity] || 0;
-      if (ra !== rb) return ra - rb;
-      return (TRAITS[a].name || "").localeCompare(TRAITS[b].name || "", "zh-Hant");
-    });
+    ids = sortTraitIds(ids, _indexFilter.sort);
+    var shown = 0;
     ids.forEach(function (id) {
       var def = TRAITS[id];
       var unlocked = isTraitUnlocked(id);
       if (_indexTab === "unlocked" && !unlocked) return;
       if (_indexTab === "locked" && unlocked) return;
+      if (_indexFilter.rarity && def.rarity !== _indexFilter.rarity) return;
+      if (!traitMatchesTypeFilter(id, _indexFilter.type)) return;
+      if (q) {
+        var hay = "";
+        if (unlocked) {
+          hay = (def.name + " " + (def.desc || "") + " " + traitRoleLabel(id) + " " + tagLabelList(traitTags(id))).toLowerCase();
+        } else {
+          // 未解鎖只准用稀有度／類型篩，唔洩露名；搜尋字若非空則跳過未解鎖（除非搜「???」）
+          hay = "??? " + rarityLabel(def.rarity) + " " + traitRoleLabel(id);
+        }
+        if (hay.indexOf(q) < 0) return;
+      }
+      shown++;
       var card = document.createElement("div");
       card.className = "index-card" + (unlocked ? " rarity-" + def.rarity : " locked");
       if (unlocked) {
         card.innerHTML =
           "<div class='iname'>" + escapeHtml(def.name) + "</div>" +
-          "<div class='tags'>[" + rarityLabel(def.rarity) + "]" +
+          "<div class='tags'>[" + rarityLabel(def.rarity) + "]　" + escapeHtml(traitRoleLabel(id)) +
           (traitTags(id).length ? "　" + escapeHtml(tagLabelList(traitTags(id))) : "") + "</div>" +
           "<div class='idesc'>" + escapeHtml(def.desc) + "</div>";
       } else {
         card.innerHTML =
           "<div class='iname'>???</div>" +
-          "<div class='tags'>[" + rarityLabel(def.rarity) + "]　未解鎖</div>" +
+          "<div class='tags'>[" + rarityLabel(def.rarity) + "]　" + escapeHtml(traitRoleLabel(id)) + "　未解鎖</div>" +
           "<div class='idesc'>？？？</div>";
       }
       list.appendChild(card);
     });
-    if (!list.children.length) {
-      list.innerHTML = "<p class='statline'>呢一頁暫時冇內容。</p>";
+    if (!shown) {
+      list.innerHTML = "<p class='index-empty'>冇符合條件嘅詞條。試下清篩選或換關鍵字。</p>";
     }
   }
 
-  function playFuseFx(out) {
+  function playFuseFx(out, isNewIndex) {
     var root = $("fuse-fx");
     if (!root || !out) return;
+    root.classList.toggle("is-new", !!isNewIndex);
     $("fuse-fx-rarity").textContent = "【" + rarityLabel(out.rarity) + "】融合成功";
     $("fuse-fx-name").textContent = out.name;
     $("fuse-fx-desc").textContent = out.desc || "";
+    var newEl = $("fuse-fx-new");
+    if (newEl) {
+      newEl.textContent = isNewIndex ? "NEW! 新詞條已登錄圖鑑" : "";
+    }
     // clear old particles
     root.querySelectorAll(".fx-particle").forEach(function (p) { p.remove(); });
-    var n = 14;
+    var n = isNewIndex ? 20 : 14;
     for (var i = 0; i < n; i++) {
       var p = document.createElement("div");
       p.className = "fx-particle";
@@ -3853,6 +4041,7 @@
       var dist = 60 + Math.random() * 90;
       p.style.left = "50%";
       p.style.top = "42%";
+      if (isNewIndex) p.style.background = i % 2 ? "#ffd54a" : "#fff";
       p.style.setProperty("--dx", Math.cos(ang) * dist + "px");
       p.style.setProperty("--dy", Math.sin(ang) * dist + "px");
       p.style.animation = "fuseSpark 0.85s ease-out forwards";
@@ -3876,7 +4065,8 @@
     clearTimeout(playFuseFx._tm);
     playFuseFx._tm = setTimeout(function () {
       root.classList.remove("show");
-    }, 1600);
+      root.classList.remove("is-new");
+    }, isNewIndex ? 2400 : 1600);
   }
 
   function showFuse() {
@@ -3934,14 +4124,16 @@
       toast("不相容");
       return;
     }
+    var isNewIndex = !isTraitUnlocked(recipe.out);
     removeTraitByUid(uidA);
     removeTraitByUid(uidB);
     addTrait(recipe.out);
     var out = TRAITS[recipe.out];
     appendLog(log, "光芒收束……獲得【" + rarityLabel(out.rarity) + "】<b>" + escapeHtml(out.name) + "</b>！" +
-      "<br>" + escapeHtml(out.desc), "loot");
-    toast("融合成功：" + out.name);
-    playFuseFx(out);
+      "<br>" + escapeHtml(out.desc) +
+      (isNewIndex ? "<br><b style='color:#ffd54a'>NEW! 新詞條已登錄圖鑑</b>" : ""), "loot");
+    toast(isNewIndex ? ("NEW! " + out.name + " 已登錄圖鑑") : ("融合成功：" + out.name));
+    playFuseFx(out, isNewIndex);
     showFuse();
   }
 
@@ -4408,6 +4600,18 @@
             var before = state.hp;
             state.hp = Math.min(st.maxHp, state.hp + (def.val || 10));
             note += "、霧薄 1 層、回 " + (state.hp - before);
+          }
+          toast(note);
+        })();
+        break;
+      case "bridge_coil":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, def.val || 4);
+          var note = "斷橋錨索：敵攻－" + (def.val || 4);
+          if (hasField("wet") || hasField("fog")) {
+            combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+            note += "、濕／霧中暈 1";
           }
           toast(note);
         })();
@@ -5810,6 +6014,22 @@
         if (!t || !t.getAttribute) return;
         var tab = t.getAttribute("data-tab");
         if (tab) showIndex(tab);
+      };
+    }
+    function refreshIndexFilters() {
+      if (!$("screen-index") || !$("screen-index").classList.contains("active")) return;
+      showIndex();
+    }
+    ["index-rarity", "index-type", "index-sort"].forEach(function (id) {
+      var el = $(id);
+      if (el) el.onchange = refreshIndexFilters;
+    });
+    var searchEl = $("index-search");
+    if (searchEl) {
+      var _indexSearchTm = null;
+      searchEl.oninput = function () {
+        clearTimeout(_indexSearchTm);
+        _indexSearchTm = setTimeout(refreshIndexFilters, 120);
       };
     }
     $("btn-quests").onclick = showQuests;
