@@ -483,6 +483,7 @@
     <div class="bar-row"><span>你</span><div class="bar"><span id="hp-you"></span></div><span id="hp-you-n"></span></div>
     <div class="bar-row"><span>敵</span><div class="bar"><span id="hp-enemy"></span></div><span id="hp-enemy-n"></span></div>
     <p class="statline" id="enemy-name"></p>
+    <p class="statline" id="field-tags">戰場：無</p>
     <div class="log" id="combat-log"></div>
     <div class="btn-grid" id="combat-actions">
       <button id="btn-atk">攻擊</button>
@@ -687,6 +688,207 @@
       desc: "防禦 +4；敏捷 +4；最大生命 +18；技能：匿影一閃",
       defBonus: 4, agi: 4, hp: 18, atk: 2,
       skill: { name: "匿影一閃", cost: 0, desc: "1.6 倍傷害並束縛 1 回合，自身回 8", type: "cloak_strike", mult: 1.6, stun: 1, heal: 8 }
+    },
+    // ---- batch1 skills 1-40 ----
+    rain_cloud: {
+      id: "rain_cloud", name: "導電雨雲", rarity: "green",
+      desc: "技能：全場濕潤，雷技加強",
+      atk: 1, skill: { name: "導電雨雲", desc: "戰場轉為濕潤，雷傷＋", type: "terrain_wet", val: 5 }
+    },
+    static_thunder: {
+      id: "static_thunder", name: "靜電引雷", rarity: "green",
+      desc: "技能：對濕潤目標雷擊並引雷",
+      atk: 2, skill: { name: "靜電引雷", desc: "雷傷；濕潤時更強並引雷", type: "thunder_wet", mult: 1.2, bonus: 6 }
+    },
+    lava_surge: {
+      id: "lava_surge", name: "地熱噴湧", rarity: "green",
+      desc: "技能：熔岩地表，每回合火傷",
+      str: 1, skill: { name: "地熱噴湧", desc: "設置熔岩；每回合末火傷", type: "terrain_lava", val: 4 }
+    },
+    freeze_ground: {
+      id: "freeze_ground", name: "凍結地表", rarity: "green",
+      desc: "技能：冰面；敵機率滑倒",
+      agi: 1, skill: { name: "凍結地表", desc: "設置冰面；敵可能滑倒跳過", type: "terrain_ice", val: 4 }
+    },
+    heat_haze: {
+      id: "heat_haze", name: "熱浪蒸散", rarity: "green",
+      desc: "技能：濃霧；命中↓火技↑",
+      atk: 1, skill: { name: "熱浪蒸散", desc: "設置濃霧；敵易Miss，火技加傷", type: "terrain_fog", val: 4 }
+    },
+    plant_grow: {
+      id: "plant_grow", name: "植物生長", rarity: "white",
+      desc: "技能：藤蔓纏繞減速",
+      hp: 4, skill: { name: "植物生長", desc: "設置藤蔓；敵行動變鈍", type: "terrain_plant", val: 4 }
+    },
+    mud_trap: {
+      id: "mud_trap", name: "引力泥沼", rarity: "white",
+      desc: "技能：泥沼減速；濕潤則麻痺",
+      defBonus: 1, skill: { name: "引力泥沼", desc: "泥沼；若濕潤則麻痺敵", type: "terrain_mud", val: 3 }
+    },
+    wind_wall: {
+      id: "wind_wall", name: "風壓結界", rarity: "green",
+      desc: "技能：本戰防禦↑",
+      defBonus: 1, skill: { name: "風壓結界", desc: "本戰防禦＋3", type: "buff_def", val: 3 }
+    },
+    vacuum_blast: {
+      id: "vacuum_blast", name: "真空爆破", rarity: "blue",
+      desc: "技能：衝擊大傷；霧中更強",
+      atk: 3, skill: { name: "真空爆破", desc: "大傷害；濃霧／風牆加成", type: "aoe_dmg", mult: 1.7, fogBonus: 8 }
+    },
+    toxin_spray: {
+      id: "toxin_spray", name: "毒素噴霧", rarity: "green",
+      desc: "技能：敵中毒；霧中更強",
+      atk: 1, skill: { name: "毒素噴霧", desc: "中毒3回；霧中毒傷＋", type: "poison", val: 3, fogDmg: 4 }
+    },
+    sunlight: {
+      id: "sunlight", name: "日光照耀", rarity: "white",
+      desc: "技能：日光；治療↑",
+      regen: 1, skill: { name: "日光照耀", desc: "日光環境；治療效果↑", type: "terrain_day", val: 4 }
+    },
+    polar_night: {
+      id: "polar_night", name: "極夜降臨", rarity: "green",
+      desc: "技能：極夜；暴擊↑",
+      agi: 2, skill: { name: "極夜降臨", desc: "暗夜；破綻暴擊↑", type: "terrain_night", val: 4 }
+    },
+    quake: {
+      id: "quake", name: "地震波", rarity: "green",
+      desc: "技能：地震；冰面雙倍",
+      str: 2, skill: { name: "地震波", desc: "地傷；冰面則雙倍", type: "quake", mult: 1.3 }
+    },
+    cyclone: {
+      id: "cyclone", name: "氣旋龍捲", rarity: "blue",
+      desc: "技能：龍捲吸收場上元素",
+      atk: 2, agi: 1, skill: { name: "氣旋龍捲", desc: "傷害隨戰場元素數增加", type: "dmg_absorb", base: 1.1, perTag: 4 }
+    },
+    spore: {
+      id: "spore", name: "孢子擴散", rarity: "white",
+      desc: "技能：受擊反毒",
+      hp: 6, skill: { name: "孢子擴散", desc: "本戰受擊時敵中毒", type: "poison_on_hit", val: 2 }
+    },
+    gravity: {
+      id: "gravity", name: "重力壓制", rarity: "green",
+      desc: "技能：壓制敵連擊",
+      str: 1, skill: { name: "重力壓制", desc: "敵下回合無法連擊且攻↓", type: "stunish", val: 1, debuff: 2 }
+    },
+    antigrav: {
+      id: "antigrav", name: "反重力場", rarity: "green",
+      desc: "技能：自身敏捷↑",
+      agi: 2, skill: { name: "反重力場", desc: "本戰敏捷＋4", type: "agi_buff", val: 4 }
+    },
+    blood_pool: {
+      id: "blood_pool", name: "血池召喚", rarity: "blue",
+      desc: "技能：攻擊吸血",
+      atk: 2, skill: { name: "血池召喚", desc: "攻擊並回復傷害一半", type: "lifesteal", mult: 1.2 }
+    },
+    holy_field: {
+      id: "holy_field", name: "聖光領域", rarity: "green",
+      desc: "技能：每回合回血",
+      hp: 8, regen: 2, skill: { name: "聖光領域", desc: "本戰每回合額外回4", type: "regen", val: 4 }
+    },
+    space_fold: {
+      id: "space_fold", name: "空間折疊", rarity: "blue",
+      desc: "技能：高閃避",
+      agi: 3, skill: { name: "空間折疊", desc: "下一次攻擊必閃", type: "dodge_next", val: 1 }
+    },
+    swap: {
+      id: "swap", name: "空間置換", rarity: "green",
+      desc: "技能：敵錯亂跳過",
+      agi: 1, skill: { name: "空間置換", desc: "敵錯亂，跳過下回合", type: "swap_dmg", stun: 1, dmg: 6 }
+    },
+    chain_pull: {
+      id: "chain_pull", name: "連鎖拉扯", rarity: "green",
+      desc: "技能：鎖鏈高傷",
+      atk: 2, skill: { name: "連鎖拉扯", desc: "強力一擊", type: "pull_dmg", mult: 1.5 }
+    },
+    shadow_sub: {
+      id: "shadow_sub", name: "影子替身", rarity: "blue",
+      desc: "技能：抵擋一次攻擊",
+      defBonus: 2, skill: { name: "影子替身", desc: "完全抵擋下次受傷", type: "guard", val: 1 }
+    },
+    phase: {
+      id: "phase", name: "相位穿梭", rarity: "blue",
+      desc: "技能：免疫後重擊",
+      atk: 2, agi: 2, skill: { name: "相位穿梭", desc: "本回合免疫，下回攻擊1.8倍", type: "invuln", mult: 1.8 }
+    },
+    mark: {
+      id: "mark", name: "印記印刻", rarity: "green",
+      desc: "技能：標記後爆破",
+      atk: 1, skill: { name: "印記印刻", desc: "標記敵人；下次攻擊額外＋10", type: "mark", val: 10 }
+    },
+    pain_link: {
+      id: "pain_link", name: "痛苦鏈接", rarity: "blue",
+      desc: "技能：反彈傷害",
+      hp: 10, defBonus: 1, skill: { name: "痛苦鏈接", desc: "本戰反彈30%傷害", type: "reflect", val: 30 }
+    },
+    status_flip: {
+      id: "status_flip", name: "狀態逆轉", rarity: "blue",
+      desc: "技能：清減益轉攻",
+      atk: 1, skill: { name: "狀態逆轉", desc: "清自身毒並攻擊＋", type: "cleanse_buff", atk: 4 }
+    },
+    curse_pass: {
+      id: "curse_pass", name: "詛咒轉移", rarity: "green",
+      desc: "技能：轉異常給敵",
+      atk: 1, skill: { name: "詛咒轉移", desc: "將自身中毒轉給敵人", type: "transfer" }
+    },
+    delay_bomb: {
+      id: "delay_bomb", name: "延遲爆破", rarity: "blue",
+      desc: "技能：延遲爆炸",
+      atk: 2, skill: { name: "延遲爆破", desc: "2回合後爆炸（約18傷）", type: "bomb", turns: 2, dmg: 18 }
+    },
+    rage: {
+      id: "rage", name: "血性狂暴", rarity: "green",
+      desc: "技能：低血攻↑",
+      str: 2, skill: { name: "血性狂暴", desc: "HP越低傷害越高", type: "lowhp_atk", mult: 1.2 }
+    },
+    ignite: {
+      id: "ignite", name: "引燃爆破", rarity: "green",
+      desc: "技能：消耗灼燒爆傷",
+      atk: 2, skill: { name: "引燃爆破", desc: "若敵灼燒則大爆；否則小火傷", type: "burn_consume", big: 16, small: 8 }
+    },
+    toxin_spread: {
+      id: "toxin_spread", name: "毒素蔓延", rarity: "green",
+      desc: "技能：加深毒素",
+      atk: 1, skill: { name: "毒素蔓延", desc: "延長並加深敵毒", type: "poison_spread", val: 3, dmg: 3 }
+    },
+    chain_lightning: {
+      id: "chain_lightning", name: "連鎖閃電", rarity: "blue",
+      desc: "技能：雷傷；濕潤加成",
+      atk: 3, skill: { name: "連鎖閃電", desc: "雷擊；濕潤／帶電大加成", type: "thunder", mult: 1.4, wetBonus: 10 }
+    },
+    time_accel: {
+      id: "time_accel", name: "時間加速", rarity: "green",
+      desc: "技能：立即結算DOT",
+      atk: 1, skill: { name: "時間加速", desc: "立即結算敵方毒／灼／炸彈", type: "dot_burst" }
+    },
+    weak_scan: {
+      id: "weak_scan", name: "弱點偵測", rarity: "white",
+      desc: "技能：暴擊↑",
+      agi: 1, skill: { name: "弱點偵測", desc: "本戰破綻暴擊大幅↑", type: "crit", val: 8 }
+    },
+    taunt: {
+      id: "taunt", name: "挑釁", rarity: "white",
+      desc: "技能：防↑",
+      hp: 6, defBonus: 2, skill: { name: "挑釁", desc: "本戰防禦＋4", type: "def_self", val: 4 }
+    },
+    perfect_dodge: {
+      id: "perfect_dodge", name: "極限閃避", rarity: "blue",
+      desc: "技能：閃避下次",
+      agi: 3, skill: { name: "極限閃避", desc: "完全閃避下次攻擊", type: "dodge_next", val: 1 }
+    },
+    backstab: {
+      id: "backstab", name: "死角偷襲", rarity: "blue",
+      desc: "技能：高傷偷襲",
+      atk: 3, agi: 2, skill: { name: "死角偷襲", desc: "2倍傷害無視部分防禦", type: "backstab", mult: 2.0 }
+    },
+    last_stand: {
+      id: "last_stand", name: "絕地反擊", rarity: "purple",
+      desc: "技能：低血真實傷",
+      atk: 2, str: 3, skill: { name: "絕地反擊", desc: "HP低於35%時造成真實傷", type: "execute", dmg: 28, thr: 0.35 }
+    },
+    unyielding: {
+      id: "unyielding", name: "不屈意志", rarity: "purple",
+      desc: "技能：致死留1",
+      con: 3, hp: 15, defBonus: 2, skill: { name: "不屈意志", desc: "本戰致死時留1HP一次", type: "survive", val: 1 }
     }
   };
 
@@ -701,7 +903,12 @@
     { a: "web_bind", b: "venom_fang", out: "venom_blade", hint: "蛛網縛 + 毒牙 → 毒刃" },
     { a: "goblin_blood", b: "rage_mark", out: "berserk_heart", hint: "哥布林血 + 狂怒印 → 狂心（需先有綠）" },
     { a: "cloak_shade", b: "shadow_step", out: "night_cloak", hint: "影披殘緒 + 影步 → 夜幕披風" },
-    { a: "cloak_shade", b: "forest_warden", out: "night_cloak", hint: "影披殘緒 + 森衛 → 夜幕披風" }
+    { a: "cloak_shade", b: "forest_warden", out: "night_cloak", hint: "影披殘緒 + 森衛 → 夜幕披風" },
+    { a: "rain_cloud", b: "freeze_ground", out: "heat_haze", hint: "導電雨雲 + 凍結地表 → 熱浪蒸散" },
+    { a: "toxin_spray", b: "plant_grow", out: "spore", hint: "毒素噴霧 + 植物生長 → 孢子擴散" },
+    { a: "blood_pool", b: "rage", out: "last_stand", hint: "血池召喚 + 血性狂暴 → 絕地反擊" },
+    { a: "shadow_sub", b: "space_fold", out: "phase", hint: "影子替身 + 空間折疊 → 相位穿梭" },
+    { a: "mark", b: "chain_lightning", out: "vacuum_blast", hint: "印記印刻 + 連鎖閃電 → 真空爆破" }
   ];
 
 
@@ -766,10 +973,216 @@
       id: "iron_candy", name: "鐵膽糖",
       desc: "嚼完膽氣一振，下一場戰鬥攻擊 +5（進戰時生效）。",
       buy: 40, sell: 16, use: "buff_atk", val: 5, town: true, combat: false
+    },
+    // ---- batch1 items ----
+    tar_bomb: {
+      id: "tar_bomb", name: "焦油彈",
+      desc: "戰鬥：敵減速（降攻連）並可被火點燃。",
+      buy: 28, sell: 11, use: "tar", town: false, combat: true
+    },
+    freeze_can: {
+      id: "freeze_can", name: "冷凍氣體罐",
+      desc: "戰鬥：濕潤則凍結（束縛）；否則小冰傷。",
+      buy: 32, sell: 12, use: "freeze_can", town: false, combat: true, val: 8
+    },
+    copper_dust: {
+      id: "copper_dust", name: "導電銅粉",
+      desc: "戰鬥：本戰雷傷大幅提升。",
+      buy: 30, sell: 12, use: "copper", town: false, combat: true, val: 8
+    },
+    sand_bag: {
+      id: "sand_bag", name: "吸水沙囊",
+      desc: "戰鬥：清除濕潤與濃霧。",
+      buy: 18, sell: 7, use: "sand_bag", town: false, combat: true
+    },
+    acid_flask: {
+      id: "acid_flask", name: "濃縮酸液",
+      desc: "戰鬥：永久降低敵防 2。",
+      buy: 35, sell: 14, use: "acid", town: false, combat: true, val: 2
+    },
+    glow_dust: {
+      id: "glow_dust", name: "螢光粉",
+      desc: "戰鬥：本戰命中／破綻↑。",
+      buy: 22, sell: 9, use: "glow", town: false, combat: true, val: 5
+    },
+    toxin_cap: {
+      id: "toxin_cap", name: "毒氣膠囊",
+      desc: "戰鬥：敵人中毒 4 回合。",
+      buy: 26, sell: 10, use: "toxin_cap", town: false, combat: true, val: 4
+    },
+    holy_spray: {
+      id: "holy_spray", name: "聖水噴劑",
+      desc: "戰鬥：對影／暗敵額外傷害，否則普傷。",
+      buy: 30, sell: 12, use: "holy_spray", town: false, combat: true, val: 12
+    },
+    dry_agent: {
+      id: "dry_agent", name: "強效乾燥劑",
+      desc: "戰鬥：清除濕潤並抗凍。",
+      buy: 20, sell: 8, use: "dry_agent", town: false, combat: true
+    },
+    smoke_jump: {
+      id: "smoke_jump", name: "煙幕爆彈",
+      desc: "戰鬥：大幅提升逃跑率。",
+      buy: 28, sell: 11, use: "smoke", town: false, combat: true
+    },
+    flashbang: {
+      id: "flashbang", name: "閃光彈",
+      desc: "戰鬥：敵人跳過下回合。",
+      buy: 34, sell: 13, use: "flashbang", town: false, combat: true
+    },
+    shock_grenade: {
+      id: "shock_grenade", name: "衝擊手榴彈",
+      desc: "戰鬥：造成約 14 物傷。",
+      buy: 36, sell: 14, use: "shock_grenade", town: false, combat: true, val: 14
+    },
+    grav_disk: {
+      id: "grav_disk", name: "重力壓制盤",
+      desc: "戰鬥：敵攻↓、難以連擊。",
+      buy: 30, sell: 12, use: "grav_disk", town: false, combat: true, val: 3
+    },
+    antigrav_bag: {
+      id: "antigrav_bag", name: "反重力氣囊",
+      desc: "戰鬥：本戰敏捷＋5。",
+      buy: 32, sell: 12, use: "antigrav_bag", town: false, combat: true, val: 5
+    },
+    mark_bolt: {
+      id: "mark_bolt", name: "弱點印記彈",
+      desc: "戰鬥：本戰暴擊大幅↑。",
+      buy: 34, sell: 13, use: "mark_bolt", town: false, combat: true, val: 10
+    },
+    purge_potion: {
+      id: "purge_potion", name: "淨化藥水",
+      desc: "解除中毒等負面。鎮內／戰鬥。",
+      buy: 24, sell: 9, use: "purge", town: true, combat: true
+    },
+    rage_drug: {
+      id: "rage_drug", name: "狂暴誘發劑",
+      desc: "戰鬥：敵陷入狂暴自傷並降防。",
+      buy: 38, sell: 15, use: "rage_drug", town: false, combat: true, val: 5
+    },
+    bomb_paste: {
+      id: "bomb_paste", name: "延遲粘膏",
+      desc: "戰鬥：2 回合後爆炸。",
+      buy: 40, sell: 16, use: "bomb_paste", town: false, combat: true, turns: 2, dmg: 20
+    },
+    shield_break: {
+      id: "shield_break", name: "破盾之錘粉",
+      desc: "戰鬥：下次攻擊無視防禦。",
+      buy: 36, sell: 14, use: "shield_break", town: false, combat: true
+    },
+    overheal_chip: {
+      id: "overheal_chip", name: "護盾過載",
+      desc: "戰鬥：獲得臨時護甲減傷。",
+      buy: 42, sell: 16, use: "overheal_chip", town: false, combat: true, val: 8
+    },
+    stim_potion: {
+      id: "stim_potion", name: "潛能激發藥",
+      desc: "耗血換取本戰暴擊。鎮內／戰鬥。",
+      buy: 45, sell: 18, use: "stim", town: true, combat: true, costHp: 8, crit: 12
+    },
+    calm_spray: {
+      id: "calm_spray", name: "鎮靜噴霧",
+      desc: "清除混亂系狀態並小回血。",
+      buy: 22, sell: 9, use: "calm_spray", town: true, combat: true, val: 10
+    },
+    time_hourglass: {
+      id: "time_hourglass", name: "時間沙漏",
+      desc: "戰鬥：立即結算敵方持續傷害。",
+      buy: 38, sell: 15, use: "time_hourglass", town: false, combat: true
+    },
+    unchain: {
+      id: "unchain", name: "不屈藥膏",
+      desc: "致死留 1 HP 一次。鎮內／戰鬥。",
+      buy: 55, sell: 22, use: "unchain", town: true, combat: true
+    },
+    poison_oil: {
+      id: "poison_oil", name: "武器塗毒膏",
+      desc: "戰鬥：之後攻擊附加毒素。",
+      buy: 30, sell: 12, use: "poison_oil", town: false, combat: true, val: 3
+    },
+    armor_pierce: {
+      id: "armor_pierce", name: "穿甲彈頭膠",
+      desc: "戰鬥：下次攻擊無視防禦。",
+      buy: 36, sell: 14, use: "armor_pierce", town: false, combat: true
+    },
+    burst_arrow: {
+      id: "burst_arrow", name: "爆裂箭配件",
+      desc: "戰鬥：一次高額爆炸傷害。",
+      buy: 40, sell: 16, use: "burst_arrow", town: false, combat: true, val: 18
+    },
+    oil_barrel: {
+      id: "oil_barrel", name: "易燃油桶",
+      desc: "戰鬥：敵火弱（灼燒易觸發）。",
+      buy: 28, sell: 11, use: "oil_barrel", town: false, combat: true
+    },
+    repair_kit: {
+      id: "repair_kit", name: "防具修復錘",
+      desc: "鎮內：回復 20 HP 並下戰防＋2。",
+      buy: 35, sell: 14, use: "repair_kit", town: true, combat: false, heal: 20, buff: 2
+    },
+    bee_hive: {
+      id: "bee_hive", name: "劇毒蜂巢",
+      desc: "戰鬥：敵中劇毒。",
+      buy: 34, sell: 13, use: "bee_hive", town: false, combat: true, val: 4, dmg: 3
+    },
+    slime_cap: {
+      id: "slime_cap", name: "史萊姆膠囊",
+      desc: "戰鬥：本戰防禦＋5。",
+      buy: 30, sell: 12, use: "slime_cap", town: false, combat: true, val: 5
+    },
+    vine_seed: {
+      id: "vine_seed", name: "藤蔓種子",
+      desc: "戰鬥：束縛敵人 1 回合。",
+      buy: 28, sell: 11, use: "vine_seed", town: false, combat: true
+    },
+    shadow_whistle: {
+      id: "shadow_whistle", name: "暗影犬笛",
+      desc: "戰鬥：影襲高傷（夜間更強）。",
+      buy: 42, sell: 16, use: "shadow_whistle", town: false, combat: true, val: 14
+    },
+    light_crystal: {
+      id: "light_crystal", name: "光靈水晶",
+      desc: "回復 30 HP。鎮內／戰鬥。",
+      buy: 40, sell: 16, use: "heal", town: true, combat: true, val: 30
+    },
+    bat_whistle: {
+      id: "bat_whistle", name: "蝙蝠哨",
+      desc: "戰鬥：傷害並吸血。",
+      buy: 38, sell: 15, use: "bat_whistle", town: false, combat: true, val: 10
+    },
+    spirit_core: {
+      id: "spirit_core", name: "傳說精神核",
+      desc: "戰鬥：精神波貫穿傷。",
+      buy: 60, sell: 24, use: "spirit_core", town: false, combat: true, val: 22
+    },
+    void_shard: {
+      id: "void_shard", name: "虛空碎片",
+      desc: "戰鬥：無視防禦真實傷。",
+      buy: 65, sell: 26, use: "void_shard", town: false, combat: true, val: 16
+    },
+    hero_blood: {
+      id: "hero_blood", name: "英雄之血結晶",
+      desc: "大回復 70 HP。鎮內／戰鬥。",
+      buy: 80, sell: 32, use: "heal", town: true, combat: true, val: 70
+    },
+    legend_log: {
+      id: "legend_log", name: "冒險日誌",
+      desc: "鎮內：獲得 40 經驗。",
+      buy: 70, sell: 28, use: "xp", town: true, combat: false, val: 40
+    },
+    bond_charm: {
+      id: "bond_charm", name: "羈絆護符",
+      desc: "下戰攻擊＋4、防禦＋3。",
+      buy: 50, sell: 20, use: "bond_charm", town: true, combat: true, atk: 4, deff: 3
+    },
+    pork_congee: {
+      id: "pork_congee", name: "瘦肉粥",
+      desc: "暖胃飽腹，回復 28 HP。鎮內／戰鬥可用。",
+      buy: 24, sell: 9, use: "heal", val: 28, town: true, combat: true
     }
   };
 
-  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration", "vita_tonic", "lotus_soup", "calm_pill", "iron_candy"];
+  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration", "vita_tonic", "lotus_soup", "calm_pill", "iron_candy", "tar_bomb", "freeze_can", "copper_dust", "sand_bag", "acid_flask", "glow_dust", "toxin_cap", "holy_spray", "dry_agent", "smoke_jump", "flashbang", "shock_grenade", "grav_disk", "antigrav_bag", "mark_bolt", "purge_potion", "rage_drug", "bomb_paste", "shield_break", "overheal_chip", "stim_potion", "calm_spray", "time_hourglass", "unchain", "poison_oil", "armor_pierce", "burst_arrow", "oil_barrel", "repair_kit", "bee_hive", "slime_cap", "vine_seed", "shadow_whistle", "light_crystal", "bat_whistle", "spirit_core", "void_shard", "hero_blood", "legend_log", "bond_charm", "pork_congee"];
 
   var TRAIT_SELL = { white: 15, green: 40, blue: 100, purple: 250 };
 
@@ -784,7 +1197,7 @@
     s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 }
   };
 
-  var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion"];
+  var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "dry_agent", "tar_bomb", "copper_dust"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -1256,6 +1669,8 @@
     if (combat && combat.battleBuffAtk) s.atk += combat.battleBuffAtk;
     if (combat && combat.battleBuffDef) s.defBonus += combat.battleBuffDef;
     if (combat && combat.smokeFlee) s.fleeBonus += 40;
+    if (combat && combat.battleAgi) s.agi += combat.battleAgi;
+    if (combat && combat.overhealArmor) s.defBonus += combat.overhealArmor;
     s.maxHp = state.baseHp + s.con * 3 + s.hpBonus;
     s.attack = 4 + s.str + s.atk;
     s.defense = Math.floor(s.con / 2) + s.defBonus;
@@ -1652,7 +2067,9 @@
     switch (def.use) {
       case "heal":
         var before = state.hp;
-        state.hp = Math.min(st.maxHp, state.hp + def.val);
+        var healAmt = def.val || 0;
+        if (fromCombat && combat && hasField && hasField("day")) healAmt += 5;
+        state.hp = Math.min(st.maxHp, state.hp + healAmt);
         toast(def.name + "：回復 " + (state.hp - before) + " HP");
         break;
       case "antidote":
@@ -1662,24 +2079,240 @@
       case "smoke":
         if (combat) {
           combat.smokeFlee = true;
-          toast("煙霧彈：逃跑更容易");
+          toast((def.name || "煙霧彈") + "：逃跑更容易");
         }
         break;
       case "buff_atk":
         state.buffAtk = (state.buffAtk || 0) + def.val;
-        toast("砥石：下戰攻擊 +" + def.val);
+        toast(def.name + "：下戰攻擊 +" + def.val);
         break;
       case "buff_def":
         state.buffDef = (state.buffDef || 0) + def.val;
-        toast("護符：下戰防禦 +" + def.val);
+        toast(def.name + "：下戰防禦 +" + def.val);
         break;
       case "xp":
         gainXp(def.val);
-        toast("經驗書：+" + def.val + " XP");
+        toast(def.name + "：+" + def.val + " XP");
         if (state.pendingLevelUps > 0) {
           showLevelUp();
           return true;
         }
+        break;
+      case "tar":
+        if (!combat) { addItem(id, 1); toast("要喺戰鬥用"); return false; }
+        combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, 2);
+        combat.noEnemyExtra = true;
+        combat.oilWeak = true;
+        setFieldTag("mud", 3);
+        toast("焦油：敵減速，可燃");
+        break;
+      case "freeze_can":
+        if (!combat) { addItem(id, 1); return false; }
+        if (hasField("wet")) {
+          combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+          setFieldTag("ice", 3);
+          toast("冷凍：濕潤敵人凍結！");
+        } else {
+          var fd = dealToEnemy(def.val || 8);
+          toast("冷凍氣體造成 " + fd + " 冰傷");
+        }
+        break;
+      case "copper":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.copperBonus = (combat.copperBonus || 0) + (def.val || 8);
+        toast("導電銅粉：雷傷＋" + (def.val || 8));
+        break;
+      case "sand_bag":
+        if (!combat) { addItem(id, 1); return false; }
+        clearFieldTags(["wet", "fog"]);
+        toast("吸水沙囊：清除濕潤／濃霧");
+        break;
+      case "acid":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemy.def = Math.max(0, (combat.enemy.def || 0) - (def.val || 2));
+        toast("酸液：敵防－" + (def.val || 2));
+        break;
+      case "glow":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.battleCrit = (combat.battleCrit || 0) + (def.val || 5);
+        toast("螢光粉：破綻↑");
+        break;
+      case "toxin_cap":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemyPoison = Math.max(combat.enemyPoison || 0, def.val || 4);
+        combat._poisonDmg = Math.max(combat._poisonDmg || 2, hasField("fog") ? 4 : 2);
+        toast("毒氣：敵人中毒");
+        break;
+      case "holy_spray":
+        if (!combat) { addItem(id, 1); return false; }
+        var hv = def.val || 12;
+        if (/影|夜|亡|冥|暗/.test(combat.enemy.name)) hv += 8;
+        var hd = dealToEnemy(hv);
+        toast("聖水造成 " + hd + " 傷害");
+        break;
+      case "dry_agent":
+        if (!combat) { addItem(id, 1); return false; }
+        clearFieldTags(["wet"]);
+        combat.frostImmune = 3;
+        toast("乾燥劑：清濕潤，抗凍");
+        break;
+      case "flashbang":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+        toast("閃光彈：敵人跳過下回合");
+        break;
+      case "shock_grenade":
+        if (!combat) { addItem(id, 1); return false; }
+        var sg = dealToEnemy(def.val || 14);
+        toast("衝擊彈造成 " + sg + " 傷害");
+        break;
+      case "grav_disk":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, def.val || 3);
+        combat.noEnemyExtra = true;
+        toast("重力盤：敵攻↓");
+        break;
+      case "antigrav_bag":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.battleAgi = (combat.battleAgi || 0) + (def.val || 5);
+        toast("反重力：敏捷＋" + (def.val || 5));
+        break;
+      case "mark_bolt":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.battleCrit = (combat.battleCrit || 0) + (def.val || 10);
+        toast("弱點印記：暴擊↑");
+        break;
+      case "purge":
+        if (fromCombat && combat) {
+          combat.playerPoison = 0;
+        }
+        toast("淨化：負面清除");
+        break;
+      case "rage_drug":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemyRage = def.val || 5;
+        combat.enemy.def = Math.max(0, (combat.enemy.def || 0) - 2);
+        toast("狂暴誘發：敵自傷並降防");
+        break;
+      case "bomb_paste":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.delayBomb = { turns: def.turns || 2, dmg: def.dmg || 20 };
+        toast("延遲粘膏已貼上");
+        break;
+      case "shield_break":
+      case "armor_pierce":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.pierceNext = true;
+        toast(def.name + "：下次無視防禦");
+        break;
+      case "overheal_chip":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.overhealArmor = (combat.overhealArmor || 0) + (def.val || 8);
+        toast("護盾過載：臨時護甲＋" + (def.val || 8));
+        break;
+      case "stim":
+        state.hp = Math.max(1, state.hp - (def.costHp || 8));
+        if (combat) combat.battleCrit = (combat.battleCrit || 0) + (def.crit || 12);
+        else state.buffAtk = (state.buffAtk || 0) + 3;
+        toast("潛能激發：耗血換暴擊");
+        break;
+      case "calm_spray":
+        if (fromCombat && combat) combat.playerPoison = 0;
+        state.hp = Math.min(st.maxHp, state.hp + (def.val || 10));
+        toast("鎮靜噴霧：心神平復");
+        break;
+      case "time_hourglass":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var total = 0;
+          if (combat.enemyPoison > 0) {
+            var p = (combat._poisonDmg || 2) * combat.enemyPoison;
+            combat.enemy.hp -= p; total += p; combat.enemyPoison = 0;
+          }
+          if (combat.enemyBurn > 0) {
+            var b = 2 * combat.enemyBurn; combat.enemy.hp -= b; total += b; combat.enemyBurn = 0;
+          }
+          if (combat.delayBomb) {
+            combat.enemy.hp -= combat.delayBomb.dmg; total += combat.delayBomb.dmg; combat.delayBomb = null;
+          }
+          toast("時間沙漏結算 DOT：" + total);
+        })();
+        break;
+      case "unchain":
+        if (combat) combat.surviveOnce = true;
+        else state.buffDef = (state.buffDef || 0) + 2;
+        toast("不屈藥膏：致死可留1");
+        break;
+      case "poison_oil":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.weaponPoison = def.val || 3;
+        toast("塗毒：攻擊附毒");
+        break;
+      case "burst_arrow":
+        if (!combat) { addItem(id, 1); return false; }
+        var ba = dealToEnemy(def.val || 18);
+        toast("爆裂箭造成 " + ba + " 傷害");
+        break;
+      case "oil_barrel":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.oilWeak = true;
+        combat.enemyBurn = Math.max(combat.enemyBurn || 0, 2);
+        toast("油桶：敵火弱並灼燒");
+        break;
+      case "repair_kit":
+        state.hp = Math.min(st.maxHp, state.hp + (def.heal || 20));
+        state.buffDef = (state.buffDef || 0) + (def.buff || 2);
+        toast("修復錘：回血並下戰防＋");
+        break;
+      case "bee_hive":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemyPoison = Math.max(combat.enemyPoison || 0, def.val || 4);
+        combat._poisonDmg = Math.max(combat._poisonDmg || 2, def.dmg || 3);
+        toast("蜂巢：劇毒");
+        break;
+      case "slime_cap":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.battleBuffDef = (combat.battleBuffDef || 0) + (def.val || 5);
+        toast("史萊姆膠囊：防＋" + (def.val || 5));
+        break;
+      case "vine_seed":
+        if (!combat) { addItem(id, 1); return false; }
+        combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+        setFieldTag("plant", 3);
+        toast("藤蔓種子：束縛");
+        break;
+      case "shadow_whistle":
+        if (!combat) { addItem(id, 1); return false; }
+        var sw = def.val || 14;
+        if (hasField("night")) sw += 6;
+        var sd = dealToEnemy(sw);
+        toast("暗影犬襲擊造成 " + sd + " 傷害");
+        break;
+      case "bat_whistle":
+        if (!combat) { addItem(id, 1); return false; }
+        var bat = dealToEnemy(def.val || 10);
+        state.hp = Math.min(st.maxHp, state.hp + Math.floor(bat / 2));
+        toast("蝙蝠吸血：傷 " + bat + "，回 " + Math.floor(bat / 2));
+        break;
+      case "spirit_core":
+        if (!combat) { addItem(id, 1); return false; }
+        var sc = dealTrueToEnemy(def.val || 22);
+        toast("傳說精神波貫穿 " + sc + "！");
+        break;
+      case "void_shard":
+        if (!combat) { addItem(id, 1); return false; }
+        var vs = dealTrueToEnemy(def.val || 16);
+        toast("虛空真實傷 " + vs + "！");
+        break;
+      case "bond_charm":
+        if (combat) {
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (def.atk || 4);
+          combat.battleBuffDef = (combat.battleBuffDef || 0) + (def.deff || 3);
+        } else {
+          state.buffAtk = (state.buffAtk || 0) + (def.atk || 4);
+          state.buffDef = (state.buffDef || 0) + (def.deff || 3);
+        }
+        toast("羈絆護符：攻防↑");
         break;
       default:
         toast("無效道具");
@@ -1852,7 +2485,16 @@
           showScreen("screen-combat");
           appendLog($("combat-log"), "你使用咗「" + ITEMS[itemId].name + "」。", "sys");
           updateBars();
-          // using item spends the turn (except maybe — keep simple: spends turn)
+          if (combat.enemy && combat.enemy.hp <= 0) {
+            onEnemyDown();
+            return;
+          }
+          if (state.hp <= 0) {
+            state.hp = 0;
+            onPlayerDown();
+            return;
+          }
+          // using item spends the turn
           afterPlayerAction();
         };
       })(id);
@@ -1907,6 +2549,141 @@
     });
   }
 
+
+  // ---------- Battlefield / batch1 combat helpers ----------
+  var FIELD_LABELS = {
+    wet: "濕潤", lava: "熔岩", ice: "冰面", fog: "濃霧",
+    plant: "藤蔓", mud: "泥沼", day: "日光", night: "極夜"
+  };
+
+  function ensureCombatField() {
+    if (!combat) return;
+    if (!combat.field) combat.field = {};
+  }
+
+  function setFieldTag(tag, turns) {
+    ensureCombatField();
+    turns = turns == null ? 5 : turns;
+    // mutually exclusive ground types (except wet can coexist with mud)
+    var ground = ["lava", "ice", "fog", "plant", "mud"];
+    if (ground.indexOf(tag) >= 0) {
+      ground.forEach(function (g) {
+        if (g !== tag) delete combat.field[g];
+      });
+    }
+    if (tag === "day") delete combat.field.night;
+    if (tag === "night") delete combat.field.day;
+    if (tag === "wet") {
+      // wet clears fog somewhat
+      delete combat.field.fog;
+    }
+    combat.field[tag] = Math.max(combat.field[tag] || 0, turns);
+    updateFieldTagsUI();
+  }
+
+  function clearFieldTags(tags) {
+    ensureCombatField();
+    (tags || Object.keys(combat.field)).forEach(function (t) { delete combat.field[t]; });
+    updateFieldTagsUI();
+  }
+
+  function hasField(tag) {
+    return !!(combat && combat.field && combat.field[tag] > 0);
+  }
+
+  function fieldTagCount() {
+    if (!combat || !combat.field) return 0;
+    return Object.keys(combat.field).filter(function (k) { return combat.field[k] > 0; }).length;
+  }
+
+  function updateFieldTagsUI() {
+    var el = $("field-tags");
+    if (!el || !combat) return;
+    ensureCombatField();
+    var parts = [];
+    Object.keys(FIELD_LABELS).forEach(function (k) {
+      if (combat.field[k] > 0) parts.push(FIELD_LABELS[k] + "(" + combat.field[k] + ")");
+    });
+    el.textContent = "戰場：" + (parts.length ? parts.join("、") : "無");
+  }
+
+  function tickFieldTags() {
+    ensureCombatField();
+    Object.keys(combat.field).forEach(function (k) {
+      combat.field[k]--;
+      if (combat.field[k] <= 0) delete combat.field[k];
+    });
+    updateFieldTagsUI();
+  }
+
+  function applyEndOfTurnFieldEffects() {
+    if (!combat || combat.over || !combat.enemy) return;
+    ensureCombatField();
+    // lava burn
+    if (hasField("lava") && combat.enemy.hp > 0) {
+      var burn = 3 + (combat.oilWeak ? 2 : 0);
+      combat.enemy.hp -= burn;
+      combat.enemyBurn = Math.max(combat.enemyBurn || 0, 2);
+      appendLog($("combat-log"), "熔岩地表灼燒敵人，造成 " + burn + " 火傷。", "dmg");
+    }
+    // mud + wet = paralyze chance
+    if (hasField("mud") && hasField("wet") && combat.enemy.hp > 0 && Math.random() < 0.35) {
+      combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+      appendLog($("combat-log"), "帶電泥沼！敵人麻痺一回合。", "sys");
+    }
+    // plant: small chip
+    if (hasField("plant") && combat.enemy.hp > 0) {
+      combat.enemy.hp -= 1;
+      appendLog($("combat-log"), "藤蔓勒緊，敵人受到 1 點傷害。", "dmg");
+    }
+    // holy regen already via combat.holyRegen
+    if (combat.holyRegen && state.hp > 0) {
+      var stH = calcStats();
+      state.hp = Math.min(stH.maxHp, state.hp + combat.holyRegen);
+      appendLog($("combat-log"), "聖光領域：回復 " + combat.holyRegen + " HP。", "sys");
+    }
+    // delay bomb
+    if (combat.delayBomb && combat.delayBomb.turns > 0 && combat.enemy.hp > 0) {
+      combat.delayBomb.turns--;
+      if (combat.delayBomb.turns <= 0) {
+        var bd = combat.delayBomb.dmg || 18;
+        combat.enemy.hp -= bd;
+        appendLog($("combat-log"), "延遲爆破引爆！造成 " + bd + " 傷害。", "dmg");
+        combat.delayBomb = null;
+      } else {
+        appendLog($("combat-log"), "延遲爆破倒數：" + combat.delayBomb.turns + "…", "sys");
+      }
+    }
+    // enemy burn DOT
+    if (combat.enemyBurn > 0 && combat.enemy.hp > 0) {
+      var bdmg = 2 + (combat.oilWeak ? 2 : 0);
+      combat.enemy.hp -= bdmg;
+      combat.enemyBurn--;
+      appendLog($("combat-log"), "灼燒生效，敵人受到 " + bdmg + " 點傷害。", "dmg");
+    }
+    // rage drug self-damage on enemy
+    if (combat.enemyRage > 0 && combat.enemy.hp > 0) {
+      combat.enemy.hp -= combat.enemyRage;
+      appendLog($("combat-log"), "狂暴反噬，敵人自傷 " + combat.enemyRage + "。", "dmg");
+    }
+    tickFieldTags();
+  }
+
+  function dealTrueToEnemy(n) {
+    n = Math.max(1, n | 0);
+    combat.enemy.hp -= n;
+    return n;
+  }
+
+  function tryConsumeMarkBonus() {
+    if (combat && combat.markBonus) {
+      var b = combat.markBonus;
+      combat.markBonus = 0;
+      return b;
+    }
+    return 0;
+  }
+
   // ---------- Combat ----------
   function startQuest(q) {
     var isEvent = !!(state.eventQuestId && state.eventQuestId === q.id && state.cleared[q.id]);
@@ -1934,7 +2711,29 @@
       isEvent: isEvent,
       battleBuffAtk: 0,
       battleBuffDef: 0,
-      smokeFlee: false
+      smokeFlee: false,
+      field: {},
+      enemyBurn: 0,
+      enemyRage: 0,
+      oilWeak: false,
+      thunderMark: false,
+      copperBonus: 0,
+      markBonus: 0,
+      delayBomb: null,
+      reflectPct: 0,
+      dodgeNext: false,
+      guardNext: false,
+      invuln: false,
+      phaseStrike: 0,
+      surviveOnce: false,
+      poisonOnHit: 0,
+      battleCrit: 0,
+      battleAgi: 0,
+      holyRegen: 0,
+      pierceNext: false,
+      weaponPoison: 0,
+      enemyAtkPenalty: 0,
+      noEnemyExtra: false
     };
     beginStage();
   }
@@ -1971,6 +2770,7 @@
     $("combat-next-wrap").classList.add("hidden");
     updateBars();
     appendLog($("combat-log"), stage.flavor);
+    updateFieldTagsUI();
     var st0 = calcStats();
     var buffMsg = [];
     if (combat.battleBuffAtk) buffMsg.push("攻擊+" + combat.battleBuffAtk);
@@ -2045,22 +2845,66 @@
   }
 
   function dealToEnemy(raw) {
-    var dmg = Math.max(1, raw - combat.enemy.def);
+    var def = combat.enemy.def || 0;
+    if (combat.pierceNext) { def = 0; combat.pierceNext = false; }
+    var bonus = tryConsumeMarkBonus();
+    var dmg = Math.max(1, (raw | 0) + bonus - def);
+    if (hasField("fog") && combat._isFireSkill) dmg += 5;
     combat.enemy.hp -= dmg;
+    if (combat.weaponPoison > 0) {
+      combat.enemyPoison = Math.max(combat.enemyPoison || 0, combat.weaponPoison);
+      combat._poisonDmg = Math.max(combat._poisonDmg || 2, 3);
+    }
+    if (combat.thunderMark && !combat._fromSkill) {
+      var zap = 4 + (combat.copperBonus || 0);
+      combat.enemy.hp -= zap;
+      appendLog($("combat-log"), "引雷爆發！追加閃電 " + zap + "！", "loot");
+      combat.thunderMark = false;
+    }
     return dmg;
   }
 
   function dealToPlayer(raw) {
+    if (combat.invuln || combat.dodgeNext || combat.guardNext) {
+      if (combat.dodgeNext) { combat.dodgeNext = false; appendLog($("combat-log"), "你完全閃避了攻擊！", "sys"); }
+      else if (combat.guardNext) { combat.guardNext = false; appendLog($("combat-log"), "影子替身承受了攻擊！", "sys"); }
+      else { appendLog($("combat-log"), "相位狀態：傷害無效！", "sys"); }
+      return 0;
+    }
+    // fog: enemy miss chance
+    if (hasField("fog") && Math.random() < 0.22) {
+      appendLog($("combat-log"), "濃霧中敵人失手！", "sys");
+      return 0;
+    }
     var st = calcStats();
+    var eatk = (raw | 0) - (combat.enemyAtkPenalty || 0);
+    if (eatk < 1) eatk = 1;
     var reduce = st.defense + (combat.defending ? 3 + st.defBonus : 0);
     if (combat.guardHeal) reduce += 8;
-    var dmg = Math.max(1, raw - reduce);
+    var dmg = Math.max(1, eatk - reduce);
     state.hp -= dmg;
+    if (combat.reflectPct > 0 && combat.enemy && combat.enemy.hp > 0) {
+      var rd = Math.max(1, Math.floor(dmg * combat.reflectPct / 100));
+      combat.enemy.hp -= rd;
+      appendLog($("combat-log"), "痛苦鏈接反彈 " + rd + " 傷害！", "loot");
+    }
+    if (combat.poisonOnHit > 0) {
+      combat.enemyPoison = Math.max(combat.enemyPoison || 0, combat.poisonOnHit);
+      combat._poisonDmg = Math.max(combat._poisonDmg || 2, 2);
+      appendLog($("combat-log"), "孢子爆發，敵人中毒！", "sys");
+    }
+    if (state.hp <= 0 && combat.surviveOnce) {
+      state.hp = 1;
+      combat.surviveOnce = false;
+      appendLog($("combat-log"), "不屈意志！勉強留下 1 HP！", "loot");
+    }
     return dmg;
   }
 
   function afterPlayerAction() {
     if (combat.over) return;
+    // clear phase invuln after the player's action resolves
+    if (combat.invuln) combat.invuln = false;
     // poison on enemy
     if (combat.enemyPoison > 0 && combat.enemy.hp > 0) {
       var pd = combat._poisonDmg || 2;
@@ -2068,6 +2912,8 @@
       combat.enemyPoison--;
       appendLog($("combat-log"), "毒素生效，" + combat.enemy.name + "受到 " + pd + " 點傷害。", "dmg");
     }
+    // end-of-turn field / burn / bomb (before enemy acts)
+    applyEndOfTurnFieldEffects();
     if (combat.enemy.hp <= 0) {
       onEnemyDown();
       return;
@@ -2098,10 +2944,19 @@
       updateBars();
       return;
     }
+    // ice slip chance
+    if (hasField("ice") && Math.random() < 0.28) {
+      appendLog($("combat-log"), combat.enemy.name + "在冰面上滑倒，無法行動！", "sys");
+      combat.defending = false;
+      updateBars();
+      return;
+    }
     var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
     var dmg = dealToPlayer(eatk);
-    appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
-      (combat.defending ? "（防禦減傷）" : ""), "dmg");
+    if (dmg > 0) {
+      appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
+        (combat.defending ? "（防禦減傷）" : ""), "dmg");
+    }
     combat.defending = false;
 
     if (combat.playerPoison > 0) {
@@ -2277,8 +3132,15 @@
     if (!combat || combat.over) return;
     var st = calcStats();
     var raw = playerAttackPower() + Math.floor(Math.random() * 4);
-    // 敏捷：破綻一擊
-    if (Math.random() * 20 < st.agi) {
+    if (combat.phaseStrike) {
+      raw = Math.floor(raw * combat.phaseStrike);
+      combat.phaseStrike = 0;
+      appendLog($("combat-log"), "相位重擊！", "loot");
+    }
+    // 敏捷：破綻一擊（含 battleCrit / 極夜）
+    var critGate = 20 - (combat.battleCrit || 0) - (hasField("night") ? 4 : 0);
+    if (critGate < 8) critGate = 8;
+    if (Math.random() * critGate < st.agi) {
       raw = Math.floor(raw * 1.15);
       appendLog($("combat-log"), "憑敏捷捉到破綻！", "sys");
     }
@@ -2291,6 +3153,9 @@
     }
     // 敏捷：連擊／攻擊頻率 — agi 越高越常追加一次攻擊
     var extraChance = Math.min(0.45, 0.05 + st.agi * 0.025);
+    if (combat.noEnemyExtra) {
+      // mud/gravity also slightly lowers YOUR need? no — only enemy. keep player extras
+    }
     if (Math.random() < extraChance) {
       var raw2 = Math.floor(playerAttackPower() * 0.7) + Math.floor(Math.random() * 3);
       var dmg2 = dealToEnemy(raw2);
@@ -2357,10 +3222,12 @@
     if (!combat || combat.over) return;
     var st = calcStats();
     appendLog($("combat-log"), "發動詞條技能【" + skill.name + "】！");
+    combat._fromSkill = true;
+    combat._isFireSkill = false;
     switch (skill.type) {
       case "poison":
         combat.enemyPoison = skill.val;
-        combat._poisonDmg = 2;
+        combat._poisonDmg = hasField("fog") ? (skill.fogDmg || 4) : 2;
         appendLog($("combat-log"), "敵人中毒 " + skill.val + " 回合。", "sys");
         break;
       case "poison_strike":
@@ -2384,8 +3251,9 @@
         appendLog($("combat-log"), "連斬造成 " + a + " + " + b + " 傷害。");
         break;
       case "heal":
-        state.hp = Math.min(st.maxHp, state.hp + skill.val);
-        appendLog($("combat-log"), "回復 " + skill.val + " HP。", "sys");
+        var hv = skill.val + (hasField("day") ? 5 : 0);
+        state.hp = Math.min(st.maxHp, state.hp + hv);
+        appendLog($("combat-log"), "回復 " + hv + " HP。", "sys");
         break;
       case "guard_heal":
         combat.defending = true;
@@ -2400,9 +3268,241 @@
           (skill.stun ? "敵人被影縛住！" : "") +
           (skill.heal ? "你回復 " + skill.heal + " HP。" : ""), "loot");
         break;
+      case "terrain_wet":
+        setFieldTag("wet", skill.val || 5);
+        appendLog($("combat-log"), "暴雨降下，戰場陷入濕潤！", "sys");
+        break;
+      case "thunder_wet":
+        var tw = Math.floor(playerAttackPower() * (skill.mult || 1.2));
+        if (hasField("wet")) tw += (skill.bonus || 6) + (combat.copperBonus || 0);
+        var twd = dealToEnemy(tw);
+        combat.thunderMark = true;
+        appendLog($("combat-log"), "靜電引雷造成 " + twd + " 雷傷！敵人被引雷化。", "loot");
+        break;
+      case "terrain_lava":
+        combat._isFireSkill = true;
+        setFieldTag("lava", skill.val || 4);
+        clearFieldTags(["ice", "plant"]);
+        var lv = dealToEnemy(6 + (combat.oilWeak ? 4 : 0));
+        combat.enemyBurn = Math.max(combat.enemyBurn || 0, 2);
+        appendLog($("combat-log"), "熔岩噴湧！造成 " + lv + " 火傷，地表轉為熔岩。", "sys");
+        break;
+      case "terrain_ice":
+        if (hasField("lava") || hasField("wet")) {
+          clearFieldTags(["lava", "wet"]);
+        }
+        setFieldTag("ice", skill.val || 4);
+        appendLog($("combat-log"), "地表凍結成冰面！", "sys");
+        break;
+      case "terrain_fog":
+        clearFieldTags(["ice", "wet"]);
+        setFieldTag("fog", skill.val || 4);
+        appendLog($("combat-log"), "熱浪蒸散，濃霧瀰漫！", "sys");
+        break;
+      case "terrain_plant":
+        setFieldTag("plant", skill.val || 4);
+        combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, 1);
+        appendLog($("combat-log"), "藤蔓蔓延，纏住敵人！", "sys");
+        break;
+      case "terrain_mud":
+        setFieldTag("mud", skill.val || 3);
+        combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, 2);
+        combat.noEnemyExtra = true;
+        if (hasField("wet")) {
+          combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+          appendLog($("combat-log"), "泥沼帶電！敵人麻痺。", "sys");
+        } else {
+          appendLog($("combat-log"), "引力泥沼減慢敵人！", "sys");
+        }
+        break;
+      case "buff_def":
+      case "def_self":
+        combat.battleBuffDef = (combat.battleBuffDef || 0) + (skill.val || 3);
+        appendLog($("combat-log"), "防禦提升 +" + (skill.val || 3) + "！", "sys");
+        break;
+      case "aoe_dmg":
+        var ao = Math.floor(playerAttackPower() * (skill.mult || 1.7));
+        if (hasField("fog")) ao += (skill.fogBonus || 8);
+        var aod = dealToEnemy(ao);
+        appendLog($("combat-log"), "真空爆破造成 " + aod + " 衝擊傷害！");
+        break;
+      case "terrain_day":
+        setFieldTag("day", skill.val || 4);
+        var dayHeal = 6 + (hasField("day") ? 0 : 0);
+        state.hp = Math.min(st.maxHp, state.hp + 6);
+        appendLog($("combat-log"), "日光照耀！回復 6 HP。", "sys");
+        break;
+      case "terrain_night":
+        setFieldTag("night", skill.val || 4);
+        combat.battleCrit = (combat.battleCrit || 0) + 6;
+        appendLog($("combat-log"), "極夜降臨！暴擊提升。", "sys");
+        break;
+      case "quake":
+        var qm = skill.mult || 1.3;
+        if (hasField("ice")) qm *= 2;
+        var qd = dealToEnemy(Math.floor(playerAttackPower() * qm));
+        if (hasField("ice")) {
+          clearFieldTags(["ice"]);
+          appendLog($("combat-log"), "破冰地震！造成 " + qd + " 雙倍傷害。", "loot");
+        } else {
+          appendLog($("combat-log"), "地震波造成 " + qd + " 傷害。");
+        }
+        break;
+      case "dmg_absorb":
+        var tags = fieldTagCount();
+        var cad = dealToEnemy(Math.floor(playerAttackPower() * (skill.base || 1.1)) + tags * (skill.perTag || 4));
+        appendLog($("combat-log"), "氣旋吸收 " + tags + " 種元素，造成 " + cad + " 傷害！");
+        break;
+      case "poison_on_hit":
+        combat.poisonOnHit = skill.val || 2;
+        appendLog($("combat-log"), "孢子附體：受擊將反毒。", "sys");
+        break;
+      case "stunish":
+        combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, skill.debuff || 2);
+        combat.noEnemyExtra = true;
+        if (skill.val) combat.enemyStun = Math.max(combat.enemyStun || 0, skill.val);
+        appendLog($("combat-log"), "重力壓制！敵人行動受限。", "sys");
+        break;
+      case "agi_buff":
+        combat.battleAgi = (combat.battleAgi || 0) + (skill.val || 4);
+        appendLog($("combat-log"), "反重力：敏捷 +" + (skill.val || 4) + "。", "sys");
+        break;
+      case "lifesteal":
+        var ls = dealToEnemy(Math.floor(playerAttackPower() * (skill.mult || 1.2)));
+        var healLs = Math.floor(ls / 2);
+        state.hp = Math.min(st.maxHp, state.hp + healLs);
+        appendLog($("combat-log"), "血池吸血：傷 " + ls + "，回 " + healLs + "。", "loot");
+        break;
+      case "regen":
+        combat.holyRegen = (combat.holyRegen || 0) + (skill.val || 4);
+        appendLog($("combat-log"), "聖光領域展開（每回合回血）。", "sys");
+        break;
+      case "dodge":
+      case "dodge_next":
+        combat.dodgeNext = true;
+        appendLog($("combat-log"), "你將完全閃避下一次攻擊！", "sys");
+        break;
+      case "swap_dmg":
+        var swd = dealToEnemy(skill.dmg || 6);
+        combat.enemyStun = Math.max(combat.enemyStun || 0, skill.stun || 1);
+        appendLog($("combat-log"), "空間置換！傷 " + swd + "，敵人錯亂。", "sys");
+        break;
+      case "pull_dmg":
+        var pdmg = dealToEnemy(Math.floor(playerAttackPower() * (skill.mult || 1.5)));
+        appendLog($("combat-log"), "連鎖拉扯造成 " + pdmg + " 傷害！");
+        break;
+      case "guard":
+        combat.guardNext = true;
+        appendLog($("combat-log"), "影子替身就位，可抵擋一次！", "sys");
+        break;
+      case "invuln":
+        combat.invuln = true;
+        combat.phaseStrike = skill.mult || 1.8;
+        appendLog($("combat-log"), "相位穿梭：本回合免疫，下擊強化！", "sys");
+        break;
+      case "mark":
+        combat.markBonus = skill.val || 10;
+        appendLog($("combat-log"), "印記烙上：下次攻擊額外 +" + (skill.val || 10) + "。", "sys");
+        break;
+      case "reflect":
+        combat.reflectPct = skill.val || 30;
+        appendLog($("combat-log"), "痛苦鏈接：反彈 " + combat.reflectPct + "% 傷害。", "sys");
+        break;
+      case "cleanse_buff":
+        combat.playerPoison = 0;
+        combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (skill.atk || 4);
+        appendLog($("combat-log"), "狀態逆轉：清毒並攻擊↑。", "sys");
+        break;
+      case "transfer":
+        if (combat.playerPoison > 0) {
+          combat.enemyPoison = Math.max(combat.enemyPoison || 0, combat.playerPoison);
+          combat._poisonDmg = Math.max(combat._poisonDmg || 2, 2);
+          combat.playerPoison = 0;
+          appendLog($("combat-log"), "詛咒轉移：毒轉給敵人！", "sys");
+        } else {
+          combat.enemyPoison = Math.max(combat.enemyPoison || 0, 2);
+          combat._poisonDmg = 2;
+          appendLog($("combat-log"), "詛咒轉移：敵人中毒。", "sys");
+        }
+        break;
+      case "bomb":
+        combat.delayBomb = { turns: skill.turns || 2, dmg: skill.dmg || 18 };
+        appendLog($("combat-log"), "延遲爆破已設置（" + combat.delayBomb.turns + " 回合）。", "sys");
+        break;
+      case "lowhp_atk":
+        var ratio = Math.max(0.2, 1 - state.hp / Math.max(1, st.maxHp));
+        var lm = (skill.mult || 1.2) + ratio;
+        var ld = dealToEnemy(Math.floor(playerAttackPower() * lm));
+        appendLog($("combat-log"), "血性狂暴造成 " + ld + " 傷害！（低血加成）", "loot");
+        break;
+      case "burn_consume":
+        combat._isFireSkill = true;
+        if (combat.enemyBurn > 0 || combat.oilWeak) {
+          combat.enemyBurn = 0;
+          var big = dealToEnemy(skill.big || 16);
+          appendLog($("combat-log"), "引燃爆破！造成 " + big + " 巨額火傷。", "loot");
+        } else {
+          var sm = dealToEnemy(skill.small || 8);
+          combat.enemyBurn = Math.max(combat.enemyBurn || 0, 2);
+          appendLog($("combat-log"), "火傷 " + sm + "，敵人開始灼燒。");
+        }
+        break;
+      case "poison_spread":
+        combat.enemyPoison = Math.max(combat.enemyPoison || 0, skill.val || 3);
+        combat._poisonDmg = Math.max(combat._poisonDmg || 2, skill.dmg || 3);
+        appendLog($("combat-log"), "毒素蔓延加深！", "sys");
+        break;
+      case "thunder":
+        var th = Math.floor(playerAttackPower() * (skill.mult || 1.4)) + (combat.copperBonus || 0);
+        if (hasField("wet") || combat.thunderMark) th += (skill.wetBonus || 10);
+        var thd = dealToEnemy(th);
+        appendLog($("combat-log"), "連鎖閃電造成 " + thd + " 雷傷！");
+        break;
+      case "dot_burst":
+        (function () {
+          var total = 0;
+          if (combat.enemyPoison > 0) {
+            var p = (combat._poisonDmg || 2) * combat.enemyPoison;
+            combat.enemy.hp -= p; total += p; combat.enemyPoison = 0;
+          }
+          if (combat.enemyBurn > 0) {
+            var b = (2 + (combat.oilWeak ? 2 : 0)) * combat.enemyBurn;
+            combat.enemy.hp -= b; total += b; combat.enemyBurn = 0;
+          }
+          if (combat.delayBomb) {
+            combat.enemy.hp -= combat.delayBomb.dmg; total += combat.delayBomb.dmg; combat.delayBomb = null;
+          }
+          appendLog($("combat-log"), "時間加速：結算持續傷害 " + total + "！", "loot");
+        })();
+        break;
+      case "crit":
+        combat.battleCrit = (combat.battleCrit || 0) + (skill.val || 8);
+        appendLog($("combat-log"), "弱點偵測：暴擊大幅提升！", "sys");
+        break;
+      case "backstab":
+        combat.pierceNext = true;
+        var bs = dealToEnemy(Math.floor(playerAttackPower() * (skill.mult || 2)));
+        appendLog($("combat-log"), "死角偷襲造成 " + bs + " 傷害！", "loot");
+        break;
+      case "execute":
+        var thr = skill.thr || 0.35;
+        if (state.hp / Math.max(1, st.maxHp) <= thr) {
+          var ex = dealTrueToEnemy(skill.dmg || 28);
+          appendLog($("combat-log"), "絕地反擊！真實傷害 " + ex + "！", "loot");
+        } else {
+          var ex2 = dealToEnemy(Math.floor(playerAttackPower() * 1.2));
+          appendLog($("combat-log"), "血量未夠低，僅造成 " + ex2 + " 傷害。");
+        }
+        break;
+      case "survive":
+        combat.surviveOnce = true;
+        appendLog($("combat-log"), "不屈意志：本戰致死可留 1 HP。", "sys");
+        break;
       default:
         appendLog($("combat-log"), "技能無效。", "sys");
     }
+    combat._fromSkill = false;
+    combat._isFireSkill = false;
     updateBars();
     if (state.hp <= 0) {
       state.hp = 0;
