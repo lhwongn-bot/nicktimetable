@@ -923,6 +923,65 @@
   .legacy-banner b { color: var(--fg); }
   #save-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
+  /* 2C: 自動存檔標示／開局流派／存檔入口可見度 */
+  #screen-town { position: relative; }
+  #autosave-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 6;
+    letter-spacing: 0.02em;
+  }
+  #autosave-badge.show { opacity: 1; }
+  #autosave-badge.saving { color: #ffe9a8; }
+  #autosave-badge.done { color: #bfb; }
+  .save-panel {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    background: var(--dim);
+  }
+  .save-panel .save-panel-title {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .save-panel .save-panel-title b { color: var(--fg); }
+  .origin-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .origin-pick button {
+    text-align: left;
+    padding: 12px;
+    min-height: 56px;
+    font-size: 0.92rem;
+  }
+  .origin-pick button.selected {
+    background: #fff;
+    color: #000;
+  }
+  .origin-pick .origin-name { font-weight: 600; display: block; margin-bottom: 4px; }
+  .origin-pick .origin-desc { font-size: 0.84rem; opacity: 0.88; line-height: 1.4; }
+  .legacy-note-origin {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    background: var(--dim);
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .legacy-note-origin b { color: var(--fg); }
+
 </style>
 </head>
 <body>
@@ -944,9 +1003,12 @@
       <button class="primary" id="btn-newgame">開始冒險</button>
       <button id="btn-continue" class="hidden">繼續進度</button>
     </div>
-    <div class="btn-grid mt">
-      <button type="button" id="btn-export-save-title">導出存檔</button>
-      <button type="button" id="btn-import-save-title">匯入存檔</button>
+    <div class="save-panel mt" id="title-save-panel">
+      <div class="save-panel-title">存檔 · <b>本機自動存</b>（瀏覽器）　｜　JSON 導出／匯入方便備份或換機</div>
+      <div class="btn-grid">
+        <button type="button" id="btn-export-save-title">導出存檔（JSON）</button>
+        <button type="button" id="btn-import-save-title">匯入存檔（JSON）</button>
+      </div>
     </div>
     <p class="footer-note">二元戰紀：精神波動 · 個人 Demo · 非任何小說官方作品</p>
   </div>
@@ -956,11 +1018,22 @@
     <h2>序章</h2>
     <img class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="log" id="intro-log"></div>
-    <button class="primary" id="btn-intro-next">進入城鎮</button>
+    <button class="primary" id="btn-intro-next">選擇開局流派</button>
+  </div>
+
+  <!-- ORIGIN / 開局流派（2C） -->
+  <div id="screen-origin" class="screen">
+    <h2>覺醒 · 初始波動</h2>
+    <p class="statline">序章過後，靈魂上浮現幾道唔同嘅精神波動。揀一條作為開局流派——起步詞條唔同，重玩會有差異。</p>
+    <div id="origin-legacy-note" class="legacy-note-origin hidden"></div>
+    <div class="origin-pick" id="origin-pick"></div>
+    <p class="statline" id="origin-choice-line"></p>
+    <button class="primary" id="btn-origin-confirm" disabled>確認流派，進入城鎮</button>
   </div>
 
   <!-- TOWN -->
   <div id="screen-town" class="screen">
+    <div id="autosave-badge" aria-live="polite"></div>
     <h2>邊陲小鎮 · 冒險者公會</h2>
     <img class="game-art" src="trait-quest-art/town.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="statline" id="town-stats"></div>
@@ -973,10 +1046,15 @@
       <button id="btn-fuse">融合詞條</button>
       <button id="btn-quests">接任務</button>
       <button id="btn-index">詞條圖鑑</button>
-      <button id="btn-save">儲存</button>
-      <button id="btn-export-save">導出存檔</button>
-      <button id="btn-import-save">匯入存檔</button>
-      <button id="btn-title">標題畫面</button>
+    </div>
+    <div class="save-panel" id="town-save-panel">
+      <div class="save-panel-title">存檔 · 角落會閃「自動存檔中…」　｜　JSON 導出／匯入備份</div>
+      <div class="btn-grid">
+        <button id="btn-save">手動儲存</button>
+        <button id="btn-export-save">導出存檔（JSON）</button>
+        <button id="btn-import-save">匯入存檔（JSON）</button>
+        <button id="btn-title">標題畫面</button>
+      </div>
     </div>
     <div class="log" id="town-log" style="max-height:28vh;min-height:80px;"></div>
   </div>
@@ -1218,11 +1296,34 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=2 LEVEL=2 OF=5  （2B：套裝觸發光暈／戰鬥浮字＋日誌分色；2A＋批次1–4保留；2026-10-30）
+  // Progress: SECTION=2 LEVEL=2 OF=5  （2C：自動存檔標示＋開局流派；2B／2A＋批次1–4保留；2026-10-30）
   var SAVE_KEY = "traitQuest_v1";
   var LEGACY_KEY = "traitQuest_legacy_v1";
   var SAVE_VERSION = 1;
   var legacyPickTraitId = null;
+  var originPickId = null;
+
+  /** 2C：開局流派（初始白詞條）；遺產詞條可疊加 */
+  var ORIGIN_BUILDS = [
+    {
+      id: "claw",
+      name: "利爪覺醒",
+      blurb: "野獸系起步。攻擊偏強，易走「野獸連爪」套裝路線。",
+      traitId: "sharp_claw"
+    },
+    {
+      id: "hide",
+      name: "硬皮覺醒",
+      blurb: "存活向起步。最大生命較高，適合穩打穩紮。",
+      traitId: "tough_hide"
+    },
+    {
+      id: "step",
+      name: "快步覺醒",
+      blurb: "影系起步。敏捷偏高，易走「影遁步」同逃跑路線。",
+      traitId: "quick_step"
+    }
+  ];
 
   // ---------- Trait catalog ----------
   var TRAITS = {
@@ -1847,7 +1948,7 @@
       id: "flashbang", name: "閃光彈",
       desc: "敵人跳過下回合；極夜中額外暈 1。",
       buy: 36, sell: 14, use: "flashbang", town: false, combat: true,
-      minSection: 1, rarity: 2, staple: false, weight: 5
+      minSection: 1, rarity: 2, staple: false, weight: 5, shop: false
     },
     shock_grenade: {
       id: "shock_grenade", name: "衝擊手榴彈",
@@ -2101,6 +2202,12 @@
       desc: "束縛敵：本戰敵攻－4；濕潤／濃霧再暈 1。斷橋求援用得著。",
       buy: 50, sell: 20, use: "bridge_coil", town: false, combat: true, val: 4,
       minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rescue_beacon: {
+      id: "rescue_beacon", name: "求援烽火",
+      desc: "清霧 1 層、回 22 HP，本戰攻＋4；濕潤再暈敵 1。斷橋求援信號。",
+      buy: 52, sell: 20, use: "rescue_beacon", town: false, combat: true, val: 22, atk: 4,
+      minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
 
@@ -2134,7 +2241,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -2574,6 +2681,8 @@
       fragNeed: 5,
       cleared: {},
       introDone: false,
+      originId: null,
+      originPending: false,
       turn: 0,
       pendingLevelUps: 0,
       eventQuestId: null,
@@ -2601,6 +2710,11 @@
     while (s.equipped.length < 3) s.equipped.push(null);
     if (s.equipped.length > 3) s.equipped = s.equipped.slice(0, 3);
     if (!s.traitIndex || typeof s.traitIndex !== "object") s.traitIndex = {};
+    if (s.originId == null) s.originId = null;
+    if (s.originPending == null) {
+      // 舊存檔：已有開局詞條或已入城 → 唔再逼揀流派
+      s.originPending = false;
+    }
     // 舊存檔：持有／裝備過嘅詞條自動記入圖鑑
     (s.traits || []).forEach(function (t) {
       if (t && t.id) s.traitIndex[t.id] = true;
@@ -2937,6 +3051,7 @@
   var STICKY_HIDE = {
     "screen-title": 1,
     "screen-intro": 1,
+    "screen-origin": 1,
     "screen-endlose": 1,
     "screen-endwin": 1
   };
@@ -3486,7 +3601,32 @@
     return ({ white: "白", green: "綠", blue: "藍", purple: "紫" })[r] || r;
   }
 
-  // ---------- Persist（批次4：自動存檔／導出匯入／遺產） ----------
+  // ---------- Persist（批次4＋2C：自動存檔標示／導出匯入／遺產） ----------
+  var _autosaveBadgeTm = null;
+  function flashAutosaveBadge(ok) {
+    var el = $("autosave-badge");
+    if (!el) return;
+    // 只喺城鎮畫面顯示角落標示，避免其他畫面干擾
+    var town = $("screen-town");
+    if (!town || !town.classList.contains("active")) return;
+    el.classList.remove("done");
+    el.classList.add("show", "saving");
+    el.textContent = ok ? "自動存檔中…" : "存檔失敗";
+    clearTimeout(_autosaveBadgeTm);
+    _autosaveBadgeTm = setTimeout(function () {
+      if (!ok) {
+        el.classList.remove("show", "saving");
+        return;
+      }
+      el.textContent = "已自動存檔";
+      el.classList.remove("saving");
+      el.classList.add("done");
+      _autosaveBadgeTm = setTimeout(function () {
+        el.classList.remove("show", "done");
+      }, 1100);
+    }, 420);
+  }
+
   function saveGame(opts) {
     opts = opts || {};
     try {
@@ -3509,7 +3649,9 @@
     if (state.hp <= 0) return false;
     var lose = $("screen-endlose");
     if (lose && lose.classList.contains("active")) return false;
-    return saveGame({ silent: true });
+    var ok = saveGame({ silent: true });
+    flashAutosaveBadge(ok);
+    return ok;
   }
 
   function loadGame() {
@@ -3788,14 +3930,130 @@
   function startNew() {
     var name = ($("name-input").value || "李維").trim().slice(0, 12);
     state = defaultState(name);
-    // starter gift
-    addTrait("sharp_claw");
-    state.equipped[0] = state.traits[0].uid;
+    // 2C：序章後先揀開局流派，先唔派固定利爪
     addItem("potion", 2);
     addItem("ration", 1);
+    state.originPending = true;
+    state.originId = null;
+    originPickId = null;
     state._legacyApplied = applyLegacyToNewRun();
     showIntro();
     autoSave();
+  }
+
+  function findOriginBuild(id) {
+    for (var i = 0; i < ORIGIN_BUILDS.length; i++) {
+      if (ORIGIN_BUILDS[i].id === id) return ORIGIN_BUILDS[i];
+    }
+    return null;
+  }
+
+  function syncOriginPickUI() {
+    var box = $("origin-pick");
+    if (!box) return;
+    Array.prototype.forEach.call(box.querySelectorAll("button"), function (btn) {
+      btn.classList.toggle("selected", btn.getAttribute("data-oid") === originPickId);
+    });
+    var line = $("origin-choice-line");
+    var conf = $("btn-origin-confirm");
+    var o = findOriginBuild(originPickId);
+    if (line) {
+      if (o && TRAITS[o.traitId]) {
+        line.innerHTML = "已揀：<b>" + escapeHtml(o.name) + "</b>　→　白詞條「" +
+          escapeHtml(TRAITS[o.traitId].name) + "」";
+      } else {
+        line.textContent = "請揀一個開局流派。";
+      }
+    }
+    if (conf) conf.disabled = !o;
+  }
+
+  function showOriginPick() {
+    showScreen("screen-origin");
+    originPickId = state && state.originId ? state.originId : null;
+    var note = $("origin-legacy-note");
+    if (note) {
+      var bits = [];
+      if (state && state._legacyApplied) {
+        if (state._legacyApplied.gold) bits.push("遺產金 +" + state._legacyApplied.gold);
+        if (state._legacyApplied.traitName) {
+          bits.push("遺產白詞條「" + state._legacyApplied.traitName + "」會保留，同流派疊加");
+        }
+      } else if (state && state.traits && state.traits.length) {
+        // 續玩卡喺揀流派：已有遺產詞條喺背包
+        var names = [];
+        state.traits.forEach(function (t) {
+          if (t && TRAITS[t.id]) names.push(TRAITS[t.id].name);
+        });
+        if (names.length) bits.push("已有詞條：" + names.join("、") + "（會同流派疊加）");
+      }
+      if (bits.length) {
+        note.classList.remove("hidden");
+        note.innerHTML = "<b>遺產／既有</b>：" + escapeHtml(bits.join("；"));
+      } else {
+        note.classList.add("hidden");
+        note.innerHTML = "";
+      }
+    }
+    var box = $("origin-pick");
+    if (box) {
+      box.innerHTML = "";
+      ORIGIN_BUILDS.forEach(function (o) {
+        var d = TRAITS[o.traitId];
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("data-oid", o.id);
+        var traitLine = d ? ("[白] " + d.name + "　—　" + (d.desc || "")) : o.traitId;
+        btn.innerHTML =
+          "<span class='origin-name'>" + escapeHtml(o.name) + "</span>" +
+          "<span class='origin-desc'>" + escapeHtml(o.blurb) + "<br>" + escapeHtml(traitLine) + "</span>";
+        btn.onclick = function () {
+          originPickId = o.id;
+          syncOriginPickUI();
+        };
+        box.appendChild(btn);
+      });
+    }
+    syncOriginPickUI();
+  }
+
+  function applyOriginChoice(oid) {
+    var o = findOriginBuild(oid);
+    if (!o || !TRAITS[o.traitId] || !state) return false;
+    addTrait(o.traitId);
+    var starter = state.traits[state.traits.length - 1];
+    if (!Array.isArray(state.equipped)) state.equipped = [null, null, null];
+    state.equipped[0] = starter ? starter.uid : null;
+    // 遺產詞條若唔同，盡量放入第 2 槽方便起步疊加
+    if (state.traits.length >= 2) {
+      var other = null;
+      for (var i = 0; i < state.traits.length; i++) {
+        if (state.traits[i].uid !== state.equipped[0]) {
+          other = state.traits[i];
+          break;
+        }
+      }
+      if (other && !state.equipped[1]) state.equipped[1] = other.uid;
+    }
+    state.originId = o.id;
+    state.originPending = false;
+    return true;
+  }
+
+  function finishOriginAndEnterTown() {
+    if (!applyOriginChoice(originPickId)) {
+      toast("請先揀開局流派");
+      return;
+    }
+    var o = findOriginBuild(originPickId);
+    var tname = TRAITS[o.traitId] ? TRAITS[o.traitId].name : o.traitId;
+    var msg = "【開局流派】" + o.name + "——白詞條「" + tname + "」已刻上。你站喺公會大廳。從任務板開始啦。";
+    if (state && state._legacyApplied) {
+      var lm = legacyMsg(state._legacyApplied);
+      if (lm) msg = lm + " " + msg;
+      state._legacyApplied = null;
+    }
+    enterTown(msg);
   }
 
   function showIntro() {
@@ -3808,7 +4066,7 @@
       "你叫「" + escapeHtml(state.name) + "」。袋入面只有一把舊鐵劍，同——昨晚喺野狼屍上隱約感覺到嘅、像文字一樣嘅光芒。",
       "有人話呢種叫「詞條」。擊敗魔物，有機會將佢哋嘅本質刻落自己身上。再融合，可以變得更強。",
       "走廊盡頭，一個戴住隊長徽章嘅男人拍拍你膊頭：「洞窟入面小心啲。我以前個隊……算啦，你自己睇。」佢笑得好淡，轉身就行。",
-      "你握實劍柄，踏入公會任務板前面。"
+      "你握實劍柄，踏入公會任務板前面——不過先聽清楚，靈魂上嗰幾道波動，邊條先係你嘅。"
     ];
     var i = 0;
     function next() {
@@ -4759,6 +5017,26 @@
           if (hasField("wet") || hasField("fog")) {
             combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
             note += "、濕／霧中暈 1";
+          }
+          toast(note);
+        })();
+        break;
+      case "rescue_beacon":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var note = "求援烽火：回血、攻＋" + (def.atk || 4);
+          if (hasField("fog") && combat.field && combat.field.fog) {
+            combat.field.fog = Math.max(0, combat.field.fog - 1);
+            if (combat.field.fog <= 0) delete combat.field.fog;
+            note = "求援烽火：霧薄 1 層、攻＋" + (def.atk || 4);
+          }
+          var before = state.hp;
+          state.hp = Math.min(st.maxHp, state.hp + (def.val || 22));
+          combat.battleAtk = (combat.battleAtk || 0) + (def.atk || 4);
+          note += "、回 " + (state.hp - before);
+          if (hasField("wet")) {
+            combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+            note += "、濕中暈 1";
           }
           toast(note);
         })();
@@ -6131,20 +6409,22 @@
     $("btn-newgame").onclick = startNew;
     $("btn-continue").onclick = function () {
       if (loadGame()) {
-        enterTown("讀取進度成功。歡迎返嚟，" + state.name + "。");
+        if (state.originPending) {
+          showOriginPick();
+          toast("仲未揀開局流派");
+        } else {
+          enterTown("讀取進度成功。歡迎返嚟，" + state.name + "。");
+        }
       } else {
         toast("無存檔");
       }
     };
     $("btn-intro-next").onclick = function () {
-      var msg = "你站喺公會大廳。從任務板開始啦。";
-      if (state && state._legacyApplied) {
-        var lm = legacyMsg(state._legacyApplied);
-        if (lm) msg = lm + " " + msg;
-        state._legacyApplied = null;
-      }
-      enterTown(msg);
+      showOriginPick();
     };
+    if ($("btn-origin-confirm")) {
+      $("btn-origin-confirm").onclick = finishOriginAndEnterTown;
+    }
     $("btn-rest").onclick = doRest;
     $("btn-shop").onclick = function () { showShop("buy"); };
     $("btn-bag").onclick = showBag;
