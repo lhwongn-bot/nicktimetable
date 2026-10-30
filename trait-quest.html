@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<!--
+  個人 Demo 文字冒險遊戲（Personal demo game）
+  靈感取材自「底層冒險者靠詞條成長」類型的網路小說氛圍，但劇情、角色、詞條與系統皆為原創，
+  並非該小說之官方、衍生或授權作品，亦與原作及作者無關（not affiliated）。
+  僅供私人示範／娛樂用途。
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>詞條冒險 · Trait Quest</title>
+<style>
+  :root {
+    --bg: #000;
+    --fg: #fff;
+    --muted: #999;
+    --border: #555;
+    --dim: #222;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC",
+      "Microsoft JhengHei", "Helvetica Neue", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  h1, h2, h3 { font-weight: 600; letter-spacing: 0.02em; }
+  h1 { font-size: 1.5rem; text-align: center; margin: 24px 0 8px; }
+  h2 { font-size: 1.15rem; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .sub { color: var(--muted); text-align: center; font-size: 0.85rem; margin-bottom: 20px; }
+  .screen { display: none; flex-direction: column; flex: 1; gap: 10px; }
+  .screen.active { display: flex; }
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    padding: 10px;
+    min-height: 160px;
+    max-height: 45vh;
+    font-size: 0.95rem;
+    background: var(--dim);
+    -webkit-overflow-scrolling: touch;
+  }
+  .log p { margin-bottom: 8px; }
+  .log .sys { color: var(--muted); }
+  .log .loot { font-weight: 600; }
+  .log .dmg { color: #ccc; }
+  .bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+  .bar {
+    flex: 1;
+    height: 14px;
+    border: 1px solid var(--border);
+    background: #111;
+    position: relative;
+  }
+  .bar > span {
+    display: block;
+    height: 100%;
+    background: #fff;
+    width: 0%;
+    transition: width 0.2s;
+  }
+  .statline { font-size: 0.85rem; color: var(--muted); }
+  .statline b { color: var(--fg); font-weight: 600; }
+  .btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-grid.one { grid-template-columns: 1fr; }
+  .btn-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  button, .btn {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 14px 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    min-height: 48px;
+    text-align: center;
+    border-radius: 0;
+    touch-action: manipulation;
+  }
+  button:active, .btn:active { background: #fff; color: #000; }
+  button:disabled {
+    border-color: #444;
+    color: #555;
+    cursor: not-allowed;
+  }
+  button.primary { background: #fff; color: #000; font-weight: 600; }
+  button.primary:active { background: #000; color: #fff; }
+  button.danger { border-color: #aaa; }
+  input[type="text"] {
+    width: 100%;
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    border-radius: 0;
+  }
+  .panel {
+    border: 1px solid var(--border);
+    padding: 10px;
+    background: var(--dim);
+  }
+  .trait {
+    border: 1px solid var(--border);
+    padding: 8px;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  .trait .name { font-weight: 600; }
+  .trait .meta { color: var(--muted); font-size: 0.8rem; }
+  .rarity-white .name::before { content: "[白] "; }
+  .rarity-green .name::before { content: "[綠] "; }
+  .rarity-blue .name::before { content: "[藍] "; }
+  .rarity-purple .name::before { content: "[紫] "; }
+  .slot-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .slot {
+    border: 1px dashed var(--border);
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    min-width: 80px;
+    text-align: center;
+  }
+  .slot.filled { border-style: solid; }
+  .list-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 6px;
+    padding: 12px;
+  }
+  .list-btn .desc { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+  .hidden { display: none !important; }
+  .footer-note { color: var(--muted); font-size: 0.7rem; text-align: center; margin-top: 8px; }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 80px;
+    transform: translateX(-50%);
+    background: #fff;
+    color: #000;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    z-index: 99;
+    max-width: 90%;
+    display: none;
+  }
+  .toast.show { display: block; }
+  .select-list { max-height: 40vh; overflow-y: auto; }
+  .select-list label {
+    display: block;
+    border: 1px solid var(--border);
+    padding: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+  .select-list input { margin-right: 8px; }
+  .center { text-align: center; }
+  .mt { margin-top: 8px; }
+  .mb { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <div id="screen-title" class="screen active">
+    <h1>詞條冒險</h1>
+    <p class="sub">黑木森林邊陲 · 底層冒險者嘅故事</p>
+    <div class="panel mb">
+      <p>你係公會最底層嘅新人。喺呢片森林，擊敗魔物有機會攞到「詞條」——一種刻喺靈魂上面嘅能力碎片。</p>
+      <p class="mt">融合詞條，變強，活落去。</p>
+    </div>
+    <label class="mb">冒險者名</label>
+    <input type="text" id="name-input" value="李維" maxlength="12" autocomplete="off">
+    <div class="btn-grid one mt">
+      <button class="primary" id="btn-newgame">開始冒險</button>
+      <button id="btn-continue" class="hidden">繼續進度</button>
+    </div>
+    <p class="footer-note">個人 Demo · 非任何小說官方作品</p>
+  </div>
+
+  <!-- INTRO -->
+  <div id="screen-intro" class="screen">
+    <h2>序章</h2>
+    <div class="log" id="intro-log"></div>
+    <button class="primary" id="btn-intro-next">進入城鎮</button>
+  </div>
+
+  <!-- TOWN -->
+  <div id="screen-town" class="screen">
+    <h2>邊陲小鎮 · 冒險者公會</h2>
+    <div class="statline" id="town-stats"></div>
+    <div class="panel" id="town-flavor"></div>
+    <div class="btn-grid">
+      <button id="btn-rest">休息回復</button>
+      <button id="btn-status">狀態／詞條</button>
+      <button id="btn-fuse">融合詞條</button>
+      <button id="btn-quests">接任務</button>
+      <button id="btn-save">儲存</button>
+      <button id="btn-title">標題畫面</button>
+    </div>
+    <div class="log" id="town-log" style="max-height:28vh;min-height:80px;"></div>
+  </div>
+
+  <!-- STATUS -->
+  <div id="screen-status" class="screen">
+    <h2>狀態</h2>
+    <div class="panel" id="status-panel"></div>
+    <h3>裝備詞條槽</h3>
+    <div id="equip-slots"></div>
+    <h3 class="mt">持有詞條</h3>
+    <div id="trait-list" class="select-list"></div>
+    <div class="btn-grid">
+      <button id="btn-status-back">返回</button>
+    </div>
+  </div>
+
+  <!-- FUSE -->
+  <div id="screen-fuse" class="screen">
+    <h2>詞條融合</h2>
+    <p class="statline mb">揀兩隻相容詞條融合。消耗兩隻，產出更高稀有度。</p>
+    <div class="panel mb">
+      <strong>已知配方（示範）</strong>
+      <div id="recipe-list" style="font-size:0.85rem;margin-top:6px;"></div>
+    </div>
+    <div id="fuse-pick" class="select-list"></div>
+    <div class="btn-grid">
+      <button class="primary" id="btn-do-fuse">融合</button>
+      <button id="btn-fuse-back">返回</button>
+    </div>
+    <div class="log" id="fuse-log" style="max-height:20vh;min-height:60px;"></div>
+  </div>
+
+  <!-- QUESTS -->
+  <div id="screen-quests" class="screen">
+    <h2>任務板</h2>
+    <div id="quest-list"></div>
+    <button id="btn-quests-back">返回</button>
+  </div>
+
+  <!-- COMBAT -->
+  <div id="screen-combat" class="screen">
+    <h2 id="combat-title">戰鬥</h2>
+    <div class="bar-row"><span>你</span><div class="bar"><span id="hp-you"></span></div><span id="hp-you-n"></span></div>
+    <div class="bar-row"><span>敵</span><div class="bar"><span id="hp-enemy"></span></div><span id="hp-enemy-n"></span></div>
+    <p class="statline" id="enemy-name"></p>
+    <div class="log" id="combat-log"></div>
+    <div class="btn-grid" id="combat-actions">
+      <button id="btn-atk">攻擊</button>
+      <button id="btn-def">防禦</button>
+      <button id="btn-skill">用詞條技能</button>
+      <button id="btn-flee" class="danger">逃跑</button>
+    </div>
+    <div class="btn-grid one hidden" id="combat-next-wrap">
+      <button class="primary" id="btn-combat-next">繼續</button>
+    </div>
+  </div>
+
+  <!-- SKILL PICK -->
+  <div id="screen-skill" class="screen">
+    <h2>選擇詞條技能</h2>
+    <div id="skill-list"></div>
+    <button id="btn-skill-back">返回戰鬥</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <h2 id="result-title">結果</h2>
+    <div class="log" id="result-log"></div>
+    <button class="primary" id="btn-result-ok">確定</button>
+  </div>
+
+  <!-- WIN / LOSE -->
+  <div id="screen-endlose" class="screen">
+    <h1>你倒下咗</h1>
+    <p class="sub">黑木森林吞沒咗又一個名字。</p>
+    <div class="panel mb" id="endlose-text"></div>
+    <button class="primary" id="btn-restart-lose">重新開始</button>
+  </div>
+  <div id="screen-endwin" class="screen">
+    <h1>通關</h1>
+    <p class="sub">史萊姆洞窟最深處嘅回聲靜咗落嚟。</p>
+    <div class="panel mb" id="endwin-text"></div>
+    <button class="primary" id="btn-restart-win">再玩一次</button>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SAVE_KEY = "traitQuest_v1";
+
+  // ---------- Trait catalog ----------
+  var TRAITS = {
+    sharp_claw: {
+      id: "sharp_claw", name: "利爪", rarity: "white",
+      desc: "攻擊力 +2",
+      atk: 2, skill: null
+    },
+    tough_hide: {
+      id: "tough_hide", name: "硬皮", rarity: "white",
+      desc: "最大生命 +8",
+      hp: 8, skill: null
+    },
+    quick_step: {
+      id: "quick_step", name: "快步", rarity: "white",
+      desc: "敏捷 +2；逃跑較易",
+      agi: 2, skill: null
+    },
+    goblin_blood: {
+      id: "goblin_blood", name: "哥布林血", rarity: "white",
+      desc: "力量 +1；擊殺小怪時碎片 +1",
+      str: 1, skill: null
+    },
+    venom_fang: {
+      id: "venom_fang", name: "毒牙", rarity: "green",
+      desc: "攻擊附加毒素（每回合 2 傷）",
+      atk: 1,
+      skill: { name: "噴毒", cost: 0, desc: "令敵人中毒 3 回合", type: "poison", val: 3 }
+    },
+    sticky_mucus: {
+      id: "sticky_mucus", name: "黏液", rarity: "white",
+      desc: "防禦時減傷多 2",
+      defBonus: 2, skill: null
+    },
+    night_eye: {
+      id: "night_eye", name: "夜瞳", rarity: "green",
+      desc: "敏捷 +3；先制機會↑",
+      agi: 3, skill: null
+    },
+    iron_bone: {
+      id: "iron_bone", name: "鐵骨", rarity: "green",
+      desc: "體質 +3；最大生命 +12",
+      con: 3, hp: 12, skill: null
+    },
+    rage_mark: {
+      id: "rage_mark", name: "狂怒印", rarity: "green",
+      desc: "力量 +3",
+      str: 3,
+      skill: { name: "狂擊", cost: 0, desc: "造成 1.8 倍傷害，自身受傷 4", type: "rage", mult: 1.8, self: 4 }
+    },
+    web_bind: {
+      id: "web_bind", name: "蛛網縛", rarity: "green",
+      desc: "技能：束縛一回合",
+      skill: { name: "蛛網", cost: 0, desc: "敵人跳過下回合", type: "stun", val: 1 }
+    },
+    slime_core: {
+      id: "slime_core", name: "史萊姆核", rarity: "green",
+      desc: "每回合回復 2 HP",
+      regen: 2, skill: null
+    },
+    // fused
+    blade_dance: {
+      id: "blade_dance", name: "刃舞", rarity: "blue",
+      desc: "攻擊 +5；敏捷 +2",
+      atk: 5, agi: 2,
+      skill: { name: "連斬", cost: 0, desc: "攻擊兩次（各 0.7 倍）", type: "double", mult: 0.7 }
+    },
+    stone_body: {
+      id: "stone_body", name: "石身", rarity: "blue",
+      desc: "最大生命 +25；防禦減傷 +4",
+      hp: 25, defBonus: 4, con: 2, skill: null
+    },
+    shadow_step: {
+      id: "shadow_step", name: "影步", rarity: "blue",
+      desc: "敏捷 +5；逃跑幾乎必成",
+      agi: 5, fleeBonus: 40, skill: null
+    },
+    venom_blade: {
+      id: "venom_blade", name: "毒刃", rarity: "blue",
+      desc: "攻擊 +4；毒素更強",
+      atk: 4,
+      skill: { name: "劇毒斬", cost: 0, desc: "傷害並劇毒 4 回合（每回 4）", type: "poison_strike", val: 4, dmg: 4 }
+    },
+    life_well: {
+      id: "life_well", name: "命泉", rarity: "blue",
+      desc: "每回合回 5；最大生命 +15",
+      regen: 5, hp: 15,
+      skill: { name: "癒合", cost: 0, desc: "即時回復 20 HP", type: "heal", val: 20 }
+    },
+    berserk_heart: {
+      id: "berserk_heart", name: "狂心", rarity: "purple",
+      desc: "力量 +6；狂擊更強",
+      str: 6, atk: 3,
+      skill: { name: "滅擊", cost: 0, desc: "2.5 倍傷害，自傷 8", type: "rage", mult: 2.5, self: 8 }
+    },
+    forest_warden: {
+      id: "forest_warden", name: "森衛", rarity: "purple",
+      desc: "均衡強化；技能：森之守護",
+      atk: 4, hp: 20, agi: 3, con: 3, defBonus: 3,
+      skill: { name: "森之守護", cost: 0, desc: "本回合大幅減傷並回 10", type: "guard_heal", val: 10 }
+    }
+  };
+
+  var RECIPES = [
+    { a: "sharp_claw", b: "quick_step", out: "blade_dance", hint: "利爪 + 快步 → 刃舞" },
+    { a: "tough_hide", b: "iron_bone", out: "stone_body", hint: "硬皮 + 鐵骨 → 石身" },
+    { a: "quick_step", b: "night_eye", out: "shadow_step", hint: "快步 + 夜瞳 → 影步" },
+    { a: "venom_fang", b: "sharp_claw", out: "venom_blade", hint: "毒牙 + 利爪 → 毒刃" },
+    { a: "slime_core", b: "tough_hide", out: "life_well", hint: "史萊姆核 + 硬皮 → 命泉" },
+    { a: "rage_mark", b: "blade_dance", out: "berserk_heart", hint: "狂怒印 + 刃舞 → 狂心" },
+    { a: "stone_body", b: "shadow_step", out: "forest_warden", hint: "石身 + 影步 → 森衛" },
+    { a: "web_bind", b: "venom_fang", out: "venom_blade", hint: "蛛網縛 + 毒牙 → 毒刃" },
+    { a: "goblin_blood", b: "rage_mark", out: "berserk_heart", hint: "哥布林血 + 狂怒印 → 狂心（需先有綠）" }
+  ];
+
+  // Drop tables by quest
+  var DROP_POOLS = {
+    goblin: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood"],
+      green: ["rage_mark", "iron_bone"],
+      whiteChance: 0.45,
+      greenChance: 0.12,
+      fragChance: 0.55
+    },
+    spider: {
+      white: ["sharp_claw", "quick_step", "sticky_mucus"],
+      green: ["venom_fang", "web_bind", "night_eye"],
+      whiteChance: 0.4,
+      greenChance: 0.18,
+      fragChance: 0.5
+    },
+    slime: {
+      white: ["tough_hide", "sticky_mucus", "goblin_blood"],
+      green: ["slime_core", "iron_bone", "venom_fang"],
+      whiteChance: 0.35,
+      greenChance: 0.22,
+      fragChance: 0.45
+    }
+  };
+
+  var QUESTS = [
+    {
+      id: "goblin",
+      name: "哥布林洞窟",
+      desc: "公會最低級委託。清掉洞窟入面嘅哥布林。報酬微薄，但適合新人練手。",
+      stages: [
+        { name: "瘦弱哥布林", hp: 28, atk: 6, def: 1, flavor: "洞窟入口傳來嘈雜聲。一隻瘦弱哥布林舉住生鏽匕首衝出嚟。" },
+        { name: "哥布林戰士", hp: 40, atk: 9, def: 2, flavor: "深入少少，有隻裝備比較齊嘅哥布林擋住去路。" },
+        { name: "哥布林頭目", hp: 55, atk: 12, def: 3, flavor: "洞穴最入面，頭目坐喺一堆破銅爛鐵上面，雙眼發紅。" }
+      ],
+      unlock: true,
+      clearText: "你拎住頭目嘅耳朵返到公會。接待員淡淡咁蓋咗個章：「下一個委託喺蛛巢。小心啲。」"
+    },
+    {
+      id: "spider",
+      name: "黑木蛛巢",
+      desc: "森林深處嘅蛛巢。傳聞有冒險者隊喺度失蹤——隊長臨走前對隊員笑得好奇怪。",
+      stages: [
+        { name: "幼蛛", hp: 32, atk: 8, def: 1, flavor: "蛛絲黏住腳踝。幾隻幼蛛從樹幹後面爬出嚟。" },
+        { name: "毒蛛", hp: 48, atk: 11, def: 2, flavor: "毒液滴落葉上發出嗤聲。成蛛盯住你。" },
+        { name: "蛛后", hp: 70, atk: 14, def: 3, flavor: "巢穴中央，巨大嘅蛛后緩緩轉身。角落有半舊嘅冒險者徽章……隊長款。" },
+        { name: "影蛛護衛", hp: 50, atk: 13, def: 2, flavor: "蛛后倒下後，護衛蛛從暗處撲出。你感覺到類似『背叛』嘅敵意——唔係蛛，而係某種印記。" }
+      ],
+      need: "goblin",
+      clearText: "你燒咗蛛巢一角。公會說史萊姆洞窟有異常魔力反應，願意接嘅人不多。"
+    },
+    {
+      id: "slime",
+      name: "史萊姆洞窟",
+      desc: "最深處嘅委託。史萊姆異常增殖，有人話同『詞條暴走』有關。完成呢個，你就唔再係純新人。",
+      stages: [
+        { name: "綠史萊姆", hp: 36, atk: 9, def: 2, flavor: "黏液反光。一隻綠史萊姆一彈一彈靠近。" },
+        { name: "酸史萊姆", hp: 52, atk: 13, def: 3, flavor: "酸性霧氣令喉嚨發癢。大隻酸史萊姆堵住通道。" },
+        { name: "鐵皮史萊姆", hp: 75, atk: 12, def: 6, flavor: "表面硬化如鐵。普通刀刃幾乎削唔入。" },
+        { name: "詞條核心體", hp: 95, atk: 16, def: 4, flavor: "洞窟最底，一團半透明物質浮住——入面隱約有文字形狀嘅光。呢個就係異常嘅源頭。" }
+      ],
+      need: "spider",
+      clearText: "核心潰散成碎光。你感覺詞條槽隱隱發熱——成長還未完，但呢一片森林，暫時安靜咗。"
+    }
+  ];
+
+  // ---------- State ----------
+  var state = null;
+  var combat = null;
+
+  function defaultState(name) {
+    return {
+      name: name || "李維",
+      str: 5,
+      agi: 5,
+      con: 5,
+      baseHp: 40,
+      hp: 40,
+      gold: 0,
+      traits: [],          // owned trait ids (can duplicate? no - unique instances as {uid, id})
+      equipped: [null, null], // 2 slots
+      fragments: 0,
+      fragNeed: 5,
+      cleared: {},
+      introDone: false,
+      turn: 0
+    };
+  }
+
+  function uid() {
+    return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function addTrait(traitId) {
+    state.traits.push({ uid: uid(), id: traitId });
+  }
+
+  function removeTraitByUid(u) {
+    state.traits = state.traits.filter(function (t) { return t.uid !== u; });
+    state.equipped = state.equipped.map(function (e) { return e === u ? null : e; });
+  }
+
+  function getTraitDef(id) { return TRAITS[id]; }
+
+  function equippedDefs() {
+    return state.equipped.map(function (u) {
+      if (!u) return null;
+      var inst = state.traits.find(function (t) { return t.uid === u; });
+      return inst ? TRAITS[inst.id] : null;
+    }).filter(Boolean);
+  }
+
+  function calcStats() {
+    var s = { str: state.str, agi: state.agi, con: state.con, atk: 0, hpBonus: 0, defBonus: 0, regen: 0, fleeBonus: 0 };
+    equippedDefs().forEach(function (d) {
+      if (d.str) s.str += d.str;
+      if (d.agi) s.agi += d.agi;
+      if (d.con) s.con += d.con;
+      if (d.atk) s.atk += d.atk;
+      if (d.hp) s.hpBonus += d.hp;
+      if (d.defBonus) s.defBonus += d.defBonus;
+      if (d.regen) s.regen += d.regen;
+      if (d.fleeBonus) s.fleeBonus += d.fleeBonus;
+    });
+    s.maxHp = state.baseHp + s.con * 3 + s.hpBonus;
+    s.attack = 4 + s.str + s.atk;
+    s.defense = Math.floor(s.con / 2) + s.defBonus;
+    return s;
+  }
+
+  // ---------- UI helpers ----------
+  function $(id) { return document.getElementById(id); }
+
+  function showScreen(id) {
+    document.querySelectorAll(".screen").forEach(function (el) {
+      el.classList.remove("active");
+    });
+    $(id).classList.add("active");
+  }
+
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+
+  function appendLog(el, html, cls) {
+    var p = document.createElement("p");
+    if (cls) p.className = cls;
+    p.innerHTML = html;
+    el.appendChild(p);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function rarityLabel(r) {
+    return ({ white: "白", green: "綠", blue: "藍", purple: "紫" })[r] || r;
+  }
+
+  // ---------- Persist ----------
+  function saveGame() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      toast("已儲存");
+      return true;
+    } catch (e) {
+      toast("儲存失敗");
+      return false;
+    }
+  }
+
+  function loadGame() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      state = JSON.parse(raw);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hasSave() {
+    try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
+  }
+
+  // ---------- Screens ----------
+  function refreshContinueBtn() {
+    var btn = $("btn-continue");
+    if (hasSave()) btn.classList.remove("hidden");
+    else btn.classList.add("hidden");
+  }
+
+  function startNew() {
+    var name = ($("name-input").value || "李維").trim().slice(0, 12);
+    state = defaultState(name);
+    // starter gift
+    addTrait("sharp_claw");
+    state.equipped[0] = state.traits[0].uid;
+    showIntro();
+  }
+
+  function showIntro() {
+    showScreen("screen-intro");
+    var log = $("intro-log");
+    log.innerHTML = "";
+    var lines = [
+      "黑木森林擋住咗邊陲小鎮嘅日光。霧氣長年唔散。",
+      "冒險者公會木門吱呀一聲。接待員望都唔望你：「新人？銅牌都未有，接唔到好單。」",
+      "你叫「" + escapeHtml(state.name) + "」。袋入面只有一把舊鐵劍，同——昨晚喺野狼屍上隱約感覺到嘅、像文字一樣嘅光芒。",
+      "有人話呢種叫「詞條」。擊敗魔物，有機會將佢哋嘅本質刻落自己身上。再融合，可以變得更強。",
+      "走廊盡頭，一個戴住隊長徽章嘅男人拍拍你膊頭：「洞窟入面小心啲。我以前個隊……算啦，你自己睇。」佢笑得好淡，轉身就行。",
+      "你握實劍柄，踏入公會任務板前面。"
+    ];
+    var i = 0;
+    function next() {
+      if (i < lines.length) {
+        appendLog(log, lines[i]);
+        i++;
+        setTimeout(next, 80);
+      }
+    }
+    next();
+    state.introDone = true;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+
+  function enterTown(msg) {
+    showScreen("screen-town");
+    var st = calcStats();
+    if (state.hp > st.maxHp) state.hp = st.maxHp;
+    $("town-stats").innerHTML =
+      "<b>" + escapeHtml(state.name) + "</b>　HP " + state.hp + "/" + st.maxHp +
+      "　力" + st.str + " 敏" + st.agi + " 體" + st.con +
+      "　碎片 " + state.fragments + "/" + state.fragNeed;
+    var flavors = [
+      "公會大廳煙味同汗味混埋一齊。任務板釘滿泛黃嘅紙條。",
+      "窗外黑木林影晃動。有人講，林入面嘅詞條會『認人』。",
+      "吧台角落，幾個銅牌冒險者賭骰。冇人理你呢個更底層嘅。",
+      "接待員打咗個呵欠：「活住返嚟就算賺。」"
+    ];
+    $("town-flavor").textContent = flavors[Math.floor(Math.random() * flavors.length)];
+    var log = $("town-log");
+    if (msg) {
+      appendLog(log, msg, "sys");
+    }
+  }
+
+  function doRest() {
+    var st = calcStats();
+    state.hp = st.maxHp;
+    enterTown("你喺廉價旅店瞓咗一覺。體力回復。");
+    toast("HP 已回滿");
+  }
+
+  function showStatus() {
+    showScreen("screen-status");
+    var st = calcStats();
+    $("status-panel").innerHTML =
+      "<p><b>" + escapeHtml(state.name) + "</b></p>" +
+      "<p>HP " + state.hp + " / " + st.maxHp + "</p>" +
+      "<p>力量 " + st.str + "　敏捷 " + st.agi + "　體質 " + st.con + "</p>" +
+      "<p>攻擊力 " + st.attack + "　減傷 " + st.defense +
+      (st.regen ? "　再生 +" + st.regen : "") + "</p>" +
+      "<p>詞條碎片 " + state.fragments + " / " + state.fragNeed + "（滿則隨機白詞條）</p>";
+
+    var slots = $("equip-slots");
+    slots.innerHTML = "";
+    state.equipped.forEach(function (u, idx) {
+      var div = document.createElement("div");
+      div.className = "slot" + (u ? " filled" : "");
+      if (u) {
+        var inst = state.traits.find(function (t) { return t.uid === u; });
+        var def = inst && TRAITS[inst.id];
+        div.textContent = "槽" + (idx + 1) + ": " + (def ? def.name : "?");
+        div.onclick = function () {
+          state.equipped[idx] = null;
+          showStatus();
+          toast("已卸下");
+        };
+      } else {
+        div.textContent = "槽" + (idx + 1) + ": （空）點持有詞條裝備";
+      }
+      slots.appendChild(div);
+    });
+
+    var list = $("trait-list");
+    list.innerHTML = "";
+    if (!state.traits.length) {
+      list.innerHTML = "<p class='statline'>未持有詞條</p>";
+      return;
+    }
+    state.traits.forEach(function (inst) {
+      var def = TRAITS[inst.id];
+      if (!def) return;
+      var eqIdx = state.equipped.indexOf(inst.uid);
+      var row = document.createElement("div");
+      row.className = "trait rarity-" + def.rarity;
+      row.innerHTML =
+        "<div class='name'>" + escapeHtml(def.name) +
+        (eqIdx >= 0 ? "（已裝備槽" + (eqIdx + 1) + "）" : "") + "</div>" +
+        "<div class='meta'>" + escapeHtml(def.desc) +
+        (def.skill ? "　技能：" + escapeHtml(def.skill.name) : "") + "</div>";
+      if (eqIdx < 0) {
+        var b = document.createElement("button");
+        b.textContent = "裝備";
+        b.style.marginTop = "6px";
+        b.style.width = "100%";
+        b.onclick = function () {
+          var empty = state.equipped.indexOf(null);
+          if (empty < 0) {
+            toast("詞條槽已滿，先卸下一隻");
+            return;
+          }
+          state.equipped[empty] = inst.uid;
+          showStatus();
+          toast("已裝備「" + def.name + "」");
+        };
+        row.appendChild(b);
+      }
+      list.appendChild(row);
+    });
+  }
+
+  function showFuse() {
+    showScreen("screen-fuse");
+    $("fuse-log").innerHTML = "";
+    var rl = $("recipe-list");
+    rl.innerHTML = RECIPES.map(function (r) {
+      return "<div>· " + escapeHtml(r.hint) + "</div>";
+    }).join("");
+
+    var pick = $("fuse-pick");
+    pick.innerHTML = "";
+    if (state.traits.length < 2) {
+      pick.innerHTML = "<p class='statline'>至少需要兩隻詞條先可以融合。</p>";
+      return;
+    }
+    state.traits.forEach(function (inst) {
+      var def = TRAITS[inst.id];
+      if (!def) return;
+      var lab = document.createElement("label");
+      lab.className = "rarity-" + def.rarity;
+      lab.innerHTML =
+        "<input type='checkbox' data-uid='" + inst.uid + "' data-id='" + inst.id + "'>" +
+        "<span class='name'>" + escapeHtml(def.name) + "</span> " +
+        "<span class='meta'>" + escapeHtml(def.desc) + "</span>";
+      pick.appendChild(lab);
+    });
+  }
+
+  function doFuse() {
+    var boxes = $("fuse-pick").querySelectorAll("input[type=checkbox]:checked");
+    if (boxes.length !== 2) {
+      toast("請剛好選兩隻詞條");
+      return;
+    }
+    var idA = boxes[0].getAttribute("data-id");
+    var idB = boxes[1].getAttribute("data-id");
+    var uidA = boxes[0].getAttribute("data-uid");
+    var uidB = boxes[1].getAttribute("data-uid");
+
+    var recipe = null;
+    for (var i = 0; i < RECIPES.length; i++) {
+      var r = RECIPES[i];
+      if ((r.a === idA && r.b === idB) || (r.a === idB && r.b === idA)) {
+        recipe = r;
+        break;
+      }
+    }
+    var log = $("fuse-log");
+    if (!recipe) {
+      appendLog(log, "呢兩隻詞條互不相容，融合失敗。試下睇配方表。", "sys");
+      toast("不相容");
+      return;
+    }
+    removeTraitByUid(uidA);
+    removeTraitByUid(uidB);
+    addTrait(recipe.out);
+    var out = TRAITS[recipe.out];
+    appendLog(log, "光芒收束……獲得【" + rarityLabel(out.rarity) + "】<b>" + escapeHtml(out.name) + "</b>！" +
+      "<br>" + escapeHtml(out.desc), "loot");
+    toast("融合成功：" + out.name);
+    showFuse();
+  }
+
+  function showQuests() {
+    showScreen("screen-quests");
+    var list = $("quest-list");
+    list.innerHTML = "";
+    QUESTS.forEach(function (q) {
+      var locked = q.need && !state.cleared[q.need];
+      var cleared = !!state.cleared[q.id];
+      var btn = document.createElement("button");
+      btn.className = "list-btn";
+      btn.disabled = locked;
+      btn.innerHTML =
+        escapeHtml(q.name) + (cleared ? " ✓" : "") +
+        "<span class='desc'>" +
+        (locked ? "（需先完成上一關）" : escapeHtml(q.desc)) +
+        "</span>";
+      if (!locked) {
+        btn.onclick = function () { startQuest(q); };
+      }
+      list.appendChild(btn);
+    });
+  }
+
+  // ---------- Combat ----------
+  function startQuest(q) {
+    combat = {
+      quest: q,
+      stage: 0,
+      defending: false,
+      enemyPoison: 0,
+      enemyStun: 0,
+      playerPoison: 0,
+      guardHeal: false,
+      over: false
+    };
+    beginStage();
+  }
+
+  function beginStage() {
+    var q = combat.quest;
+    var stage = q.stages[combat.stage];
+    combat.enemy = {
+      name: stage.name,
+      maxHp: stage.hp,
+      hp: stage.hp,
+      atk: stage.atk,
+      def: stage.def
+    };
+    combat.defending = false;
+    combat.guardHeal = false;
+    combat.over = false;
+    showScreen("screen-combat");
+    $("combat-title").textContent = q.name + "（" + (combat.stage + 1) + "/" + q.stages.length + "）";
+    $("enemy-name").textContent = "敵人：" + stage.name;
+    $("combat-log").innerHTML = "";
+    $("combat-actions").classList.remove("hidden");
+    $("combat-next-wrap").classList.add("hidden");
+    updateBars();
+    appendLog($("combat-log"), stage.flavor);
+    appendLog($("combat-log"), "戰鬥開始！", "sys");
+  }
+
+  function updateBars() {
+    var st = calcStats();
+    var youPct = Math.max(0, Math.min(100, (state.hp / st.maxHp) * 100));
+    var enPct = Math.max(0, Math.min(100, (combat.enemy.hp / combat.enemy.maxHp) * 100));
+    $("hp-you").style.width = youPct + "%";
+    $("hp-enemy").style.width = enPct + "%";
+    $("hp-you-n").textContent = state.hp + "/" + st.maxHp;
+    $("hp-enemy-n").textContent = combat.enemy.hp + "/" + combat.enemy.maxHp;
+  }
+
+  function playerAttackPower() {
+    return calcStats().attack;
+  }
+
+  function dealToEnemy(raw) {
+    var dmg = Math.max(1, raw - combat.enemy.def);
+    combat.enemy.hp -= dmg;
+    return dmg;
+  }
+
+  function dealToPlayer(raw) {
+    var st = calcStats();
+    var reduce = st.defense + (combat.defending ? 3 + st.defBonus : 0);
+    if (combat.guardHeal) reduce += 8;
+    var dmg = Math.max(1, raw - reduce);
+    state.hp -= dmg;
+    return dmg;
+  }
+
+  function afterPlayerAction() {
+    if (combat.over) return;
+    // poison on enemy
+    if (combat.enemyPoison > 0 && combat.enemy.hp > 0) {
+      var pd = combat._poisonDmg || 2;
+      combat.enemy.hp -= pd;
+      combat.enemyPoison--;
+      appendLog($("combat-log"), "毒素生效，" + combat.enemy.name + "受到 " + pd + " 點傷害。", "dmg");
+    }
+    if (combat.enemy.hp <= 0) {
+      onEnemyDown();
+      return;
+    }
+    // regen
+    var st = calcStats();
+    if (st.regen > 0 && state.hp > 0) {
+      state.hp = Math.min(st.maxHp, state.hp + st.regen);
+      appendLog($("combat-log"), "詞條再生：回復 " + st.regen + " HP。", "sys");
+    }
+    if (combat.guardHeal) {
+      state.hp = Math.min(st.maxHp, state.hp + 10);
+      appendLog($("combat-log"), "森之守護：回復 10 HP。", "sys");
+      combat.guardHeal = false;
+    }
+    // enemy turn
+    if (combat.enemyStun > 0) {
+      combat.enemyStun--;
+      appendLog($("combat-log"), combat.enemy.name + "被束縛，無法行動！", "sys");
+      combat.defending = false;
+      updateBars();
+      return;
+    }
+    var eatk = combat.enemy.atk + Math.floor(Math.random() * 3);
+    // spider poison chance
+    if (combat.quest.id === "spider" && Math.random() < 0.25) {
+      combat.playerPoison = Math.max(combat.playerPoison, 2);
+      appendLog($("combat-log"), combat.enemy.name + "的攻擊帶毒！", "sys");
+    }
+    var dmg = dealToPlayer(eatk);
+    appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
+      (combat.defending ? "（防禦減傷）" : ""), "dmg");
+    combat.defending = false;
+
+    if (combat.playerPoison > 0) {
+      state.hp -= 2;
+      combat.playerPoison--;
+      appendLog($("combat-log"), "你因中毒失去 2 HP。", "dmg");
+    }
+    updateBars();
+    if (state.hp <= 0) {
+      state.hp = 0;
+      onPlayerDown();
+    }
+  }
+
+  function onEnemyDown() {
+    combat.over = true;
+    appendLog($("combat-log"), "【" + combat.enemy.name + "】倒下！", "loot");
+    // drops
+    var pool = DROP_POOLS[combat.quest.id];
+    var drops = [];
+    if (pool) {
+      if (Math.random() < pool.greenChance) {
+        var g = pool.green[Math.floor(Math.random() * pool.green.length)];
+        addTrait(g);
+        drops.push("綠詞條「" + TRAITS[g].name + "」");
+      } else if (Math.random() < pool.whiteChance) {
+        var w = pool.white[Math.floor(Math.random() * pool.white.length)];
+        addTrait(w);
+        drops.push("白詞條「" + TRAITS[w].name + "」");
+      }
+      var fragGain = 0;
+      if (Math.random() < pool.fragChance) fragGain = 1 + (Math.random() < 0.3 ? 1 : 0);
+      // goblin blood bonus
+      equippedDefs().forEach(function (d) {
+        if (d.id === "goblin_blood") fragGain += 1;
+      });
+      if (fragGain > 0) {
+        state.fragments += fragGain;
+        drops.push("詞條碎片 ×" + fragGain);
+        while (state.fragments >= state.fragNeed) {
+          state.fragments -= state.fragNeed;
+          var poolAll = ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"];
+          var rw = poolAll[Math.floor(Math.random() * poolAll.length)];
+          addTrait(rw);
+          drops.push("碎片集滿！獲得白詞條「" + TRAITS[rw].name + "」");
+          state.fragNeed = Math.min(12, state.fragNeed + 1);
+        }
+      }
+    }
+    if (drops.length) {
+      appendLog($("combat-log"), "戰利品：" + drops.join("、"), "loot");
+    } else {
+      appendLog($("combat-log"), "今次冇掉落詞條。", "sys");
+    }
+    updateBars();
+    $("combat-actions").classList.add("hidden");
+    $("combat-next-wrap").classList.remove("hidden");
+  }
+
+  function combatNext() {
+    combat.stage++;
+    if (combat.stage >= combat.quest.stages.length) {
+      // quest clear
+      state.cleared[combat.quest.id] = true;
+      var st = calcStats();
+      state.hp = Math.min(state.hp + 10, st.maxHp);
+      showScreen("screen-result");
+      $("result-title").textContent = "任務完成：" + combat.quest.name;
+      $("result-log").innerHTML = "";
+      appendLog($("result-log"), combat.quest.clearText);
+      appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、融合詞條，或接下一個委託。", "sys");
+      if (combat.quest.id === "slime") {
+        $("btn-result-ok").onclick = function () {
+          showWin();
+        };
+      } else {
+        $("btn-result-ok").onclick = function () {
+          enterTown("完成咗「" + combat.quest.name + "」。");
+        };
+      }
+      combat = null;
+    } else {
+      beginStage();
+    }
+  }
+
+  function onPlayerDown() {
+    combat.over = true;
+    $("combat-actions").classList.add("hidden");
+    showScreen("screen-endlose");
+    $("endlose-text").textContent =
+      state.name + "嘅意識沉入黑暗。詞條嘅微光一閃即滅。公會名單上，又多咗一個「失蹤」。";
+  }
+
+  function showWin() {
+    showScreen("screen-endwin");
+    $("endwin-text").innerHTML =
+      escapeHtml(state.name) + "企喺史萊姆洞窟出口。晨霧稀咗少少。<br><br>" +
+      "公會接待員罕見咁望你多一眼：「你……仲係銅牌以下，但報告寫得唔錯。」<br><br>" +
+      "隊長徽章嗰個男人已經唔見咗。有人話佢去咗更深嘅林。詞條仲會繼續出現——你嘅故事未完，但呢個 Demo 到呢度。";
+  }
+
+  function actAttack() {
+    if (!combat || combat.over) return;
+    var raw = playerAttackPower() + Math.floor(Math.random() * 4);
+    // first strike mild bonus from agi
+    var st = calcStats();
+    if (Math.random() * 20 < st.agi) {
+      raw = Math.floor(raw * 1.15);
+      appendLog($("combat-log"), "憑敏捷捉到破綻！", "sys");
+    }
+    var dmg = dealToEnemy(raw);
+    appendLog($("combat-log"), "你發動攻擊，造成 " + dmg + " 傷害。");
+    updateBars();
+    afterPlayerAction();
+  }
+
+  function actDefend() {
+    if (!combat || combat.over) return;
+    combat.defending = true;
+    appendLog($("combat-log"), "你採取防禦姿態，準備減傷。", "sys");
+    afterPlayerAction();
+  }
+
+  function actFlee() {
+    if (!combat || combat.over) return;
+    var st = calcStats();
+    var chance = 35 + st.agi * 3 + st.fleeBonus;
+    if (Math.random() * 100 < chance) {
+      appendLog($("combat-log"), "你成功逃離戰鬥！", "sys");
+      combat.over = true;
+      $("combat-actions").classList.add("hidden");
+      setTimeout(function () {
+        combat = null;
+        enterTown("你狼狽返到鎮上。至少仲活住。");
+      }, 600);
+    } else {
+      appendLog($("combat-log"), "逃跑失敗！", "sys");
+      afterPlayerAction();
+    }
+  }
+
+  function showSkillPick() {
+    if (!combat || combat.over) return;
+    var skills = [];
+    equippedDefs().forEach(function (d) {
+      if (d.skill) skills.push({ def: d, skill: d.skill });
+    });
+    if (!skills.length) {
+      toast("裝備中冇可用技能詞條");
+      return;
+    }
+    showScreen("screen-skill");
+    var list = $("skill-list");
+    list.innerHTML = "";
+    skills.forEach(function (s) {
+      var btn = document.createElement("button");
+      btn.className = "list-btn";
+      btn.innerHTML = escapeHtml(s.skill.name) +
+        "<span class='desc'>" + escapeHtml(s.def.name) + "：" + escapeHtml(s.skill.desc) + "</span>";
+      btn.onclick = function () { useSkill(s.skill); };
+      list.appendChild(btn);
+    });
+  }
+
+  function useSkill(skill) {
+    showScreen("screen-combat");
+    if (!combat || combat.over) return;
+    var st = calcStats();
+    appendLog($("combat-log"), "發動詞條技能【" + skill.name + "】！");
+    switch (skill.type) {
+      case "poison":
+        combat.enemyPoison = skill.val;
+        combat._poisonDmg = 2;
+        appendLog($("combat-log"), "敵人中毒 " + skill.val + " 回合。", "sys");
+        break;
+      case "poison_strike":
+        var d1 = dealToEnemy(playerAttackPower());
+        combat.enemyPoison = skill.val;
+        combat._poisonDmg = skill.dmg || 4;
+        appendLog($("combat-log"), "造成 " + d1 + " 傷害，並附加劇毒。");
+        break;
+      case "rage":
+        var d2 = dealToEnemy(Math.floor(playerAttackPower() * skill.mult));
+        state.hp -= skill.self;
+        appendLog($("combat-log"), "狂暴一擊造成 " + d2 + " 傷害！你反噬受傷 " + skill.self + "。", "dmg");
+        break;
+      case "stun":
+        combat.enemyStun = skill.val;
+        appendLog($("combat-log"), "敵人被束縛！", "sys");
+        break;
+      case "double":
+        var a = dealToEnemy(Math.floor(playerAttackPower() * skill.mult));
+        var b = dealToEnemy(Math.floor(playerAttackPower() * skill.mult));
+        appendLog($("combat-log"), "連斬造成 " + a + " + " + b + " 傷害。");
+        break;
+      case "heal":
+        state.hp = Math.min(st.maxHp, state.hp + skill.val);
+        appendLog($("combat-log"), "回復 " + skill.val + " HP。", "sys");
+        break;
+      case "guard_heal":
+        combat.defending = true;
+        combat.guardHeal = true;
+        appendLog($("combat-log"), "展開守護。", "sys");
+        break;
+      default:
+        appendLog($("combat-log"), "技能無效。", "sys");
+    }
+    updateBars();
+    if (state.hp <= 0) {
+      state.hp = 0;
+      onPlayerDown();
+      return;
+    }
+    if (combat.enemy.hp <= 0) {
+      onEnemyDown();
+      return;
+    }
+    afterPlayerAction();
+  }
+
+  function restart() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    state = null;
+    combat = null;
+    $("town-log").innerHTML = "";
+    refreshContinueBtn();
+    showScreen("screen-title");
+  }
+
+  // ---------- Bind ----------
+  function bind() {
+    $("btn-newgame").onclick = startNew;
+    $("btn-continue").onclick = function () {
+      if (loadGame()) {
+        enterTown("讀取進度成功。歡迎返嚟，" + state.name + "。");
+      } else {
+        toast("無存檔");
+      }
+    };
+    $("btn-intro-next").onclick = function () {
+      enterTown("你站喺公會大廳。從任務板開始啦。");
+    };
+    $("btn-rest").onclick = doRest;
+    $("btn-status").onclick = showStatus;
+    $("btn-status-back").onclick = function () { enterTown(); };
+    $("btn-fuse").onclick = showFuse;
+    $("btn-fuse-back").onclick = function () { enterTown(); };
+    $("btn-do-fuse").onclick = doFuse;
+    $("btn-quests").onclick = showQuests;
+    $("btn-quests-back").onclick = function () { enterTown(); };
+    $("btn-save").onclick = saveGame;
+    $("btn-title").onclick = function () {
+      if (confirm("返回標題？（記得先儲存）")) {
+        refreshContinueBtn();
+        showScreen("screen-title");
+      }
+    };
+    $("btn-atk").onclick = actAttack;
+    $("btn-def").onclick = actDefend;
+    $("btn-skill").onclick = showSkillPick;
+    $("btn-flee").onclick = actFlee;
+    $("btn-skill-back").onclick = function () { showScreen("screen-combat"); };
+    $("btn-combat-next").onclick = combatNext;
+    $("btn-result-ok").onclick = function () { enterTown(); };
+    $("btn-restart-lose").onclick = restart;
+    $("btn-restart-win").onclick = restart;
+  }
+
+  bind();
+  refreshContinueBtn();
+})();
+</script>
+</body>
+</html>
