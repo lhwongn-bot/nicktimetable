@@ -120,38 +120,101 @@
   }
   .panel {
     border: 1px solid var(--border);
-    padding: 10px;
+    padding: 12px 14px;
     background: var(--dim);
+  }
+  .panel p { margin-bottom: 6px; }
+  .panel p:last-child { margin-bottom: 0; }
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 4px 0 6px;
+    letter-spacing: 0.02em;
   }
   .trait {
     border: 1px solid var(--border);
-    padding: 8px;
-    margin-bottom: 6px;
-    font-size: 0.9rem;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-  .trait .name { font-weight: 600; }
-  .trait .meta { color: var(--muted); font-size: 0.8rem; }
+  .trait .name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .trait .meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .trait button {
+    margin-top: 4px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
   .rarity-white .name::before { content: "[白] "; }
   .rarity-green .name::before { content: "[綠] "; }
   .rarity-blue .name::before { content: "[藍] "; }
   .rarity-purple .name::before { content: "[紫] "; }
-  .slot-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  #equip-slots,
+  .slot-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
   .slot {
     border: 1px dashed var(--border);
-    padding: 6px 10px;
-    font-size: 0.85rem;
-    min-width: 80px;
-    text-align: center;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    min-height: 48px;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    background: #111;
+    cursor: pointer;
+    touch-action: manipulation;
   }
   .slot.filled { border-style: solid; }
+  .slot .meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 400;
+  }
   .list-btn {
     display: block;
     width: 100%;
     text-align: left;
-    margin-bottom: 6px;
-    padding: 12px;
+    margin-bottom: 10px;
+    padding: 14px;
+    min-height: 52px;
+    line-height: 1.35;
   }
-  .list-btn .desc { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+  .list-btn .desc {
+    display: block;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 400;
+    margin-top: 4px;
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
   .hidden { display: none !important; }
   .footer-note { color: var(--muted); font-size: 0.7rem; text-align: center; margin-top: 8px; }
   .toast {
@@ -168,15 +231,51 @@
     display: none;
   }
   .toast.show { display: block; }
-  .select-list { max-height: 40vh; overflow-y: auto; }
-  .select-list label {
-    display: block;
-    border: 1px solid var(--border);
-    padding: 10px;
-    margin-bottom: 6px;
-    cursor: pointer;
+  .select-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
   }
-  .select-list input { margin-right: 8px; }
+  .select-list label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    min-height: 52px;
+    background: #111;
+    line-height: 1.4;
+    touch-action: manipulation;
+  }
+  .select-list label .pick-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .select-list label .name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    display: block;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .select-list label .meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: block;
+    margin-top: 4px;
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .select-list input {
+    margin: 3px 0 0;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
   .center { text-align: center; }
   .mt { margin-top: 8px; }
   .mb { margin-bottom: 8px; }
@@ -191,17 +290,77 @@
     background: #000; border: 2px solid #fff; padding: 16px;
     max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto;
   }
-  .shop-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
-  .shop-tabs button { flex: 1; padding: 10px; min-height: 40px; font-size: 0.9rem; }
+  .shop-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .shop-tabs button { flex: 1; padding: 12px 8px; min-height: 44px; font-size: 0.95rem; }
   .shop-tabs button.active { background: #fff; color: #000; }
   .inv-row {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 8px; border: 1px solid var(--border); padding: 8px; margin-bottom: 6px;
-    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    background: #111;
   }
-  .inv-row .info { flex: 1; }
-  .inv-row .meta { color: var(--muted); font-size: 0.8rem; }
-  .inv-row button { min-height: 40px; padding: 8px 10px; font-size: 0.85rem; width: auto; }
+  .inv-row .info { flex: 1; min-width: 0; }
+  .inv-row .info > b,
+  .inv-row .name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    display: block;
+    line-height: 1.35;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .inv-row .meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    margin-top: 4px;
+  }
+  .inv-row > .meta {
+    margin-top: 0;
+    align-self: flex-start;
+    padding: 8px 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .inv-row button {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
+  @media (min-width: 380px) {
+    .inv-row {
+      flex-direction: row;
+      align-items: center;
+    }
+    .inv-row button {
+      width: auto;
+      min-width: 104px;
+      flex-shrink: 0;
+    }
+    .inv-row > .meta {
+      align-self: center;
+      padding: 0;
+      min-height: 0;
+    }
+  }
+  #screen-shop .select-list,
+  #screen-bag .select-list,
+  #screen-status .select-list,
+  #screen-fuse .select-list {
+    flex: 1;
+    max-height: none;
+    min-height: 140px;
+  }
+  #combat-item-list { display: flex; flex-direction: column; gap: 0; }
 
   .game-art {
     display: block;
@@ -581,10 +740,15 @@
       id: "lotus_soup", name: "蓮藕湯",
       desc: "溫補暖胃，回復 32 HP。鎮內／戰鬥可用。",
       buy: 28, sell: 11, use: "heal", val: 32, town: true, combat: true
+    },
+    calm_pill: {
+      id: "calm_pill", name: "定心丸",
+      desc: "凝神定氣，下一場戰鬥防禦 +4（進戰時生效）。",
+      buy: 35, sell: 14, use: "buff_def", val: 4, town: true, combat: false
     }
   };
 
-  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration", "vita_tonic", "lotus_soup"];
+  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration", "vita_tonic", "lotus_soup", "calm_pill"];
 
   var TRAIT_SELL = { white: 15, green: 40, blue: 100, purple: 250 };
 
@@ -1181,14 +1345,16 @@
       if (u) {
         var inst = state.traits.find(function (t) { return t.uid === u; });
         var def = inst && TRAITS[inst.id];
-        div.textContent = "槽" + (idx + 1) + ": " + (def ? def.name : "?");
+        div.innerHTML = "<b>槽" + (idx + 1) + "</b>　" + escapeHtml(def ? def.name : "?") +
+          "<span class='meta'>點擊卸下</span>";
         div.onclick = function () {
           state.equipped[idx] = null;
           showStatus();
           toast("已卸下");
         };
       } else {
-        div.textContent = "槽" + (idx + 1) + ": （空）點持有詞條裝備";
+        div.innerHTML = "<b>槽" + (idx + 1) + "</b>　（空）" +
+          "<span class='meta'>點下方持有詞條裝備</span>";
       }
       slots.appendChild(div);
     });
@@ -1206,15 +1372,14 @@
       var row = document.createElement("div");
       row.className = "trait rarity-" + def.rarity;
       row.innerHTML =
-        "<div class='name'>" + escapeHtml(def.name) +
-        (eqIdx >= 0 ? "（已裝備槽" + (eqIdx + 1) + "）" : "") + "</div>" +
-        "<div class='meta'>" + escapeHtml(def.desc) +
-        (def.skill ? "　技能：" + escapeHtml(def.skill.name) : "") + "</div>";
+        "<div class='name'>" + escapeHtml(def.name) + "</div>" +
+        "<div class='meta'>" + rarityLabel(def.rarity) +
+        (eqIdx >= 0 ? "　已裝備 · 槽" + (eqIdx + 1) : "　未裝備") + "</div>" +
+        "<div class='meta'>" + escapeHtml(def.desc) + "</div>" +
+        (def.skill ? "<div class='meta'>技能：" + escapeHtml(def.skill.name) + "</div>" : "");
       if (eqIdx < 0) {
         var b = document.createElement("button");
         b.textContent = "裝備";
-        b.style.marginTop = "6px";
-        b.style.width = "100%";
         b.onclick = function () {
           var empty = state.equipped.indexOf(null);
           if (empty < 0) {
@@ -1252,8 +1417,11 @@
       lab.className = "rarity-" + def.rarity;
       lab.innerHTML =
         "<input type='checkbox' data-uid='" + inst.uid + "' data-id='" + inst.id + "'>" +
-        "<span class='name'>" + escapeHtml(def.name) + "</span> " +
-        "<span class='meta'>" + escapeHtml(def.desc) + "</span>";
+        "<span class='pick-body'>" +
+        "<span class='name'>" + escapeHtml(def.name) + "</span>" +
+        "<span class='meta'>" + rarityLabel(def.rarity) + "</span>" +
+        "<span class='meta'>" + escapeHtml(def.desc) + "</span>" +
+        "</span>";
       pick.appendChild(lab);
     });
   }
@@ -1425,10 +1593,10 @@
         row.className = "inv-row";
         row.innerHTML =
           "<div class='info'><b>" + escapeHtml(it.name) + "</b>" +
-          " <span class='meta'>持有 " + invCount(id) + "</span>" +
+          "<div class='meta'>持有 " + invCount(id) + "　買入 " + it.buy + " 金</div>" +
           "<div class='meta'>" + escapeHtml(it.desc) + "</div></div>";
         var b = document.createElement("button");
-        b.textContent = "買 " + it.buy;
+        b.textContent = "購入";
         b.onclick = (function (itemId, price) {
           return function () {
             if (state.gold < price) { toast("金錢不足"); return; }
@@ -1451,10 +1619,11 @@
           var row = document.createElement("div");
           row.className = "inv-row";
           row.innerHTML =
-            "<div class='info'><b>" + escapeHtml(it.name) + "</b> ×" + invCount(id) +
-            "<div class='meta'>售價 " + it.sell + " 金</div></div>";
+            "<div class='info'><b>" + escapeHtml(it.name) + "</b>" +
+            "<div class='meta'>持有 ×" + invCount(id) + "　售價 " + it.sell + " 金</div>" +
+            "<div class='meta'>" + escapeHtml(it.desc) + "</div></div>";
           var b = document.createElement("button");
-          b.textContent = "賣";
+          b.textContent = "賣出";
           b.onclick = (function (itemId) {
             return function () {
               if (!takeItem(itemId, 1)) return;
@@ -1482,9 +1651,10 @@
           row.className = "inv-row rarity-" + def.rarity;
           row.innerHTML =
             "<div class='info'><span class='name'>" + escapeHtml(def.name) + "</span>" +
-            "<div class='meta'>" + escapeHtml(def.desc) + "　售價 " + price + "</div></div>";
+            "<div class='meta'>" + rarityLabel(def.rarity) + "　售價 " + price + " 金</div>" +
+            "<div class='meta'>" + escapeHtml(def.desc) + "</div></div>";
           var b = document.createElement("button");
-          b.textContent = "賣 " + price;
+          b.textContent = "賣出";
           b.onclick = (function (u, p, n) {
             return function () {
               if (!confirm("確定賣出詞條「" + n + "」換 " + p + " 金？")) return;
@@ -1515,7 +1685,9 @@
       var row = document.createElement("div");
       row.className = "inv-row";
       row.innerHTML =
-        "<div class='info'><b>" + escapeHtml(it.name) + "</b> ×" + invCount(id) +
+        "<div class='info'><b>" + escapeHtml(it.name) + "</b>" +
+        "<div class='meta'>持有 ×" + invCount(id) +
+        (it.town ? "　鎮內可用" : "　戰鬥用") + "</div>" +
         "<div class='meta'>" + escapeHtml(it.desc) + "</div></div>";
       if (it.town) {
         var b = document.createElement("button");
@@ -1530,11 +1702,6 @@
           };
         })(id);
         row.appendChild(b);
-      } else {
-        var note = document.createElement("span");
-        note.className = "meta";
-        note.textContent = "戰鬥用";
-        row.appendChild(note);
       }
       list.appendChild(row);
     });
@@ -1556,7 +1723,8 @@
       var it = ITEMS[id];
       var btn = document.createElement("button");
       btn.className = "list-btn";
-      btn.innerHTML = escapeHtml(it.name) + " ×" + invCount(id) +
+      btn.innerHTML = "<b>" + escapeHtml(it.name) + "</b>" +
+        "<span class='desc'>持有 ×" + invCount(id) + "</span>" +
         "<span class='desc'>" + escapeHtml(it.desc) + "</span>";
       btn.onclick = (function (itemId) {
         return function () {
