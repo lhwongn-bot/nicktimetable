@@ -761,10 +761,15 @@
       id: "calm_pill", name: "定心丸",
       desc: "凝神定氣，下一場戰鬥防禦 +4（進戰時生效）。",
       buy: 35, sell: 14, use: "buff_def", val: 4, town: true, combat: false
+    },
+    iron_candy: {
+      id: "iron_candy", name: "鐵膽糖",
+      desc: "嚼完膽氣一振，下一場戰鬥攻擊 +5（進戰時生效）。",
+      buy: 40, sell: 16, use: "buff_atk", val: 5, town: true, combat: false
     }
   };
 
-  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration", "vita_tonic", "lotus_soup", "calm_pill"];
+  var SHOP_ORDER = ["potion", "hi_potion", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "ration", "vita_tonic", "lotus_soup", "calm_pill", "iron_candy"];
 
   var TRAIT_SELL = { white: 15, green: 40, blue: 100, purple: 250 };
 
