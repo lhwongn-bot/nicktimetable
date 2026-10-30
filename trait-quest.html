@@ -314,7 +314,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=1 LEVEL=3 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
+  // Progress: SECTION=1 LEVEL=4 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -475,6 +475,13 @@
       whiteChance: 0.36,
       greenChance: 0.22,
       fragChance: 0.54
+    },
+    s1_l4: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "web_bind", "slime_core", "rage_mark"],
+      whiteChance: 0.34,
+      greenChance: 0.24,
+      fragChance: 0.56
     }
   };
 
@@ -603,6 +610,35 @@
       ],
       need: "s1_l2",
       clearText: "影襲者潰散後，村長塞你一袋乾糧：「多謝。夏嵐廢墟喺東面山坳——自從黑影出沒，冇人敢近。公會若再派人，記得帶火把。」"
+    },
+    {
+      id: "s1_l4",
+      name: "夏嵐廢墟·調查",
+      desc: "公會委託你入夏嵐廢墟查異象：夜半有黑影掠過斷牆，村莊牲口失蹤同廢墟方向對得埋口。要你帶火把入去，睇吓係咪有影物聚喺崩塌大廳。",
+      stages: [
+        {
+          name: "崩廳塵蝠",
+          hp: 56, atk: 13, def: 2,
+          flavor: "東面山坳風乾得刺骨。廢墟大門塌咗一半，石階積滿灰。幾隻灰翼塵蝠從裂縫撲出，翼尖帶住舊日壁畫嘅粉屑。"
+        },
+        {
+          name: "碎柱石衛",
+          hp: 74, atk: 15, def: 3,
+          flavor: "中央大廳柱斷成斜面。半身石衛從碎礫底下撐起，護腕刻住褪色家徽——唔似魔物，似守墓人。腳步一響，遠處似有布料窸窣。"
+        },
+        {
+          name: "殘響影侍",
+          hp: 92, atk: 17, def: 4,
+          flavor: "走廊牆上浮住淡影，跟人形差唔多，但冇面孔。影侍抬手時，空氣變冷；牆縫滲出一句低語：「……披風……還未到……」——像有人故意留低嘅痕跡。"
+        },
+        {
+          name: "夏嵐影遺",
+          hp: 115, atk: 19, def: 5,
+          flavor: "調查最深處，祭台殘座上面蹲住一團濃影。佢唔似完整生物，更似被撕落嘅斗篷邊角——黑得發亮，邊緣仍在顫。擊敗佢之後，地上留住一道向西嘅足跡……似係有人特意引你睇。"
+        }
+      ],
+      need: "s1_l3",
+      clearText: "影遺散成煙絲。你抄低祭台符文同西向足跡，返格蘭交差。接待員臉色一沉：「痕跡指向節末——黑影披風。公會會再出委託紙；今次唔再係普通清場。」"
     }
   ];
 
@@ -1135,7 +1171,7 @@
       appendLog($("result-log"), combat.quest.clearText);
       appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、融合詞條，或接下一個委託。", "sys");
       // Prologue (goblin/spider/slime) + Section levels: return to town.
-      // showWin() reserved for later section-finale; section levels (s1_l1/s1_l2/s1_l3/…) return to town — do not softlock.
+      // showWin() reserved for later section-finale; section levels (s1_l1–s1_l4/…) return to town — do not softlock.
       var clearedName = combat.quest.name;
       $("btn-result-ok").onclick = function () {
         toast("完成：「" + clearedName + "」");
