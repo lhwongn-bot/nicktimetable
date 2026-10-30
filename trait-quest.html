@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="party-balance-202610310234">
-<!-- tq-build: party-balance-202610310234 | AP/def formula/enemy packs+AOE/mental feedback; no 1x2x -->
+<meta name="tq-build" content="gear-slots-202610310333">
+<!-- tq-build: gear-slots-202610310333 | gear weapon/armor/accessory + shop/drop + retune; AP/def/party keep -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1482,6 +1482,48 @@
   #ally-action-row { margin-top: 6px; }
   #ally-action-row button { font-size: 0.78rem; }
   .party-chip.stun { border-color: #ab47bc; box-shadow: 0 0 6px rgba(171,71,188,0.35); }
+
+  #gear-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  #gear-slots .gear-slot {
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #161616;
+    cursor: pointer;
+  }
+  #gear-slots .gear-slot.filled {
+    border-color: #66bb6a;
+    background: #1a241a;
+  }
+  #gear-slots .gear-slot .gs-kind {
+    color: #9aa;
+    font-size: 0.78rem;
+    margin-right: 6px;
+  }
+  #gear-slots .gear-slot .gs-meta {
+    display: block;
+    color: #777;
+    font-size: 0.78rem;
+    margin-top: 4px;
+  }
+  .mini-card.gear-equipped::after {
+    content: "裝";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #66bb6a;
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
   .party-chip.clickable { cursor: pointer; }
   .party-chip.clickable:hover { border-color: #66bb6a; }
 
@@ -1569,7 +1611,7 @@
   <!-- PARTY -->
   <div id="screen-party" class="screen">
     <h2>組隊／同伴</h2>
-    <p class="statline mb">詞條（精神波動）只裝備喺<strong>主角</strong>。同伴靠固定技能同成長率作戰；最多同時出戰 2 人。<br>戰鬥每回合全隊共 <b>3 AP</b>——要分配畀主角／隊友。隊友倒下會精神反噬；戰後唔自動滿血，要返鎮旅館治療。</p>
+    <p class="statline mb">詞條（精神波動）同<strong>裝備</strong>（武器／護甲／裝飾品）只著喺<strong>主角</strong>。同伴靠固定技能同成長率作戰；最多同時出戰 2 人。<br>戰鬥每回合全隊共 <b>3 AP</b>——要分配畀主角／隊友。隊友倒下會精神反噬；戰後唔自動滿血，要返鎮旅館治療。</p>
     <div id="party-active-line" class="panel mb"></div>
     <div id="party-list"></div>
     <div class="btn-grid">
@@ -1582,6 +1624,11 @@
     <h2>狀態</h2>
     <img class="game-art" src="trait-quest-art/trait.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="panel" id="status-panel"></div>
+    <div class="panel mb" id="gear-panel">
+      <h3>裝備（武器／護甲／裝飾品）</h3>
+      <p class="statline mb">裝備加攻／防／HP／敏等；同詞條、隊友、AP、防禦公式並存。點槽可卸下。</p>
+      <div id="gear-slots"></div>
+    </div>
     <div class="split-layout">
       <div class="split-left">
         <h3>裝備詞條槽</h3>
@@ -1724,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build:party-balance-202610310234 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build:gear-slots-202610310333 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -1795,6 +1842,7 @@
     <div class="shop-tabs">
       <button type="button" id="tab-buy" class="active">買入</button>
       <button type="button" id="tab-sell-item">賣道具</button>
+      <button type="button" id="tab-sell-gear">賣裝備</button>
       <button type="button" id="tab-sell-trait">賣詞條</button>
     </div>
     <div id="shop-list" class="select-list"></div>
@@ -1807,9 +1855,10 @@
   <!-- BAG -->
   <div id="screen-bag" class="screen">
     <h2>道具袋</h2>
-    <p class="statline mb">鎮內可用嘅道具喺呢度使用。點圖卡睇詳情。</p>
+    <p class="statline mb">鎮內可用嘅道具同<strong>裝備</strong>喺呢度。裝備分頁可裝備／卸下武器、護甲、裝飾品。點圖卡睇詳情。</p>
     <div class="index-tabs" id="bag-tabs">
       <button type="button" class="active" data-tab="all">全部</button>
+      <button type="button" data-tab="gear">裝備</button>
       <button type="button" data-tab="consume">消耗恢復</button>
       <button type="button" data-tab="battle">戰鬥增益</button>
       <button type="button" data-tab="material">素材關鍵</button>
@@ -2428,6 +2477,7 @@
   /** 道具分類：消耗恢復／戰鬥增益／素材關鍵 */
   function itemCategory(it) {
     if (!it) return "material";
+    if (it.slot === "weapon" || it.slot === "armor" || it.slot === "accessory") return "gear";
     var u = String(it.use || "");
     var healish = {
       heal: 1, antidote: 1, lotus_soup: 1, pork_congee: 1, calm_pill: 1,
@@ -2452,11 +2502,11 @@
   }
 
   function itemCatLabel(cat) {
-    return ({ consume: "消耗／恢復", battle: "戰鬥增益", material: "素材／關鍵" })[cat] || cat;
+    return ({ gear: "裝備", consume: "消耗／恢復", battle: "戰鬥增益", material: "素材／關鍵" })[cat] || cat;
   }
 
   function itemCatIcon(cat) {
-    return ({ consume: "💊", battle: "💥", material: "🔑" })[cat] || "📦";
+    return ({ gear: "⚔", consume: "💊", battle: "💥", material: "🔑" })[cat] || "📦";
   }
 
   var _traitInvTab = "all";
@@ -3012,6 +3062,114 @@
       buy: 54, sell: 21, use: "ruin_torch", town: false, combat: true, atk: 4, dmg: 16,
       minSection: 2, rarity: 2, staple: false, weight: 9
     }
+    ,
+    // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
+    rusty_blade: {
+      id: "rusty_blade", name: "生鏽短刃",
+      desc: "武器。攻擊 +2。公會鐵匠清倉貨，新人起步刃。",
+      buy: 28, sell: 11, slot: "weapon", atk: 2,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 1, staple: false, weight: 11
+    },
+    hunter_knife: {
+      id: "hunter_knife", name: "獵手小刀",
+      desc: "武器。攻擊 +4、敏捷 +1。適合森林探路。",
+      buy: 55, sell: 22, slot: "weapon", atk: 4, agi: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 2, staple: false, weight: 8
+    },
+    iron_saber: {
+      id: "iron_saber", name: "鐵刃軍刀",
+      desc: "武器。攻擊 +6。格蘭演習場制式刃。",
+      buy: 92, sell: 36, slot: "weapon", atk: 6,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 2, staple: false, weight: 6
+    },
+    shadow_edge: {
+      id: "shadow_edge", name: "影潮短刃",
+      desc: "武器。攻擊 +9、敏捷 +1。西林影潮淬過冷煙。",
+      buy: 145, sell: 58, slot: "weapon", atk: 9, agi: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 2, rarity: 3, staple: false, weight: 7
+    },
+    void_fang: {
+      id: "void_fang", name: "虛空牙槍",
+      desc: "武器。攻擊 +11、力量 +1。影潮廢堡殘兵遺刃。",
+      buy: 188, sell: 75, slot: "weapon", atk: 11, str: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 2, rarity: 3, staple: false, weight: 4
+    },
+    cloth_vest: {
+      id: "cloth_vest", name: "粗布背心",
+      desc: "護甲。最大 HP +6、防禦 +1。擋得住刮痕。",
+      buy: 26, sell: 10, slot: "armor", hp: 6, defBonus: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 1, staple: false, weight: 11
+    },
+    leather_guard: {
+      id: "leather_guard", name: "皮革護甲",
+      desc: "護甲。最大 HP +12、防禦 +2。獵人常用。",
+      buy: 52, sell: 20, slot: "armor", hp: 12, defBonus: 2,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 2, staple: false, weight: 8
+    },
+    iron_plate: {
+      id: "iron_plate", name: "鐵片胸甲",
+      desc: "護甲。最大 HP +18、防禦 +4。演習鐵腕同款薄片。",
+      buy: 98, sell: 39, slot: "armor", hp: 18, defBonus: 4,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 2, staple: false, weight: 5
+    },
+    mist_cloak_armor: {
+      id: "mist_cloak_armor", name: "霧沼披甲",
+      desc: "護甲。最大 HP +22、防禦 +5、敏捷 +1。防濕防霧。",
+      buy: 148, sell: 59, slot: "armor", hp: 22, defBonus: 5, agi: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 2, rarity: 3, staple: false, weight: 7
+    },
+    tide_carapace: {
+      id: "tide_carapace", name: "潮影甲殼",
+      desc: "護甲。最大 HP +28、防禦 +7。斷橋潮水沖出嘅甲片。",
+      buy: 190, sell: 76, slot: "armor", hp: 28, defBonus: 7,
+      town: true, combat: false, use: "gear",
+      minSection: 2, rarity: 3, staple: false, weight: 4
+    },
+    copper_band: {
+      id: "copper_band", name: "銅戒指",
+      desc: "裝飾品。敏捷 +1、最大 HP +3。便宜護身。",
+      buy: 22, sell: 8, slot: "accessory", agi: 1, hp: 3,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 1, staple: false, weight: 12
+    },
+    wolf_fang_charm: {
+      id: "wolf_fang_charm", name: "狼牙護符",
+      desc: "裝飾品。攻擊 +2。演習狼犬牙串成。",
+      buy: 48, sell: 19, slot: "accessory", atk: 2,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 2, staple: false, weight: 8
+    },
+    vitality_bead: {
+      id: "vitality_bead", name: "元氣珠",
+      desc: "裝飾品。最大 HP +10、體質 +1。旅店櫃檯常賣。",
+      buy: 70, sell: 28, slot: "accessory", hp: 10, con: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 2, staple: false, weight: 6
+    },
+    night_iris: {
+      id: "night_iris", name: "夜瞳墜",
+      desc: "裝飾品。敏捷 +3、攻擊 +1。影哨掉落改裝。",
+      buy: 118, sell: 47, slot: "accessory", agi: 3, atk: 1,
+      town: true, combat: false, use: "gear",
+      minSection: 1, rarity: 3, staple: false, weight: 5
+    },
+    spirit_seal: {
+      id: "spirit_seal", name: "靈波印戒",
+      desc: "裝飾品。攻擊 +2、防禦 +2、最大 HP +8。精神波動共鳴。",
+      buy: 165, sell: 66, slot: "accessory", atk: 2, defBonus: 2, hp: 8,
+      town: true, combat: false, use: "gear",
+      minSection: 2, rarity: 3, staple: false, weight: 5
+    }
+
   };
 
   // 舊版相容：仍保留完整 id 列表（真正貨架由 getShopShelf 權重抽）
@@ -3043,9 +3201,9 @@
     s2_l3:   { xp: 165, gold: 125, itemChance: 0.56 }
   };
 
-  var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
-  var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch"];
+  var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
+  var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -3137,15 +3295,32 @@
     }
   };
 
+
+  /** 裝備掉落（任務通關／戰利品；同詞條並行） */
+  var GEAR_SLOT_LABEL = { weapon: "武器", armor: "護甲", accessory: "裝飾品" };
+  var GEAR_DROP_POOLS = {
+    goblin:  { ids: ["rusty_blade", "cloth_vest", "copper_band"], chance: 0.22 },
+    spider:  { ids: ["hunter_knife", "leather_guard", "wolf_fang_charm", "copper_band"], chance: 0.24 },
+    slime:   { ids: ["hunter_knife", "leather_guard", "vitality_bead", "iron_saber"], chance: 0.26 },
+    s1_l1:   { ids: ["rusty_blade", "cloth_vest", "copper_band", "wolf_fang_charm"], chance: 0.24 },
+    s1_l2:   { ids: ["hunter_knife", "leather_guard", "vitality_bead"], chance: 0.26 },
+    s1_l3:   { ids: ["iron_saber", "leather_guard", "wolf_fang_charm", "vitality_bead"], chance: 0.28 },
+    s1_l4:   { ids: ["iron_saber", "iron_plate", "night_iris", "vitality_bead"], chance: 0.3 },
+    s1_l5:   { ids: ["iron_saber", "iron_plate", "night_iris", "shadow_edge"], chance: 0.34 },
+    s2_l1:   { ids: ["shadow_edge", "mist_cloak_armor", "spirit_seal", "night_iris"], chance: 0.3 },
+    s2_l2:   { ids: ["shadow_edge", "mist_cloak_armor", "spirit_seal", "tide_carapace"], chance: 0.32 },
+    s2_l3:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge"], chance: 0.34 }
+  };
+
   var QUESTS = [
     {
       id: "goblin",
       name: "哥布林洞窟",
       desc: "公會最低級委託。清掉洞窟入面嘅哥布林。報酬微薄，但適合新人練手。",
       stages: [
-        { name: "瘦弱哥布林", hp: 48, atk: 8, def: 1, pack: 2, ai: "brute", pierce: 0, flavor: "洞窟入口傳來嘈雜聲。一隻瘦弱哥布林舉住生鏽匕首衝出嚟。" },
-        { name: "哥布林戰士", hp: 68, atk: 12, def: 2, pack: 2, ai: "brute", pierce: 0, flavor: "深入少少，有隻裝備比較齊嘅哥布林擋住去路。" },
-        { name: "哥布林頭目", hp: 94, atk: 16, def: 3, pack: 1, ai: "aoe", pierce: 0, flavor: "洞穴最入面，頭目坐喺一堆破銅爛鐵上面，雙眼發紅。" }
+        { name: "瘦弱哥布林", hp: 51, atk: 8, def: 1, pack: 2, ai: "brute", pierce: 0, flavor: "洞窟入口傳來嘈雜聲。一隻瘦弱哥布林舉住生鏽匕首衝出嚟。" },
+        { name: "哥布林戰士", hp: 72, atk: 12, def: 2, pack: 2, ai: "brute", pierce: 0, flavor: "深入少少，有隻裝備比較齊嘅哥布林擋住去路。" },
+        { name: "哥布林頭目", hp: 100, atk: 16, def: 3, pack: 1, ai: "aoe", pierce: 0, flavor: "洞穴最入面，頭目坐喺一堆破銅爛鐵上面，雙眼發紅。" }
       ],
       unlock: true,
       clearText: "你拎住頭目嘅耳朵返到公會。接待員淡淡咁蓋咗個章：「下一個委託喺蛛巢。小心啲。」"
@@ -3155,10 +3330,10 @@
       name: "黑木蛛巢",
       desc: "森林深處嘅蛛巢。傳聞有冒險者隊喺度失蹤——隊長臨走前對隊員笑得好奇怪。",
       stages: [
-        { name: "幼蛛", hp: 54, atk: 11, def: 1, pack: 2, ai: "brute", pierce: 0, flavor: "蛛絲黏住腳踝。幾隻幼蛛從樹幹後面爬出嚟。" },
-        { name: "毒蛛", hp: 82, atk: 15, def: 2, pack: 2, ai: "control", pierce: 0, flavor: "毒液滴落葉上發出嗤聲。成蛛盯住你。" },
-        { name: "蛛后", hp: 119, atk: 19, def: 3, pack: 1, ai: "control", pierce: 0.15, flavor: "巢穴中央，巨大嘅蛛后緩緩轉身。角落有半舊嘅冒險者徽章……隊長款。" },
-        { name: "影蛛護衛", hp: 85, atk: 18, def: 2, pack: 1, ai: "assassin", pierce: 0, flavor: "蛛后倒下後，護衛蛛從暗處撲出。你感覺到類似『背叛』嘅敵意——唔係蛛，而係某種印記。" }
+        { name: "幼蛛", hp: 59, atk: 12, def: 1, pack: 2, ai: "brute", pierce: 0, flavor: "蛛絲黏住腳踝。幾隻幼蛛從樹幹後面爬出嚟。" },
+        { name: "毒蛛", hp: 89, atk: 16, def: 2, pack: 2, ai: "control", pierce: 0, flavor: "毒液滴落葉上發出嗤聲。成蛛盯住你。" },
+        { name: "蛛后", hp: 130, atk: 20, def: 3, pack: 1, ai: "control", pierce: 0.15, flavor: "巢穴中央，巨大嘅蛛后緩緩轉身。角落有半舊嘅冒險者徽章……隊長款。" },
+        { name: "影蛛護衛", hp: 93, atk: 19, def: 2, pack: 1, ai: "assassin", pierce: 0, flavor: "蛛后倒下後，護衛蛛從暗處撲出。你感覺到類似『背叛』嘅敵意——唔係蛛，而係某種印記。" }
       ],
       need: "goblin",
       clearText: "你燒咗蛛巢一角。公會說史萊姆洞窟有異常魔力反應，願意接嘅人不多。"
@@ -3168,10 +3343,10 @@
       name: "史萊姆洞窟",
       desc: "最深處嘅委託。史萊姆異常增殖，有人話同『詞條暴走』有關。完成呢個，你就唔再係純新人。",
       stages: [
-        { name: "綠史萊姆", hp: 61, atk: 12, def: 2, pack: 2, ai: "brute", pierce: 0, flavor: "黏液反光。一隻綠史萊姆一彈一彈靠近。" },
-        { name: "酸史萊姆", hp: 88, atk: 18, def: 3, pack: 2, ai: "control", pierce: 0, flavor: "酸性霧氣令喉嚨發癢。大隻酸史萊姆堵住通道。" },
-        { name: "鐵皮史萊姆", hp: 128, atk: 16, def: 6, pack: 1, ai: "aoe", pierce: 0.15, flavor: "表面硬化如鐵。普通刀刃幾乎削唔入。" },
-        { name: "詞條核心體", hp: 162, atk: 22, def: 4, pack: 1, ai: "aoe", pierce: 0.25, flavor: "洞窟最底，一團半透明物質浮住——入面隱約有文字形狀嘅光。呢個就係異常嘅源頭。" }
+        { name: "綠史萊姆", hp: 68, atk: 13, def: 2, pack: 2, ai: "brute", pierce: 0, flavor: "黏液反光。一隻綠史萊姆一彈一彈靠近。" },
+        { name: "酸史萊姆", hp: 98, atk: 19, def: 3, pack: 2, ai: "control", pierce: 0, flavor: "酸性霧氣令喉嚨發癢。大隻酸史萊姆堵住通道。" },
+        { name: "鐵皮史萊姆", hp: 142, atk: 17, def: 6, pack: 1, ai: "aoe", pierce: 0.15, flavor: "表面硬化如鐵。普通刀刃幾乎削唔入。" },
+        { name: "詞條核心體", hp: 180, atk: 23, def: 4, pack: 1, ai: "aoe", pierce: 0.25, flavor: "洞窟最底，一團半透明物質浮住——入面隱約有文字形狀嘅光。呢個就係異常嘅源頭。" }
       ],
       need: "spider",
       clearText: "核心潰散成碎光。你感覺詞條槽隱隱發熱——成長還未完，但呢一片森林，暫時安靜咗。"
@@ -3183,25 +3358,25 @@
       stages: [
         {
           name: "草編靶傀",
-          hp: 71, atk: 14, def: 2,
+          hp: 78, atk: 15, def: 2,
           pack: 2, ai: "brute", pierce: 0,
           flavor: "格蘭鎮城牆外，演習場鋪住沙。一具草編靶傀抬起木臂——公會師傅隔空喊：「當佢係真怪！唔好收力！」"
         },
         {
           name: "演習狼犬",
-          hp: 95, atk: 16, def: 2,
+          hp: 105, atk: 17, def: 2,
           pack: 2, ai: "brute", pierce: 0,
           flavor: "鐵鏈一鬆，灰毛狼犬撲近。旁邊有人咬住煙斗：「北窟嗰邊成日有怪響，演習先當熱身啦。」"
         },
         {
           name: "試煉兵·銅盾",
-          hp: 119, atk: 19, def: 3,
+          hp: 131, atk: 20, def: 3,
           pack: 1, ai: "aoe", pierce: 0,
           flavor: "銅牌試煉兵抬起圓盾：「傳聞話鄰國邊界出咗黑影披風——你聽過未？邊打邊答都得。」"
         },
         {
           name: "監考官·鐵腕",
-          hp: 143, atk: 20, def: 4,
+          hp: 157, atk: 21, def: 4,
           pack: 1, ai: "aoe", pierce: 0,
           flavor: "監考官踏入場中央，鐵護腕反光。「及格線係企到最後。及格之後……北窟嘅委託紙已經寫好一半。」"
         }
@@ -3216,25 +3391,25 @@
       stages: [
         {
           name: "濕石洞蝠",
-          hp: 82, atk: 15, def: 2,
+          hp: 92, atk: 16, def: 2,
           pack: 2, ai: "assassin", pierce: 0,
           flavor: "北窟入口涼氣撲面。水珠滴落石壁，回音一層疊一層。幾隻濕翼洞蝠撲過頭頂，尖嘯刺耳。"
         },
         {
           name: "岩隙蜥蜴",
-          hp: 105, atk: 18, def: 3,
+          hp: 118, atk: 19, def: 3,
           pack: 1, ai: "brute", pierce: 0.15,
           flavor: "通道轉窄，腳下青苔滑溜。一條岩隙蜥蜴從縫隙躥出，尾巴拍石「啪」一聲，回音好似有人應咗句。"
         },
         {
           name: "回音石衛",
-          hp: 133, atk: 20, def: 4,
+          hp: 149, atk: 21, def: 4,
           pack: 1, ai: "aoe", pierce: 0.22,
           flavor: "半身石像擋路——唔係雕刻，係自己郁。石衛每踩一步，洞穴就答一句悶響。深處似有黑布一閃……未睇清就冇咗。"
         },
         {
           name: "北窟石傀",
-          hp: 162, atk: 23, def: 5,
+          hp: 181, atk: 24, def: 5,
           pack: 1, ai: "aoe", pierce: 0.22,
           flavor: "探路最深點，石傀撐住塌半邊嘅拱門。傀身裂縫滲出冷氣；傳聞話再入面先有『影披』蹤跡——呢次夠膽探到呢度已經交差。"
         }
@@ -3249,25 +3424,25 @@
       stages: [
         {
           name: "飢餓野犬",
-          hp: 88, atk: 16, def: 2,
+          hp: 99, atk: 17, def: 2,
           pack: 2, ai: "brute", pierce: 0,
           flavor: "泥路通向矮木柵欄。幾隻肋骨突出嘅野犬圍住翻倒嘅糧車，低吼著擋住去路。村內有人喊：「唔好打死晒——留一隻餵雞都得！」"
         },
         {
           name: "柵欄夜盜",
-          hp: 116, atk: 19, def: 3,
+          hp: 131, atk: 20, def: 3,
           pack: 1, ai: "brute", pierce: 0.15,
           flavor: "夜盜戴住破布面罩，從柵欄缺口鑽出，刀尖有鏽。「傳聞話夏嵐廢墟嗰邊有人影——我哋只係趁亂搵食，唔關我事。」"
         },
         {
           name: "稻草怨偶",
-          hp: 144, atk: 22, def: 4,
+          hp: 163, atk: 23, def: 4,
           pack: 1, ai: "aoe", pierce: 0.22,
           flavor: "田埂上幾具稻草人忽然轉身。縫線眼睛滲黑汁，手臂揮出乾草鞭。遠處山脊似有黑影披風掠過——一閃就冇。"
         },
         {
           name: "恰達影襲者",
-          hp: 178, atk: 24, def: 5,
+          hp: 201, atk: 25, def: 5,
           pack: 1, ai: "assassin", pierce: 0.22,
           flavor: "村口廣場中央，披破斗篷嘅影襲者踏碎燈籠。「恰達只係過路站。真正嘅路……喺夏嵐廢墟。」佢抬刀時，斗篷邊角黑得唔自然——唔係布，似係影。"
         }
@@ -3282,25 +3457,25 @@
       stages: [
         {
           name: "崩廳塵蝠",
-          hp: 95, atk: 18, def: 2,
+          hp: 108, atk: 20, def: 2,
           pack: 2, ai: "assassin", pierce: 0,
           flavor: "東面山坳風乾得刺骨。廢墟大門塌咗一半，石階積滿灰。幾隻灰翼塵蝠從裂縫撲出，翼尖帶住舊日壁畫嘅粉屑。"
         },
         {
           name: "碎柱石衛",
-          hp: 126, atk: 20, def: 3,
+          hp: 144, atk: 22, def: 3,
           pack: 1, ai: "brute", pierce: 0.15,
           flavor: "中央大廳柱斷成斜面。半身石衛從碎礫底下撐起，護腕刻住褪色家徽——唔似魔物，似守墓人。腳步一響，遠處似有布料窸窣。"
         },
         {
           name: "殘響影侍",
-          hp: 156, atk: 23, def: 4,
+          hp: 178, atk: 25, def: 4,
           pack: 1, ai: "assassin", pierce: 0.22,
           flavor: "走廊牆上浮住淡影，跟人形差唔多，但冇面孔。影侍抬手時，空氣變冷；牆縫滲出一句低語：「……披風……還未到……」——像有人故意留低嘅痕跡。"
         },
         {
           name: "夏嵐影遺",
-          hp: 196, atk: 26, def: 5,
+          hp: 223, atk: 28, def: 5,
           pack: 1, ai: "assassin", pierce: 0.22,
           flavor: "調查最深處，祭台殘座上面蹲住一團濃影。佢唔似完整生物，更似被撕落嘅斗篷邊角——黑得發亮，邊緣仍在顫。擊敗佢之後，地上留住一道向西嘅足跡……似係有人特意引你睇。"
         }
@@ -3315,25 +3490,25 @@
       stages: [
         {
           name: "峽口影哨",
-          hp: 105, atk: 19, def: 3,
+          hp: 121, atk: 21, def: 3,
           pack: 2, ai: "assassin", pierce: 0,
           flavor: "夏嵐西面峽口風割面。石壁上掛住半截黑布，布紋會自己郁。影哨從裂縫踏出，刀尖無反光——似係影铸成嘅。"
         },
         {
           name: "雙層披影",
-          hp: 150, atk: 23, def: 4,
+          hp: 172, atk: 25, def: 4,
           pack: 1, ai: "assassin", pierce: 0.15,
           flavor: "通道轉彎，兩層斗篷重疊站起。外層係布，內層係濃煙。恰達村長講過嘅「唔係布，似係影」——而家近距離睇，果然。"
         },
         {
           name: "夜梟執刀",
-          hp: 187, atk: 27, def: 5,
+          hp: 215, atk: 29, def: 5,
           pack: 1, ai: "aoe", pierce: 0.3,
           flavor: "峽口平台中央，戴鳥喙面具嘅執刀者轉身。面具後冇眼，只有兩點冷光。「格蘭……北窟……恰達……夏嵐——你跟足晒啲足跡。正正就係我想你嚟嘅路。」"
         },
         {
           name: "黑影披風",
-          hp: 246, atk: 31, def: 6,
+          hp: 283, atk: 33, def: 6,
           pack: 1, ai: "aoe", pierce: 0.3,
           flavor: "夜梟面具碎落，斗篷自行鼓起——入面無人。黑影披風張開如翼，峽口瞬間變夜。北窟閃過嘅黑布、廢墟低語「披風還未到」、西向足跡——全部係佢撕落嚟嘅誘餌。節末頭目就係呢件會走嘅影。"
         }
@@ -3349,25 +3524,25 @@
       stages: [
         {
           name: "餘煙影絲",
-          hp: 116, atk: 20, def: 3,
+          hp: 132, atk: 22, def: 3,
           pack: 2, ai: "assassin", pierce: 0.2,
           flavor: "峽口平台仲留住一灘冷煙。煙絲自行扭成細線，勒住碎石——似係披風撕落嘅邊角，仲未肯散。"
         },
         {
           name: "峽壁夜蝠",
-          hp: 150, atk: 24, def: 4,
+          hp: 171, atk: 26, def: 4,
           pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "石壁縫裡撲出灰黑夜蝠，翼膜映住極夜冷光。濃霧令腳步聲鈍掉；遠處西面林梢，似有更深嘅影潮在呼吸。"
         },
         {
           name: "冷煙披侍",
-          hp: 190, atk: 27, def: 5,
+          hp: 217, atk: 29, def: 5,
           pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "半截斗篷從煙裡站起，冇面具、冇身軀，只有兩隻抓刀嘅影手。「披風走咗……我哋仲守住呢度。」——語氣似複讀，又似有人遙控。"
         },
         {
           name: "西峽影殘",
-          hp: 224, atk: 30, def: 6,
+          hp: 255, atk: 32, def: 6,
           pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "清殘最核心：一團比披風稀薄、卻更執拗嘅影殘盤踞裂縫。擊敗佢時，西向林霧裂開一瞬——霧沼哨站嘅舊燈火，隱約閃咗一下。"
         }
@@ -3383,25 +3558,25 @@
       stages: [
         {
           name: "沼面霧鰻",
-          hp: 126, atk: 22, def: 3,
+          hp: 145, atk: 24, def: 3,
           pack: 2, ai: "brute", pierce: 0.2,
           flavor: "泥水沒過腳踝。一條灰白霧鰻從浮藻下鑽出，身側掛住碎哨燈鐵環——像有人曾用燈誘過佢，再冇人返嚟收。"
         },
         {
           name: "哨燈影蟲",
-          hp: 163, atk: 26, def: 4,
+          hp: 187, atk: 28, def: 4,
           pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "半倒嘅瞭望架上，殘燈忽明忽暗。幾隻影蟲圍住燈芯飛，翅膜映住極夜冷光；一靠近，霧就厚一層。"
         },
         {
           name: "泥沼巡影",
-          hp: 207, atk: 28, def: 5,
+          hp: 238, atk: 30, def: 5,
           pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "柵欄缺口站住半透明巡影，手勢像舊時守兵巡更，嘴裡複讀：「……通行……證明……」——證明紙早溶喺沼裡，只剩影潮口音。"
         },
         {
           name: "霧沼哨魂",
-          hp: 241, atk: 31, def: 6,
+          hp: 277, atk: 33, def: 6,
           pack: 1, ai: "control", pierce: 0.35,
           flavor: "哨站中央水窪升起一團帶斗篷輪廓嘅哨魂。燈火喺佢胸口跳咗一下，又暗返。「西峽標記……我收到。斷橋鎮……仲有人喊。」擊敗佢後，南向斷橋方向裂開一條較乾嘅泥路。"
         }
@@ -3415,16 +3590,16 @@
       desc: "第二節·西林影潮其三。格蘭公會急委：沿霧沼南向泥路赴斷橋鎮，接應鎮民求援燈號，穩定橋柱防線，並查清影潮有冇咬住橋心。",
       startField: { wet: 6, fog: 5, mud: 2 },
       stages: [
-        { name: "橋隙濕影", hp: 136, atk: 23, def: 3,
+        { name: "橋隙濕影", hp: 158, atk: 25, def: 3,
           pack: 2, ai: "assassin", pierce: 0.2,
           flavor: "斷橋北端橋板缺一大塊。縫隙裏湧出濕潮影絲，踩低一塊橋板就作響——像有人用橋柱當鼓面在敳。" },
-        { name: "裂柱攀影", hp: 177, atk: 27, def: 4,
+        { name: "裂柱攀影", hp: 205, atk: 29, def: 4,
           pack: 1, ai: "assassin", pierce: 0.25,
           flavor: "半倒橋柱上攀住半透明攀影，手指插進石縫。水気沿柱流；遠處鎮內燈火一明一暗，像求援信號被染短。" },
-        { name: "求援偽聲", hp: 221, atk: 30, def: 5,
+        { name: "求援偽聲", hp: 256, atk: 32, def: 5,
           pack: 1, ai: "control", pierce: 0.35,
           flavor: "橋面中段風裏有人喊「救命……」——走近才發現係影潮播出嘅偽聲。聲源處站起一團帶鐘聲輪廓嘅影，嘴裏複讀鎮民名單。" },
-        { name: "斷橋潮影", hp: 258, atk: 32, def: 6,
+        { name: "斷橋潮影", hp: 299, atk: 34, def: 6,
           pack: 1, ai: "aoe", pierce: 0.35,
           flavor: "橋心裂縫昇起一團濃影，形狀像舊橋神主祠，卻流著影潮口音。「霧沼哨站……你來晚了。鎮民……還在廢堡那邊喊。」擊敗它後，南向廢堡雲霧裂開一線，露出影潮廢堡的破門。" }
       ],
@@ -3538,8 +3713,8 @@
       blurb: "前排盾衛，靠體能同訓練擋刀。詞條精神波動只刻喺主角——佢唔著詞條。",
       recruitCost: 35,
       needCleared: "goblin",
-      base: { hp: 58, atk: 6, def: 9, agi: 3 },
-      growthRates: { hp: 8, atk: 1.1, def: 2.2, agi: 0.35 },
+      base: { hp: 56, atk: 5, def: 9, agi: 3 },
+      growthRates: { hp: 7.5, atk: 1.0, def: 2.1, agi: 0.35 },
       skill: {
         id: "iron_taunt",
         name: "鐵壁挑釁",
@@ -3558,8 +3733,8 @@
       blurb: "後排詠唱者，癒合詠同魔力彈交替。唔著詞條，靠咒文節奏作戰。",
       recruitCost: 50,
       needCleared: "spider",
-      base: { hp: 40, atk: 9, def: 4, agi: 5 },
-      growthRates: { hp: 5.5, atk: 2.1, def: 0.7, agi: 1.0 },
+      base: { hp: 40, atk: 8, def: 4, agi: 5 },
+      growthRates: { hp: 5.2, atk: 1.9, def: 0.7, agi: 1.0 },
       skill: {
         id: "aria_mend",
         name: "癒合詠",
@@ -4164,7 +4339,7 @@
       con: 5,
       baseHp: 40,
       hp: 40,
-      gold: 30,
+      gold: 40,
       level: 1,
       xp: 0,
       xpToNext: 40,
@@ -4173,7 +4348,8 @@
       buffAtk: 0,
       buffDef: 0,
       traits: [],          // owned trait ids (can duplicate? no - unique instances as {uid, id})
-      equipped: [null, null, null], // 3 slots（套裝用）
+      equipped: [null, null, null], // 3 slots（詞條套裝用）
+      gear: { weapon: null, armor: null, accessory: null }, // 裝備槽（武器／護甲／裝飾品）
       traitIndex: {},      // 圖鑑已解鎖 { traitId: true }
       fragments: 0,
       fragNeed: 5,
@@ -4208,6 +4384,18 @@
     if (!Array.isArray(s.equipped)) s.equipped = [null, null, null];
     while (s.equipped.length < 3) s.equipped.push(null);
     if (s.equipped.length > 3) s.equipped = s.equipped.slice(0, 3);
+    if (!s.gear || typeof s.gear !== "object") s.gear = { weapon: null, armor: null, accessory: null };
+    if (!("weapon" in s.gear)) s.gear.weapon = null;
+    if (!("armor" in s.gear)) s.gear.armor = null;
+    if (!("accessory" in s.gear)) s.gear.accessory = null;
+    // 裝備中嘅件若庫存冇數，補 1（舊存檔／匯入容錯）
+    ["weapon", "armor", "accessory"].forEach(function (slot) {
+      var gid = s.gear[slot];
+      if (!gid) return;
+      if (!ITEMS[gid] || ITEMS[gid].slot !== slot) { s.gear[slot] = null; return; }
+      if (!s.inventory) s.inventory = {};
+      if (!(s.inventory[gid] > 0)) s.inventory[gid] = 1;
+    });
     if (!s.traitIndex || typeof s.traitIndex !== "object") s.traitIndex = {};
     if (!s.party || typeof s.party !== "object") s.party = { roster: {}, active: [] };
     if (!s.party.roster || typeof s.party.roster !== "object") s.party.roster = {};
@@ -4373,6 +4561,11 @@
     n = n || 1;
     var c = invCount(id);
     if (c < n) return false;
+    // 裝備中佔用 1 件：唔可以賣到少過佔用數
+    if (typeof isGearEquipped === "function" && isGearEquipped(id) && (c - n) < 1) {
+      toast("裝備中嘅唔能賣晒，先卸下");
+      return false;
+    }
     state.inventory[id] = c - n;
     if (state.inventory[id] <= 0) delete state.inventory[id];
     return true;
@@ -4475,6 +4668,97 @@
     }).filter(Boolean);
   }
 
+  function ensureGearState() {
+    if (!state.gear || typeof state.gear !== "object") {
+      state.gear = { weapon: null, armor: null, accessory: null };
+    }
+    if (!("weapon" in state.gear)) state.gear.weapon = null;
+    if (!("armor" in state.gear)) state.gear.armor = null;
+    if (!("accessory" in state.gear)) state.gear.accessory = null;
+  }
+
+  function isGearItem(it) {
+    return !!(it && (it.slot === "weapon" || it.slot === "armor" || it.slot === "accessory"));
+  }
+
+  function equippedGearDefs() {
+    ensureGearState();
+    var out = [];
+    ["weapon", "armor", "accessory"].forEach(function (slot) {
+      var id = state.gear[slot];
+      if (!id) return;
+      var it = ITEMS[id];
+      if (it && it.slot === slot) out.push(it);
+    });
+    return out;
+  }
+
+  function gearSlotOccupiedId(slot) {
+    ensureGearState();
+    return state.gear[slot] || null;
+  }
+
+  function isGearEquipped(id) {
+    ensureGearState();
+    return state.gear.weapon === id || state.gear.armor === id || state.gear.accessory === id;
+  }
+
+  /** 裝備：同槽替換；庫存保留件數（裝備中佔用 1 件，唔可賣出裝備中嗰件） */
+  function equipGear(id) {
+    var it = ITEMS[id];
+    if (!isGearItem(it)) { toast("呢樣唔係裝備"); return false; }
+    if (invCount(id) <= 0) { toast("庫存冇呢件裝備"); return false; }
+    ensureGearState();
+    var slot = it.slot;
+    var prev = state.gear[slot];
+    if (prev === id) { toast("已經裝備緊"); return false; }
+    state.gear[slot] = id;
+    var st = calcStats();
+    if (state.hp > st.maxHp) state.hp = st.maxHp;
+    toast(prev
+      ? ("已換上「" + it.name + "」（卸下「" + (ITEMS[prev] ? ITEMS[prev].name : prev) + "」）")
+      : ("已裝備「" + it.name + "」"));
+    return true;
+  }
+
+  function unequipGear(slot) {
+    ensureGearState();
+    var id = state.gear[slot];
+    if (!id) { toast("呢個槽係空嘅"); return false; }
+    var name = ITEMS[id] ? ITEMS[id].name : id;
+    state.gear[slot] = null;
+    var st = calcStats();
+    if (state.hp > st.maxHp) state.hp = st.maxHp;
+    toast("已卸下「" + name + "」");
+    return true;
+  }
+
+  function formatGearBonuses(it) {
+    if (!it) return "";
+    var bits = [];
+    if (it.atk) bits.push("攻+" + it.atk);
+    if (it.str) bits.push("力+" + it.str);
+    if (it.defBonus) bits.push("防+" + it.defBonus);
+    if (it.hp) bits.push("HP+" + it.hp);
+    if (it.agi) bits.push("敏+" + it.agi);
+    if (it.con) bits.push("體+" + it.con);
+    return bits.join("　");
+  }
+
+  function tryDropGear(questId) {
+    var pool = GEAR_DROP_POOLS[questId];
+    if (!pool || !pool.ids || !pool.ids.length) return null;
+    if (Math.random() >= (pool.chance || 0)) return null;
+    var eligible = pool.ids.filter(function (id) {
+      var it = ITEMS[id];
+      return !!(it && isGearItem(it) && (it.minSection || 1) <= currentSection());
+    });
+    if (!eligible.length) return null;
+    var pick = eligible[Math.floor(Math.random() * eligible.length)];
+    addItem(pick, 1);
+    return pick;
+  }
+
   function calcStats() {
     var s = { str: state.str, agi: state.agi, con: state.con, atk: 0, hpBonus: 0, defBonus: 0, regen: 0, fleeBonus: 0,
       setCrit: 0, setDodgeChance: 0, setReflectPct: 0, setPoisonOnHit: 0, activeSetNames: [] };
@@ -4487,6 +4771,14 @@
       if (d.defBonus) s.defBonus += d.defBonus;
       if (d.regen) s.regen += d.regen;
       if (d.fleeBonus) s.fleeBonus += d.fleeBonus;
+    });
+    equippedGearDefs().forEach(function (g) {
+      if (g.str) s.str += g.str;
+      if (g.agi) s.agi += g.agi;
+      if (g.con) s.con += g.con;
+      if (g.atk) s.atk += g.atk;
+      if (g.hp) s.hpBonus += g.hp;
+      if (g.defBonus) s.defBonus += g.defBonus;
     });
     var setsOn = activeSets();
     setsOn.forEach(function (set) {
@@ -4673,7 +4965,12 @@
     if (it.sell != null) lines.push("<div>賣出　<b>" + it.sell + "</b> 金</div>");
     if (it.val != null) lines.push("<div>效果值　<b>" + it.val + "</b></div>");
     if (it.heal != null) lines.push("<div>回復　<b>" + it.heal + "</b> HP</div>");
+    if (it.slot) lines.push("<div>裝備槽　<b>" + escapeHtml(GEAR_SLOT_LABEL[it.slot] || it.slot) + "</b></div>");
     if (it.atk != null) lines.push("<div>攻擊　<b>+" + it.atk + "</b></div>");
+    if (it.str != null) lines.push("<div>力量　<b>+" + it.str + "</b></div>");
+    if (it.defBonus != null) lines.push("<div>防禦　<b>+" + it.defBonus + "</b></div>");
+    if (it.hp != null && it.slot) lines.push("<div>最大 HP　<b>+" + it.hp + "</b></div>");
+    if (it.con != null) lines.push("<div>體質　<b>+" + it.con + "</b></div>");
     if (it.agi != null) lines.push("<div>敏捷　<b>+" + it.agi + "</b></div>");
     if (it.crit != null) lines.push("<div>暴擊　<b>+" + it.crit + "</b></div>");
     if (it.costHp != null) lines.push("<div>代價　HP <b>−" + it.costHp + "</b></div>");
@@ -4757,9 +5054,40 @@
     if (it.costHp) {
       html += "<div>代價後 HP　<b class='delta-down'>" + Math.max(0, state.hp - it.costHp) + "</b></div>";
     }
-    if (it.atk) html += "<div>戰鬥增益　攻擊 <b class='delta-up'>+" + it.atk + "</b> → 約 " + (st.attack + it.atk) + "</div>";
-    if (it.agi) html += "<div>戰鬥增益　敏捷 <b class='delta-up'>+" + it.agi + "</b></div>";
-    if (it.crit) html += "<div>戰鬥增益　暴擊 <b class='delta-up'>+" + it.crit + "</b></div>";
+    if (isGearItem(it)) {
+      ensureGearState();
+      var curId = state.gear[it.slot];
+      var cur = curId && ITEMS[curId];
+      html += "<div class='tip-meta' style='margin-top:6px'>裝備槽　" + escapeHtml(GEAR_SLOT_LABEL[it.slot] || it.slot) +
+        (cur ? ("　而家：「" + escapeHtml(cur.name) + "」") : "　而家：空") + "</div>";
+      if (cur && cur.id !== it.id) {
+        function deltaLine(label, a, b) {
+          a = a || 0; b = b || 0;
+          if (!a && !b) return "";
+          var d = a - b;
+          var cls = d > 0 ? "delta-up" : (d < 0 ? "delta-down" : "delta-same");
+          var sign = d > 0 ? ("+" + d) : String(d);
+          return "<div>" + label + "　本項 <b>+" + a + "</b>　差距 <b class='" + cls + "'>" + sign + "</b></div>";
+        }
+        html += deltaLine("攻擊", it.atk, cur.atk);
+        html += deltaLine("防禦", it.defBonus, cur.defBonus);
+        html += deltaLine("最大HP", it.hp, cur.hp);
+        html += deltaLine("敏捷", it.agi, cur.agi);
+        html += deltaLine("力量", it.str, cur.str);
+        html += deltaLine("體質", it.con, cur.con);
+      } else if (!cur) {
+        if (it.atk) html += "<div>若裝備　攻擊 <b class='delta-up'>+" + it.atk + "</b> → 約 " + (st.attack + it.atk) + "</div>";
+        if (it.defBonus) html += "<div>若裝備　防禦 <b class='delta-up'>+" + it.defBonus + "</b> → 約 " + (st.defense + it.defBonus) + "</div>";
+        if (it.hp) html += "<div>若裝備　最大 HP <b class='delta-up'>+" + it.hp + "</b></div>";
+        if (it.agi) html += "<div>若裝備　敏捷 <b class='delta-up'>+" + it.agi + "</b></div>";
+      } else {
+        html += "<div class='tip-meta'>已經裝備緊呢件。</div>";
+      }
+    } else {
+      if (it.atk) html += "<div>戰鬥增益　攻擊 <b class='delta-up'>+" + it.atk + "</b> → 約 " + (st.attack + it.atk) + "</div>";
+      if (it.agi) html += "<div>戰鬥增益　敏捷 <b class='delta-up'>+" + it.agi + "</b></div>";
+      if (it.crit) html += "<div>戰鬥增益　暴擊 <b class='delta-up'>+" + it.crit + "</b></div>";
+    }
     html += "</div></div>";
     return html;
   }
@@ -5614,9 +5942,46 @@
     toast("旅館治療 −" + cost + "金，全員 HP 回滿");
   }
 
+
+  function renderGearSlots() {
+    var box = $("gear-slots");
+    if (!box) return;
+    ensureGearState();
+    box.innerHTML = "";
+    ["weapon", "armor", "accessory"].forEach(function (slot) {
+      var id = state.gear[slot];
+      var it = id && ITEMS[id];
+      var div = document.createElement("div");
+      div.className = "gear-slot" + (it ? " filled" : "");
+      var lab = GEAR_SLOT_LABEL[slot] || slot;
+      if (it) {
+        div.innerHTML = "<span class='gs-kind'>" + lab + "</span><b>" + escapeHtml(it.name) + "</b>" +
+          "<span class='gs-meta'>" + escapeHtml(formatGearBonuses(it) || it.desc || "") + "　·　點擊卸下</span>";
+        div.onclick = function () {
+          unequipGear(slot);
+          showStatus();
+          updateStickyHud();
+        };
+        bindTippable(div, (function (item) {
+          return function () { showItemTip(item, "裝備中 · " + lab); };
+        })(it));
+      } else {
+        div.innerHTML = "<span class='gs-kind'>" + lab + "</span>（空）" +
+          "<span class='gs-meta'>喺道具袋「裝備」分頁裝備</span>";
+      }
+      box.appendChild(div);
+    });
+  }
+
   function showStatus() {
     showScreen("screen-status");
     var st = calcStats();
+    ensureGearState();
+    var gearBits = ["weapon", "armor", "accessory"].map(function (slot) {
+      var id = state.gear[slot];
+      var it = id && ITEMS[id];
+      return (GEAR_SLOT_LABEL[slot] || slot) + "：" + (it ? it.name : "空");
+    }).join("　");
     $("status-panel").innerHTML =
       "<p><b>" + escapeHtml(state.name) + "</b>　等級 " + state.level + "</p>" +
       "<p>HP " + state.hp + " / " + st.maxHp + "　金錢 " + state.gold + "</p>" +
@@ -5626,10 +5991,12 @@
       "<p>攻擊力 " + st.attack + "　防禦 " + st.defense +
       " <span style='color:#888'>（軟上限減傷）</span>" +
       (st.regen ? "　再生 +" + st.regen : "") + "</p>" +
+      "<p>裝備　" + escapeHtml(gearBits) + "</p>" +
       "<p>下戰增益：攻 +" + (state.buffAtk || 0) + "　防 +" + (state.buffDef || 0) + "</p>" +
       "<p>詞條碎片 " + state.fragments + " / " + state.fragNeed + "（滿則隨機白詞條）</p>" +
       "<p>圖鑑解鎖 " + countUnlockedTraits() + " / " + Object.keys(TRAITS).length + "</p>";
 
+    renderGearSlots();
     renderSetPanel();
 
     var slots = $("equip-slots");
@@ -6234,6 +6601,10 @@
   function useItem(id, fromCombat) {
     var def = ITEMS[id];
     if (!def) return false;
+    if (isGearItem(def)) {
+      if (fromCombat) { toast("裝備唔能喺戰鬥即時換（打完再換）"); return false; }
+      return equipGear(id);
+    }
     if (fromCombat && !def.combat) {
       toast("呢樣唔能喺戰鬥用");
       return false;
@@ -6802,11 +7173,13 @@
     showScreen("screen-shop");
     updateStickyHud();
     $("shop-gold").textContent = "持有金錢：" + state.gold;
-    ["tab-buy", "tab-sell-item", "tab-sell-trait"].forEach(function (id) {
-      $(id).classList.remove("active");
+    ["tab-buy", "tab-sell-item", "tab-sell-gear", "tab-sell-trait"].forEach(function (id) {
+      var el = $(id);
+      if (el) el.classList.remove("active");
     });
     if (shopTab === "buy") $("tab-buy").classList.add("active");
     else if (shopTab === "sell-item") $("tab-sell-item").classList.add("active");
+    else if (shopTab === "sell-gear") { var tg = $("tab-sell-gear"); if (tg) tg.classList.add("active"); }
     else $("tab-sell-trait").classList.add("active");
 
     var list = $("shop-list");
@@ -6839,6 +7212,7 @@
         var it = ITEMS[id];
         if (!it) return;
         var tag = it.staple ? "常駐" : ("輪換·R" + (it.rarity || 1));
+        if (isGearItem(it)) tag = (GEAR_SLOT_LABEL[it.slot] || "裝備") + "·R" + (it.rarity || 1);
         if ((it.minSection || 1) >= 2) tag += "·影潮";
         var row = document.createElement("div");
         row.className = "inv-row";
@@ -6864,9 +7238,11 @@
         list.appendChild(row);
       });
     } else if (shopTab === "sell-item") {
-      var keys = Object.keys(state.inventory || {}).filter(function (k) { return invCount(k) > 0 && ITEMS[k]; });
+      var keys = Object.keys(state.inventory || {}).filter(function (k) {
+        return invCount(k) > 0 && ITEMS[k] && !isGearItem(ITEMS[k]);
+      });
       if (!keys.length) {
-        list.innerHTML = "<p class='statline'>冇可賣嘅道具。</p>";
+        list.innerHTML = "<p class='statline'>冇可賣嘅道具。（裝備請去「賣裝備」）</p>";
       } else {
         keys.forEach(function (id) {
           var it = ITEMS[id];
@@ -6889,6 +7265,49 @@
           row.appendChild(b);
           bindTippable(row, (function (item) {
             return function () { showItemTip(item, "商店·賣道具"); };
+          })(it));
+          list.appendChild(row);
+        });
+      }
+    } else if (shopTab === "sell-gear") {
+      ensureGearState();
+      var gkeys = Object.keys(state.inventory || {}).filter(function (k) {
+        return invCount(k) > 0 && ITEMS[k] && isGearItem(ITEMS[k]);
+      });
+      if (!gkeys.length) {
+        list.innerHTML = "<p class='statline'>冇可賣嘅裝備。</p>";
+      } else {
+        gkeys.forEach(function (id) {
+          var it = ITEMS[id];
+          var worn = isGearEquipped(id);
+          var free = invCount(id) - (worn ? 1 : 0);
+          var row = document.createElement("div");
+          row.className = "inv-row rarity-" + itemRarityKey(it);
+          row.innerHTML =
+            "<div class='info'><b>" + escapeHtml(it.name) + "</b> <span class='meta'>[" +
+            escapeHtml(GEAR_SLOT_LABEL[it.slot] || it.slot) + (worn ? "·裝備中" : "") + "]</span>" +
+            "<div class='meta'>持有 ×" + invCount(id) +
+            (worn ? ("（可賣 ×" + free + "）") : "") +
+            "　售價 " + it.sell + " 金</div>" +
+            "<div class='meta'>" + escapeHtml(formatGearBonuses(it) || it.desc) + "</div></div>";
+          var b = document.createElement("button");
+          b.textContent = free > 0 ? "賣出" : "要先卸下";
+          b.disabled = free <= 0;
+          b.onclick = (function (itemId) {
+            return function () {
+              if (isGearEquipped(itemId) && invCount(itemId) <= 1) {
+                toast("裝備中嘅唔能賣，先卸下");
+                return;
+              }
+              if (!takeItem(itemId, 1)) return;
+              state.gold += ITEMS[itemId].sell;
+              toast("賣出「" + ITEMS[itemId].name + "」+" + ITEMS[itemId].sell + "金");
+              showShop("sell-gear");
+            };
+          })(id);
+          row.appendChild(b);
+          bindTippable(row, (function (item) {
+            return function () { showItemTip(item, "商店·賣裝備"); };
           })(it));
           list.appendChild(row);
         });
@@ -6955,6 +7374,7 @@
     keys = keys.filter(function (id) {
       var it = ITEMS[id];
       var cat = itemCategory(it);
+      if (_bagTab === "gear" && cat !== "gear") return false;
       if (_bagTab === "consume" && cat !== "consume") return false;
       if (_bagTab === "battle" && cat !== "battle") return false;
       if (_bagTab === "material" && cat !== "material") return false;
@@ -6984,14 +7404,52 @@
       var it = ITEMS[id];
       var cat = itemCategory(it);
       var rk = itemRarityKey(it);
+      var worn = isGearItem(it) && isGearEquipped(id);
       var card = document.createElement("div");
-      card.className = "mini-card rarity-" + rk;
+      card.className = "mini-card rarity-" + rk + (worn ? " gear-equipped" : "");
+      var metaExtra = "";
+      if (isGearItem(it)) {
+        metaExtra = " · " + (GEAR_SLOT_LABEL[it.slot] || it.slot) + (worn ? " · 裝備中" : "");
+        if (formatGearBonuses(it)) metaExtra += " · " + formatGearBonuses(it);
+      } else {
+        metaExtra = it.town ? " · 可用" : " · 戰鬥";
+      }
       card.innerHTML =
         "<span class='mc-qty'>×" + invCount(id) + "</span>" +
         "<div class='mc-icon'>" + itemCatIcon(cat) + "</div>" +
         "<div class='mc-name'>" + escapeHtml(it.name) + "</div>" +
-        "<div class='mc-meta'>" + escapeHtml(itemCatLabel(cat)) + (it.town ? " · 可用" : " · 戰鬥") + "</div>";
-      if (it.town) {
+        "<div class='mc-meta'>" + escapeHtml(itemCatLabel(cat) + metaExtra) + "</div>";
+      if (isGearItem(it)) {
+        var gacts = document.createElement("div");
+        gacts.className = "mc-actions";
+        if (worn) {
+          var ub = document.createElement("button");
+          ub.textContent = "卸下";
+          ub.onclick = (function (slot) {
+            return function (ev) {
+              ev.stopPropagation();
+              unequipGear(slot);
+              showBag();
+              updateStickyHud();
+            };
+          })(it.slot);
+          gacts.appendChild(ub);
+        } else {
+          var eb = document.createElement("button");
+          eb.textContent = "裝備";
+          eb.onclick = (function (itemId) {
+            return function (ev) {
+              ev.stopPropagation();
+              if (equipGear(itemId)) {
+                showBag();
+                updateStickyHud();
+              }
+            };
+          })(id);
+          gacts.appendChild(eb);
+        }
+        card.appendChild(gacts);
+      } else if (it.town) {
         var acts = document.createElement("div");
         acts.className = "mc-actions";
         var b = document.createElement("button");
@@ -7009,7 +7467,7 @@
         card.appendChild(acts);
       }
       bindTippable(card, (function (item) {
-        return function () { showItemTip(item, "道具袋"); };
+        return function () { showItemTip(item, worn ? "道具袋·裝備中" : "道具袋"); };
       })(it));
       list.appendChild(card);
     });
@@ -7025,7 +7483,7 @@
     var list = $("combat-item-list");
     list.innerHTML = "";
     var keys = Object.keys(state.inventory || {}).filter(function (k) {
-      return invCount(k) > 0 && ITEMS[k] && ITEMS[k].combat;
+      return invCount(k) > 0 && ITEMS[k] && ITEMS[k].combat && !isGearItem(ITEMS[k]);
     });
     if (!keys.length) {
       list.innerHTML = "<p class='statline'>冇可用戰鬥道具。</p>";
@@ -7808,10 +8266,17 @@
         }
       }
     }
+    // 裝備掉落（同詞條並行；群體最後一隻先抽）
+    if (combat.quest && combat.quest.id) {
+      var gDrop = tryDropGear(combat.quest.id);
+      if (gDrop && ITEMS[gDrop]) {
+        drops.push("裝備「" + ITEMS[gDrop].name + "」");
+      }
+    }
     if (drops.length) {
       appendLog($("combat-log"), "戰利品：" + drops.join("、"), "loot");
     } else {
-      appendLog($("combat-log"), "今次冇掉落詞條。", "sys");
+      appendLog($("combat-log"), "今次冇掉落詞條／裝備。", "sys");
     }
     syncAlliesHpToState();
     updateBars();
@@ -8382,6 +8847,7 @@
     if ($("btn-shop-reroll")) $("btn-shop-reroll").onclick = rerollShopShelf;
     $("tab-buy").onclick = function () { showShop("buy"); };
     $("tab-sell-item").onclick = function () { showShop("sell-item"); };
+    if ($("tab-sell-gear")) $("tab-sell-gear").onclick = function () { showShop("sell-gear"); };
     $("tab-sell-trait").onclick = function () { showShop("sell-trait"); };
     $("btn-lu-vit").onclick = function () { applyLevelChoice("vit"); };
     $("btn-lu-str").onclick = function () { applyLevelChoice("str"); };
