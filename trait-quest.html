@@ -1256,38 +1256,66 @@
     min-height: 120px;
   }
 
-  /* ---- B 戰鬥防移位 ---- */
+  /* ---- B 戰鬥防移位＋右欄操作（左日誌／狀態｜右固定按鈕） ---- */
+  .combat-battle-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 4px;
+    flex: 1 1 auto;
+    min-height: 292px; /* 右欄 5 掣 + 繼續列；固定高度防移位 */
+  }
+  .combat-battle-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
   #screen-combat .log#combat-log,
   #combat-log.battle-log {
-    flex: 0 0 auto;
-    height: 120px;
-    max-height: 120px;
-    min-height: 120px;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 220px;
+    max-height: none;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
   .battle-actions-wrap {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 4px;
-    min-height: 168px; /* 動作區 + 繼續列預留，防推擠 */
+    gap: 6px;
+    margin-top: 0;
+    flex: 0 0 112px;
+    width: 112px;
+    min-width: 112px;
+    max-width: 112px;
+    min-height: 292px; /* 動作區 + 繼續列預留，防推擠 */
   }
   .battle-actions,
   #combat-actions.battle-actions {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    min-height: 112px;
+    grid-template-columns: 1fr; /* 右欄直排 */
+    grid-template-rows: repeat(5, 48px);
+    gap: 6px;
+    min-height: 264px; /* 5×48 + 4×6 */
     flex: 0 0 auto;
+  }
+  .battle-actions.btn-grid {
+    grid-template-columns: 1fr;
   }
   .battle-actions button,
   #combat-actions.battle-actions button {
     height: 48px;
     min-height: 48px;
-    padding: 8px 10px;
-    font-size: 0.95rem;
+    max-height: 48px;
+    padding: 6px 4px;
+    font-size: 0.82rem;
     font-weight: 700;
+    line-height: 1.15;
+    white-space: normal;
+    word-break: keep-all;
   }
   .battle-actions button:disabled,
   #combat-actions.battle-actions button:disabled {
@@ -1299,6 +1327,11 @@
   /* 冷卻／結束：唔用 display:none，改 visibility 保位 */
   #combat-next-wrap {
     min-height: 48px;
+    flex: 0 0 48px;
+  }
+  #combat-next-wrap.btn-grid,
+  #combat-next-wrap.btn-grid.one {
+    grid-template-columns: 1fr;
   }
   #combat-next-wrap.soft-hidden {
     visibility: hidden;
@@ -1322,6 +1355,7 @@
   #combat-status-hint {
     font-size: 0.85rem;
     color: var(--muted);
+    flex: 0 0 auto;
   }
   .filter-bar {
     display: flex;
@@ -1639,23 +1673,27 @@
     </div>
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
-    <p class="statline" id="combat-status-hint">狀態：無</p>
     <div class="combat-speed-bar" id="combat-speed-bar">
       <button type="button" id="btn-spd-1" class="active" title="手動／正常節奏">1x</button>
       <button type="button" id="btn-spd-2" title="自動普攻（較快）">2x</button>
       <button type="button" id="btn-spd-skip" title="即時結算本任務戰鬥">跳過戰鬥</button>
     </div>
-    <div class="log battle-log" id="combat-log"></div>
-    <div class="battle-actions-wrap">
-      <div class="btn-grid battle-actions" id="combat-actions">
-        <button id="btn-atk">攻擊</button>
-        <button id="btn-def">防禦</button>
-        <button id="btn-skill">用詞條技能</button>
-        <button id="btn-item">道具</button>
-        <button id="btn-flee" class="danger">逃跑</button>
+    <div class="combat-battle-row">
+      <div class="combat-battle-left">
+        <p class="statline" id="combat-status-hint">狀態：無</p>
+        <div class="log battle-log" id="combat-log"></div>
       </div>
-      <div class="btn-grid one soft-hidden" id="combat-next-wrap">
-        <button class="primary" id="btn-combat-next">繼續</button>
+      <div class="battle-actions-wrap" aria-label="戰鬥操作">
+        <div class="btn-grid battle-actions" id="combat-actions">
+          <button id="btn-atk">攻擊</button>
+          <button id="btn-def">防禦</button>
+          <button id="btn-skill">詞條技能</button>
+          <button id="btn-item">道具</button>
+          <button id="btn-flee" class="danger">逃跑</button>
+        </div>
+        <div class="btn-grid one soft-hidden" id="combat-next-wrap">
+          <button class="primary" id="btn-combat-next">繼續</button>
+        </div>
       </div>
     </div>
   </div>
