@@ -215,6 +215,21 @@
     word-break: break-word;
     overflow-wrap: anywhere;
   }
+  .list-btn.event-quest {
+    border-color: #7d7;
+    background: #0a1a0a;
+  }
+  .list-btn.event-quest .desc.event-tag {
+    color: #9f9;
+    font-weight: 600;
+  }
+  #quest-event-banner {
+    border-color: #6a6;
+    background: #0a160a;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  #quest-event-banner b { color: #bfb; }
   .hidden { display: none !important; }
   .footer-note { color: var(--muted); font-size: 0.7rem; text-align: center; margin-top: 8px; }
   .toast {
@@ -456,6 +471,7 @@
   <!-- QUESTS -->
   <div id="screen-quests" class="screen">
     <h2>任務板</h2>
+    <div id="quest-event-banner" class="panel mb hidden"></div>
     <div id="quest-list"></div>
     <button id="btn-quests-back">返回</button>
   </div>
@@ -1014,6 +1030,86 @@
     }
   ];
 
+  // ---------- Town-return events (original Cantonese blurbs) ----------
+  var TOWN_EVENT_CHANCE = 0.42; // 35–50% band
+  var TOWN_EVENT_BLURBS = [
+    "返到公會門口，告示板多咗張墨未乾嘅急報——有人話某個舊委託地忽然『發光』，怪變得好惡，但掉落豐厚。",
+    "接待員拉住你袖口：「啱啱有巡邏隊返嚟，話已清過嘅地方又有動靜。你若熟路，去睇一眼——報酬會加碼。」",
+    "吧台有人拍枱：「喂！我啱啱喺舊戰場見到綠光詞條浮空！我腳軟先走，邊個敢去？」四周安靜咗半秒。",
+    "窗外飛入一隻信鴉，腳上夾住公會急件：『異常魔力回潮——請有經驗者重訪舊委託點。』印章係紅嘅。",
+    "你剛踏入大廳，任務板上原本褪色嘅紙條自行發亮，墨字重組：『……有機可乘。』旁人紛紛讓開。",
+    "鐵匠隔住爐火喊你：「聽講舊巢穴滲出詞條霧。唔係新鮮人嗰種霧——係會咬人嗰種。」",
+    "角落銅牌隊正在吵架：「明明通關過，點解又要人去？」隊長摔杯：「因為今次怪識反擊，獎又係真。」",
+    "旅店老闆塞你一張皺紙：「住客留低嘅。話某個舊圖標誌位『唔同咗』。你熟就去；唔熟就當我冇講。」",
+    "任務板邊緣滲出一圈淡綠光暈，像有人用詞條墨重新描過邊框。接待員聳肩：「系統顯示……異常委託。你自己決定。」",
+    "夜風拍窗。有人喺門外喊完就走：「舊洞口亮住！唔係火——係字！」你開門時，只剩腳印同半張撕爛嘅委託副本。"
+  ];
+  var EVENT_MONSTER_PREFIX = ["異變", "潮湧", "詞痕", "躁動", "回潮"];
+  var EVENT_FLAVOR_TEMPLATES = [
+    "空氣裡有股甜得發膩嘅魔力味。{name}從霧裡踏出，體表爬滿淡綠紋路——明顯唔係平常嗰隻。",
+    "舊戰場餘燼未冷，{name}卻像剛重生。佢雙眼映住詞條碎光，動作比記憶中快一截。",
+    "腳下碎石震咗兩下。{name}擋路，喉間發出唔似獸類嘅低語——似有人喺背誦詞條名。",
+    "你認得出呢度，但認唔出面前嘅{name}。皮甲裂開處滲出藍紫光暈，像強行塞入嘅詞條。"
+  ];
+
+  function findQuestById(id) {
+    for (var i = 0; i < QUESTS.length; i++) {
+      if (QUESTS[i].id === id) return QUESTS[i];
+    }
+    return null;
+  }
+
+  function buildEventStages(q) {
+    return q.stages.map(function (st, i) {
+      var pref = EVENT_MONSTER_PREFIX[i % EVENT_MONSTER_PREFIX.length];
+      var scale = 1.35 + i * 0.05;
+      var flavorTpl = EVENT_FLAVOR_TEMPLATES[i % EVENT_FLAVOR_TEMPLATES.length];
+      var name = pref + "·" + st.name;
+      return {
+        name: name,
+        hp: Math.floor(st.hp * scale),
+        atk: Math.floor(st.atk * scale) + 2,
+        def: Math.floor(st.def * scale) + 1,
+        flavor: flavorTpl.replace(/\{name\}/g, name)
+      };
+    });
+  }
+
+  function pickGuaranteedGreenPlusTrait() {
+    var byR = { green: [], blue: [], purple: [] };
+    Object.keys(TRAITS).forEach(function (id) {
+      var r = TRAITS[id].rarity;
+      if (byR[r]) byR[r].push(id);
+    });
+    var roll = Math.random();
+    var pool;
+    if (roll < 0.12 && byR.purple.length) pool = byR.purple;
+    else if (roll < 0.45 && byR.blue.length) pool = byR.blue;
+    else pool = byR.green.length ? byR.green : (byR.blue.length ? byR.blue : byR.purple);
+    if (!pool || !pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function tryTriggerTownEvent(justFinishedId) {
+    if (state.eventQuestId) {
+      if (state.cleared && state.cleared[state.eventQuestId]) return null;
+      state.eventQuestId = null;
+      state.eventBlurb = null;
+    }
+    var clearedIds = [];
+    QUESTS.forEach(function (q) {
+      if (state.cleared && state.cleared[q.id]) clearedIds.push(q.id);
+    });
+    if (!clearedIds.length) return null;
+    if (Math.random() >= TOWN_EVENT_CHANCE) return null;
+    var pool = clearedIds.filter(function (id) { return id !== justFinishedId; });
+    if (!pool.length) pool = clearedIds.slice();
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    state.eventQuestId = pick;
+    state.eventBlurb = TOWN_EVENT_BLURBS[Math.floor(Math.random() * TOWN_EVENT_BLURBS.length)];
+    return pick;
+  }
+
   // ---------- State ----------
   var state = null;
   var combat = null;
@@ -1041,7 +1137,9 @@
       cleared: {},
       introDone: false,
       turn: 0,
-      pendingLevelUps: 0
+      pendingLevelUps: 0,
+      eventQuestId: null,
+      eventBlurb: null
     };
   }
 
@@ -1061,6 +1159,12 @@
     if (!s.cleared) s.cleared = {};
     if (!Array.isArray(s.traits)) s.traits = [];
     if (!Array.isArray(s.equipped)) s.equipped = [null, null];
+    if (s.eventQuestId === undefined) s.eventQuestId = null;
+    if (s.eventBlurb === undefined) s.eventBlurb = null;
+    if (s.eventQuestId && (!s.cleared || !s.cleared[s.eventQuestId])) {
+      s.eventQuestId = null;
+      s.eventBlurb = null;
+    }
     return s;
   }
 
@@ -1295,7 +1399,17 @@
       "吧台角落，幾個銅牌冒險者賭骰。冇人理你呢個更底層嘅。",
       "接待員打咗個呵欠：「活住返嚟就算賺。」"
     ];
-    $("town-flavor").textContent = flavors[Math.floor(Math.random() * flavors.length)];
+    var flavor = flavors[Math.floor(Math.random() * flavors.length)];
+    if (state.eventQuestId && state.cleared && state.cleared[state.eventQuestId]) {
+      var eqTown = findQuestById(state.eventQuestId);
+      var eqName = eqTown ? eqTown.name : state.eventQuestId;
+      flavor += "\n\n【事件進行中】任務「" + eqName + "」出現異常——特別怪物，通關必掉綠以上詞條。";
+      if (state.eventBlurb) flavor += "\n" + state.eventBlurb;
+    } else if (state.eventQuestId) {
+      state.eventQuestId = null;
+      state.eventBlurb = null;
+    }
+    $("town-flavor").textContent = flavor;
     var log = $("town-log");
     if (msg) {
       appendLog(log, msg, "sys");
@@ -1743,21 +1857,44 @@
 
   function showQuests() {
     showScreen("screen-quests");
+    var banner = $("quest-event-banner");
+    if (state.eventQuestId && state.cleared && state.cleared[state.eventQuestId]) {
+      var beq = findQuestById(state.eventQuestId);
+      banner.classList.remove("hidden");
+      banner.innerHTML =
+        "<b>⚡ 突發事件</b>　「" + escapeHtml(beq ? beq.name : state.eventQuestId) + "」異常中<br>" +
+        "<span style='color:#9f9'>" + escapeHtml(state.eventBlurb || "該任務有特別怪物與綠以上詞條獎勵。") + "</span>" +
+        "<br><span class='statline'>接取該任務將面對強化敵人；通關必掉綠色或以上詞條。</span>";
+    } else {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+      if (state.eventQuestId) {
+        state.eventQuestId = null;
+        state.eventBlurb = null;
+      }
+    }
     var list = $("quest-list");
     list.innerHTML = "";
     QUESTS.forEach(function (q) {
       var locked = q.need && !state.cleared[q.need];
       var cleared = !!state.cleared[q.id];
+      var isEvent = !!(state.eventQuestId && state.eventQuestId === q.id && cleared);
       var btn = document.createElement("button");
-      btn.className = "list-btn";
+      btn.className = "list-btn" + (isEvent ? " event-quest" : "");
       btn.disabled = locked;
       var rw = QUEST_REWARDS[q.id];
       var rewardHint = rw ? ("　獎：XP" + rw.xp + "/金" + rw.gold) : "";
-      btn.innerHTML =
-        escapeHtml(q.name) + (cleared ? " ✓" : "") +
-        "<span class='desc'>" +
-        (locked ? "（需先完成上一關）" : escapeHtml(q.desc) + rewardHint) +
-        "</span>";
+      var title = (isEvent ? "⚡ 事件　" : "") + escapeHtml(q.name) + (cleared ? " ✓" : "");
+      var desc;
+      if (locked) {
+        desc = "（需先完成上一關）";
+      } else if (isEvent) {
+        desc = "<span class='desc event-tag'>【事件委託】特別怪物　通關必掉綠／藍／紫詞條</span>" +
+          "<span class='desc'>" + escapeHtml(q.desc) + rewardHint + "</span>";
+      } else {
+        desc = "<span class='desc'>" + escapeHtml(q.desc) + rewardHint + "</span>";
+      }
+      btn.innerHTML = title + desc;
       if (!locked) {
         btn.onclick = function () { startQuest(q); };
       }
@@ -1767,8 +1904,20 @@
 
   // ---------- Combat ----------
   function startQuest(q) {
+    var isEvent = !!(state.eventQuestId && state.eventQuestId === q.id && state.cleared[q.id]);
+    var runQuest = q;
+    if (isEvent) {
+      runQuest = {
+        id: q.id,
+        name: q.name + "【事件】",
+        desc: q.desc,
+        need: q.need,
+        clearText: "異變平息。特別怪物潰散，一枚綠光以上嘅詞條殘片落入你掌心。公會急報嘅墨跡亦一併淡去。",
+        stages: buildEventStages(q)
+      };
+    }
     combat = {
-      quest: q,
+      quest: runQuest,
       stage: 0,
       defending: false,
       enemyPoison: 0,
@@ -1777,6 +1926,7 @@
       guardHeal: false,
       over: false,
       wasCleared: !!state.cleared[q.id],
+      isEvent: isEvent,
       battleBuffAtk: 0,
       battleBuffDef: 0,
       smokeFlee: false
@@ -1968,18 +2118,30 @@
     var pool = DROP_POOLS[combat.quest.id];
     var drops = [];
     if (pool) {
-      if (pool.blue && pool.blueChance && Math.random() < pool.blueChance) {
+      var blueChance = pool.blueChance || 0;
+      var greenChance = pool.greenChance || 0;
+      var whiteChance = pool.whiteChance || 0;
+      if (combat.isEvent) {
+        blueChance = Math.max(blueChance, 0.18);
+        greenChance = Math.max(greenChance, 0.4);
+        whiteChance = Math.min(whiteChance, 0.2);
+      }
+      if (pool.blue && blueChance && Math.random() < blueChance) {
         var bl = pool.blue[Math.floor(Math.random() * pool.blue.length)];
         addTrait(bl);
         drops.push("藍詞條「" + TRAITS[bl].name + "」");
-      } else if (Math.random() < pool.greenChance) {
+      } else if (Math.random() < greenChance && pool.green && pool.green.length) {
         var g = pool.green[Math.floor(Math.random() * pool.green.length)];
         addTrait(g);
         drops.push("綠詞條「" + TRAITS[g].name + "」");
-      } else if (Math.random() < pool.whiteChance) {
+      } else if (!combat.isEvent && Math.random() < whiteChance) {
         var w = pool.white[Math.floor(Math.random() * pool.white.length)];
         addTrait(w);
         drops.push("白詞條「" + TRAITS[w].name + "」");
+      } else if (combat.isEvent && pool.green && pool.green.length && Math.random() < 0.55) {
+        var g2 = pool.green[Math.floor(Math.random() * pool.green.length)];
+        addTrait(g2);
+        drops.push("綠詞條「" + TRAITS[g2].name + "」");
       }
       var fragGain = 0;
       if (Math.random() < pool.fragChance) fragGain = 1 + (Math.random() < 0.3 ? 1 : 0);
@@ -2040,6 +2202,16 @@
         bonusTrait = "cloak_shade";
         addTrait(bonusTrait);
       }
+      var wasEvent = !!combat.isEvent;
+      var eventTrait = null;
+      if (wasEvent) {
+        eventTrait = pickGuaranteedGreenPlusTrait();
+        if (eventTrait) addTrait(eventTrait);
+        if (state.eventQuestId === qid) {
+          state.eventQuestId = null;
+          state.eventBlurb = null;
+        }
+      }
 
       showScreen("screen-result");
       $("result-title").textContent = "任務完成：" + qname;
@@ -2048,18 +2220,31 @@
       var rewardLine = "報酬：經驗 +" + gainedXp + "　金錢 +" + gainedGold;
       if (itemGot) rewardLine += "　道具「" + ITEMS[itemGot].name + "」×1";
       if (bonusTrait && TRAITS[bonusTrait]) rewardLine += "　詞條「" + TRAITS[bonusTrait].name + "」";
-      if (replay) rewardLine += "（再通關減半）";
+      if (eventTrait && TRAITS[eventTrait]) {
+        rewardLine += "　事件獎勵【" + rarityLabel(TRAITS[eventTrait].rarity) + "】「" + TRAITS[eventTrait].name + "」";
+      }
+      if (replay && !wasEvent) rewardLine += "（再通關減半）";
+      if (wasEvent) rewardLine += "（事件通關）";
       appendLog($("result-log"), rewardLine, "loot");
-      if (qid === "s1_l5") {
+      if (qid === "s1_l5" && !wasEvent) {
         appendLog($("result-log"), "【第一節·格蘭起程】完結。你可以繼續喺鎮上鍛鍊、商店同重刷；下一節要等通知再開。", "sys");
+      } else if (wasEvent) {
+        appendLog($("result-log"), "事件結束。異常標記已從任務板消失。", "sys");
       } else {
         appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、去商店，或接下一個委託。", "sys");
       }
-      toast("+" + gainedXp + "XP　+" + gainedGold + "金" + (itemGot ? "　" + ITEMS[itemGot].name : "") + (bonusTrait ? "　" + TRAITS[bonusTrait].name : ""));
+      toast("+" + gainedXp + "XP　+" + gainedGold + "金" + (itemGot ? "　" + ITEMS[itemGot].name : "") + (bonusTrait ? "　" + TRAITS[bonusTrait].name : "") + (eventTrait ? "　事件・" + TRAITS[eventTrait].name : ""));
 
       $("btn-result-ok").onclick = function () {
         toast("完成：「" + qname + "」");
+        var triggered = tryTriggerTownEvent(qid);
         enterTown("完成咗「" + qname + "」。" + rewardLine);
+        if (triggered) {
+          var eq = findQuestById(triggered);
+          appendLog($("town-log"), "【突發事件】" + (state.eventBlurb || ""), "loot");
+          appendLog($("town-log"), "任務板上「" + (eq ? eq.name : triggered) + "」亮起異常標記——特別怪物，通關必掉綠以上詞條。", "sys");
+          toast("突發事件：「" + (eq ? eq.name : triggered) + "」");
+        }
       };
       combat = null;
     } else {
