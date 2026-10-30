@@ -621,8 +621,19 @@
     -webkit-backdrop-filter: blur(6px);
   }
   body.has-sticky-hud #sticky-hud { display: block; }
+  /* #app 內畫面＋body 直屬畫面（商店／背包等）都要讓位 */
   body.has-sticky-hud #app {
-    padding-top: calc(64px + env(safe-area-inset-top));
+    padding-top: calc(108px + env(safe-area-inset-top));
+  }
+  body.has-sticky-hud > .screen.active {
+    padding-top: calc(108px + env(safe-area-inset-top));
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 100%;
   }
   #sticky-hud .sh-row {
     display: flex;
@@ -773,7 +784,7 @@
   }
   .tippable { position: relative; }
   .tippable::after {
-    content: "長按／懸停詳情";
+    content: "長按／懸停 · 詳情比對";
     display: block;
     font-size: 0.7rem;
     color: #666;
@@ -781,6 +792,10 @@
   }
   .inv-row.tippable::after,
   .trait.tippable::after { margin-top: 2px; }
+  .slot.tippable::after {
+    content: "長按／懸停比對";
+    font-size: 0.68rem;
+  }
 
 </style>
 </head>
@@ -2668,6 +2683,7 @@
       el.classList.remove("active");
     });
     $(id).classList.add("active");
+    syncStickyHud(id);
   }
 
   function toast(msg) {
@@ -2677,6 +2693,292 @@
     clearTimeout(toast._tm);
     toast._tm = setTimeout(function () { t.classList.remove("show"); }, 1800);
   }
+
+
+  // ---------- Batch3: 固定狀態欄／Tooltip／Compare ----------
+  var STICKY_HIDE = {
+    "screen-title": 1,
+    "screen-intro": 1,
+    "screen-endlose": 1,
+    "screen-endwin": 1
+  };
+
+  function syncStickyHud(screenId) {
+    var hide = !state || !!STICKY_HIDE[screenId];
+    document.body.classList.toggle("has-sticky-hud", !hide);
+    if (!hide) updateStickyHud();
+  }
+
+  function updateStickyHud() {
+    if (!state) return;
+    var hud = $("sticky-hud");
+    if (!hud) return;
+    var st = calcStats();
+    if (state.hp > st.maxHp) state.hp = st.maxHp;
+    var hpEl = $("sh-hp-n");
+    var bar = $("sh-hp-bar");
+    var gold = $("sh-gold");
+    var lv = $("sh-lv");
+    if (hpEl) hpEl.textContent = state.hp + "/" + st.maxHp;
+    if (bar) bar.style.width = Math.max(0, Math.min(100, (state.hp / Math.max(1, st.maxHp)) * 100)) + "%";
+    if (gold) gold.textContent = String(state.gold);
+    if (lv) lv.textContent = String(state.level);
+    var slots = $("sh-slots");
+    if (slots) {
+      slots.innerHTML = "";
+      (state.equipped || [null, null, null]).forEach(function (u, idx) {
+        var div = document.createElement("div");
+        var inst = u && state.traits.find(function (t) { return t.uid === u; });
+        var def = inst && TRAITS[inst.id];
+        div.className = "sh-slot" + (def ? " filled" : "");
+        div.innerHTML = "<span class='lab'>槽" + (idx + 1) + "</span>" +
+          escapeHtml(def ? def.name : "空");
+        div.onclick = function () {
+          if (!state) return;
+          if (combat && !combat.over) { toast("戰鬥中請打完先"); return; }
+          showStatus();
+        };
+        slots.appendChild(div);
+      });
+    }
+    var nav = $("sh-nav");
+    if (nav) {
+      nav.style.display = (combat && !combat.over) ? "none" : "";
+    }
+  }
+
+  function stickyNavGo(where) {
+    if (!state) return;
+    if (combat && !combat.over && (where === "town" || where === "shop" || where === "bag" || where === "quests")) {
+      toast("戰鬥中唔可以返鎮／開商店");
+      return;
+    }
+    if (where === "town") enterTown();
+    else if (where === "shop") showShop("buy");
+    else if (where === "bag") showBag();
+    else if (where === "status") {
+      if (combat && !combat.over) { toast("戰鬥中唔可以開狀態"); return; }
+      showStatus();
+    } else if (where === "quests") {
+      if (combat && !combat.over) { toast("戰鬥中"); return; }
+      showQuests();
+    }
+  }
+
+  var STAT_KEYS = [
+    { k: "atk", label: "攻擊加值" },
+    { k: "str", label: "力量" },
+    { k: "agi", label: "敏捷" },
+    { k: "con", label: "體質" },
+    { k: "hp", label: "最大HP" },
+    { k: "defBonus", label: "減傷" },
+    { k: "regen", label: "再生" },
+    { k: "fleeBonus", label: "逃跑加成" }
+  ];
+
+  function traitStatMap(def) {
+    var m = {};
+    if (!def) return m;
+    STAT_KEYS.forEach(function (s) {
+      if (def[s.k]) m[s.k] = def[s.k];
+    });
+    return m;
+  }
+
+  function formatTraitStatsHtml(def) {
+    if (!def) return "";
+    var lines = [];
+    STAT_KEYS.forEach(function (s) {
+      if (def[s.k]) lines.push("<div>" + s.label + "　<b>+" + def[s.k] + "</b></div>");
+    });
+    if (def.skill) {
+      lines.push("<div>技能　<b>" + escapeHtml(def.skill.name) + "</b> — " +
+        escapeHtml(def.skill.desc || "") + "</div>");
+    }
+    var tags = traitTags(def.id);
+    if (tags.length) {
+      lines.push("<div>標籤　" + escapeHtml(tagLabelList(tags)) + "</div>");
+    }
+    if (!lines.length) lines.push("<div class='sh-mute'>（純敘事／無數值欄）</div>");
+    return lines.join("");
+  }
+
+  function formatItemStatsHtml(it) {
+    if (!it) return "";
+    var lines = [];
+    if (it.buy != null) lines.push("<div>買入　<b>" + it.buy + "</b> 金</div>");
+    if (it.sell != null) lines.push("<div>賣出　<b>" + it.sell + "</b> 金</div>");
+    if (it.val != null) lines.push("<div>效果值　<b>" + it.val + "</b></div>");
+    if (it.heal != null) lines.push("<div>回復　<b>" + it.heal + "</b> HP</div>");
+    if (it.atk != null) lines.push("<div>攻擊　<b>+" + it.atk + "</b></div>");
+    if (it.agi != null) lines.push("<div>敏捷　<b>+" + it.agi + "</b></div>");
+    if (it.crit != null) lines.push("<div>暴擊　<b>+" + it.crit + "</b></div>");
+    if (it.costHp != null) lines.push("<div>代價　HP <b>−" + it.costHp + "</b></div>");
+    if (it.dmg != null) lines.push("<div>傷害　<b>" + it.dmg + "</b></div>");
+    if (it.turns != null) lines.push("<div>持續　<b>" + it.turns + "</b> 回合</div>");
+    if (it.buff != null) lines.push("<div>增益　<b>+" + it.buff + "</b></div>");
+    var where = [];
+    if (it.town) where.push("鎮內");
+    if (it.combat) where.push("戰鬥");
+    if (where.length) lines.push("<div>可用　" + where.join("／") + "</div>");
+    if (it.staple) lines.push("<div>貨架　常駐</div>");
+    else if (it.rarity != null) lines.push("<div>輪換稀有　R" + it.rarity + "</div>");
+    if (it.minSection && it.minSection >= 2) lines.push("<div>節　第" + it.minSection + "節起</div>");
+    if (!lines.length) lines.push("<div>（詳見說明）</div>");
+    return lines.join("");
+  }
+
+  function buildTraitCompareHtml(def) {
+    if (!state || !def) return "";
+    var equipped = [];
+    (state.equipped || []).forEach(function (u, idx) {
+      if (!u) return;
+      var inst = state.traits.find(function (t) { return t.uid === u; });
+      var d = inst && TRAITS[inst.id];
+      if (d) equipped.push({ idx: idx, def: d });
+    });
+    var html = "<div class='tip-compare'><h4>同當前裝備比對</h4>";
+    if (!equipped.length) {
+      html += "<p class='tip-meta'>而家冇裝備詞條。裝上呢隻會直接生效。</p></div>";
+      return html;
+    }
+    var cand = traitStatMap(def);
+    equipped.forEach(function (eq) {
+      html += "<div class='tip-meta' style='margin:6px 0 2px'>若取代　槽" + (eq.idx + 1) +
+        "「" + escapeHtml(eq.def.name) + "」</div>";
+      html += "<div class='cmp-row head'><span>屬性</span><span>本項</span><span>差距</span></div>";
+      var base = traitStatMap(eq.def);
+      var keys = {};
+      STAT_KEYS.forEach(function (s) { keys[s.k] = s.label; });
+      Object.keys(keys).forEach(function (k) {
+        var a = cand[k] || 0;
+        var b = base[k] || 0;
+        if (!a && !b) return;
+        var dlt = a - b;
+        var cls = dlt > 0 ? "delta-up" : (dlt < 0 ? "delta-down" : "delta-same");
+        var sign = dlt > 0 ? ("+" + dlt) : String(dlt);
+        html += "<div class='cmp-row'><span>" + keys[k] + "</span><span>+" + a +
+          "</span><span class='" + cls + "'>" + sign + "</span></div>";
+      });
+      if (def.skill || eq.def.skill) {
+        html += "<div class='cmp-row'><span>技能</span><span>" +
+          escapeHtml(def.skill ? def.skill.name : "—") + "</span><span>" +
+          escapeHtml(eq.def.skill ? eq.def.skill.name : "—") + "</span></div>";
+      }
+    });
+    html += "<p class='tip-hint'>正數＝換上後較強；負數＝換上後較弱（相對該槽）。</p></div>";
+    return html;
+  }
+
+  function buildItemCompareHtml(it) {
+    if (!state || !it) return "";
+    var st = calcStats();
+    var miss = Math.max(0, st.maxHp - state.hp);
+    var html = "<div class='tip-compare'><h4>同而家狀態比對</h4>";
+    html += "<div class='tip-stats'>";
+    html += "<div>而家 HP　<b>" + state.hp + "/" + st.maxHp + "</b>（缺 " + miss + "）</div>";
+    html += "<div>而家攻擊　<b>" + st.attack + "</b>　減傷 <b>" + st.defense + "</b></div>";
+    html += "<div>持有金錢　<b>" + state.gold + "</b></div>";
+    if (it.buy != null) {
+      var can = state.gold >= it.buy;
+      html += "<div>購入後餘款　<b class='" + (can ? "delta-up" : "delta-down") + "'>" +
+        (state.gold - it.buy) + "</b>　" + (can ? "買得起" : "唔夠金") + "</div>";
+    }
+    var heal = it.heal != null ? it.heal : (it.use === "heal" || it.use === "antidote" || it.use === "purge" || it.use === "calm_spray" ? it.val : null);
+    if (heal != null) {
+      var gain = Math.min(heal, miss);
+      var over = heal - gain;
+      html += "<div>若使用回復　實得 <b class='delta-up'>+" + gain + "</b>" +
+        (over > 0 ? "（溢出 " + over + "）" : "（可補滿缺口）") + "</div>";
+    }
+    if (it.costHp) {
+      html += "<div>代價後 HP　<b class='delta-down'>" + Math.max(0, state.hp - it.costHp) + "</b></div>";
+    }
+    if (it.atk) html += "<div>戰鬥增益　攻擊 <b class='delta-up'>+" + it.atk + "</b> → 約 " + (st.attack + it.atk) + "</div>";
+    if (it.agi) html += "<div>戰鬥增益　敏捷 <b class='delta-up'>+" + it.agi + "</b></div>";
+    if (it.crit) html += "<div>戰鬥增益　暴擊 <b class='delta-up'>+" + it.crit + "</b></div>";
+    html += "</div></div>";
+    return html;
+  }
+
+  function hideTip() {
+    var ov = $("tip-overlay");
+    if (ov) ov.classList.remove("show");
+  }
+
+  function showTipHtml(html) {
+    var ov = $("tip-overlay");
+    var card = $("tip-card");
+    if (!ov || !card) return;
+    card.innerHTML = html + "<button type='button' class='tip-close' id='tip-close-btn'>關閉</button>";
+    ov.classList.add("show");
+    var btn = $("tip-close-btn");
+    if (btn) btn.onclick = hideTip;
+  }
+
+  function showTraitTip(def, extraMeta) {
+    if (!def) return;
+    var html =
+      "<div class='tip-title rarity-" + def.rarity + "'>" + escapeHtml(def.name) + "</div>" +
+      "<div class='tip-meta'>" + rarityLabel(def.rarity) +
+      (extraMeta ? "　" + extraMeta : "") + "</div>" +
+      "<div class='tip-desc'>" + escapeHtml(def.desc || "") + "</div>" +
+      "<div class='tip-stats'>" + formatTraitStatsHtml(def) + "</div>" +
+      buildTraitCompareHtml(def) +
+      "<p class='tip-hint'>手機長按／電腦滑鼠懸停可再睇；點遮罩或關閉收起。</p>";
+    showTipHtml(html);
+  }
+
+  function showItemTip(it, extraMeta) {
+    if (!it) return;
+    var held = invCount(it.id);
+    var html =
+      "<div class='tip-title'>" + escapeHtml(it.name) + "</div>" +
+      "<div class='tip-meta'>持有 ×" + held +
+      (extraMeta ? "　" + extraMeta : "") + "</div>" +
+      "<div class='tip-desc'>" + escapeHtml(it.desc || "") + "</div>" +
+      "<div class='tip-stats'>" + formatItemStatsHtml(it) + "</div>" +
+      buildItemCompareHtml(it) +
+      "<p class='tip-hint'>長按或懸停開詳情；同而家 HP／金錢／屬性比對。</p>";
+    showTipHtml(html);
+  }
+
+  function bindTippable(el, openFn) {
+    if (!el || !openFn) return;
+    el.classList.add("tippable");
+    var timer = null;
+    var hoverTimer = null;
+    var openedByLong = false;
+    el.addEventListener("mouseenter", function () {
+      if (!(window.matchMedia && window.matchMedia("(hover: hover)").matches)) return;
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(function () { openFn(); }, 380);
+    });
+    el.addEventListener("mouseleave", function () {
+      clearTimeout(hoverTimer);
+    });
+    el.addEventListener("touchstart", function () {
+      openedByLong = false;
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        openedByLong = true;
+        openFn();
+      }, 480);
+    }, { passive: true });
+    el.addEventListener("touchend", function (ev) {
+      clearTimeout(timer);
+      if (openedByLong) {
+        ev.preventDefault();
+        openedByLong = false;
+      }
+    });
+    el.addEventListener("touchmove", function () { clearTimeout(timer); }, { passive: true });
+    el.addEventListener("contextmenu", function (ev) {
+      ev.preventDefault();
+      openFn();
+    });
+  }
+
 
   // ---------- Batch2: 傷害跳字／速度／CD ----------
   function battleDelay(ms) {
@@ -3007,6 +3309,7 @@
     if (state.pendingLevelUps > 0) {
       setTimeout(showLevelUp, 50);
     }
+    updateStickyHud();
   }
 
   function doRest() {
@@ -3059,6 +3362,9 @@
           showStatus();
           toast("已卸下");
         };
+        bindTippable(div, (function (d) {
+          return function () { showTraitTip(d, "裝備中 · 點擊卸下"); };
+        })(def));
       } else {
         div.innerHTML = "<b>槽" + (idx + 1) + "</b>　（空）" +
           "<span class='meta'>點下方持有詞條裝備</span>";
@@ -3101,6 +3407,11 @@
         };
         row.appendChild(b);
       }
+      bindTippable(row, (function (d, eq) {
+        return function () {
+          showTraitTip(d, eq >= 0 ? ("已裝備 · 槽" + (eq + 1)) : "未裝備");
+        };
+      })(def, eqIdx));
       list.appendChild(row);
     });
   }
@@ -3815,6 +4126,7 @@
   function showShop(tab) {
     shopTab = tab || shopTab || "buy";
     showScreen("screen-shop");
+    updateStickyHud();
     $("shop-gold").textContent = "持有金錢：" + state.gold;
     ["tab-buy", "tab-sell-item", "tab-sell-trait"].forEach(function (id) {
       $(id).classList.remove("active");
@@ -3872,6 +4184,9 @@
           };
         })(id, it.buy);
         row.appendChild(b);
+        bindTippable(row, (function (item) {
+          return function () { showItemTip(item, "商店·買入"); };
+        })(it));
         list.appendChild(row);
       });
     } else if (shopTab === "sell-item") {
@@ -3898,6 +4213,9 @@
             };
           })(id);
           row.appendChild(b);
+          bindTippable(row, (function (item) {
+            return function () { showItemTip(item, "商店·賣道具"); };
+          })(it));
           list.appendChild(row);
         });
       }
@@ -3930,6 +4248,9 @@
             };
           })(inst.uid, price, def.name);
           row.appendChild(b);
+          bindTippable(row, (function (d) {
+            return function () { showTraitTip(d, "商店·賣詞條　售價 " + (TRAIT_SELL[d.rarity] || 10) + " 金"); };
+          })(def));
           list.appendChild(row);
         });
       }
@@ -3938,6 +4259,7 @@
 
   function showBag() {
     showScreen("screen-bag");
+    updateStickyHud();
     var list = $("bag-list");
     list.innerHTML = "";
     var keys = Object.keys(state.inventory || {}).filter(function (k) { return invCount(k) > 0 && ITEMS[k]; });
@@ -3968,6 +4290,9 @@
         })(id);
         row.appendChild(b);
       }
+      bindTippable(row, (function (item) {
+        return function () { showItemTip(item, "道具袋"); };
+      })(it));
       list.appendChild(row);
     });
   }
@@ -4389,6 +4714,7 @@
     $("hp-you").style.width = youPct + "%";
     $("hp-enemy").style.width = enPct + "%";
     $("hp-you-n").textContent = state.hp + "/" + st.maxHp;
+    updateStickyHud();
     $("hp-enemy-n").textContent = combat.enemy.hp + "/" + combat.enemy.maxHp;
   }
 
@@ -5124,6 +5450,7 @@
     state = null;
     combat = null;
     $("town-log").innerHTML = "";
+    hideTip();
     refreshContinueBtn();
     showScreen("screen-title");
   }
@@ -5188,6 +5515,23 @@
     $("btn-result-ok").onclick = function () { enterTown(); };
     $("btn-restart-lose").onclick = restart;
     $("btn-restart-win").onclick = restart;
+
+    // Batch3: sticky nav + tooltip overlay
+    var shNav = $("sh-nav");
+    if (shNav) {
+      shNav.onclick = function (ev) {
+        var t = ev.target;
+        if (!t || !t.getAttribute) return;
+        var go = t.getAttribute("data-go");
+        if (go) stickyNavGo(go);
+      };
+    }
+    var tipOv = $("tip-overlay");
+    if (tipOv) {
+      tipOv.addEventListener("click", function (ev) {
+        if (ev.target === tipOv) hideTip();
+      });
+    }
   }
 
   bind();
