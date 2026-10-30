@@ -2282,9 +2282,9 @@
     // ---- 原創批次 2026-10-30 21:40 HKT（入庫＋輪換；唔加常駐、唔撐爆貨架）----
     spirit_tea: {
       id: "spirit_tea", name: "靈波清茶",
-      desc: "回復 38 HP。西林茶攤熬嘅精神波動清茶；鎮內／戰鬥可用。",
+      desc: "回復 38 HP。西林茶攤熬嘅精神波動清茶；鎮內／戰鬥可用。已移出貨架（斷橋輪換優先前線貨）。",
       buy: 34, sell: 13, use: "heal", val: 38, town: true, combat: true,
-      minSection: 2, rarity: 2, staple: false, weight: 7
+      minSection: 2, rarity: 2, staple: false, weight: 7, shop: false
     },
     west_mist_silk: {
       id: "west_mist_silk", name: "西霧繭絲",
@@ -2296,6 +2296,12 @@
       id: "span_board", name: "斷橋踏板",
       desc: "本戰護甲＋12；濕潤／泥沼再回 16 HP。斷橋臨時木板，求援必備。",
       buy: 50, sell: 20, use: "span_board", town: false, combat: true, val: 12, heal: 16,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    bridge_hook: {
+      id: "bridge_hook", name: "斷橋抓鉤",
+      desc: "本戰敏＋6；濕潤／泥沼中下次穿甲並造成約 12 物傷。斷橋求援跨縫用。",
+      buy: 50, sell: 20, use: "bridge_hook", town: false, combat: true, agi: 6, dmg: 12,
       minSection: 2, rarity: 2, staple: false, weight: 9
     }
   };
@@ -2330,7 +2336,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "spirit_tea", "west_mist_silk", "span_board", "span_spike"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -5188,6 +5194,19 @@
             var before = state.hp;
             state.hp = Math.min(st.maxHp, state.hp + (def.heal || 16));
             note += "、濕／泥中回 " + (state.hp - before);
+          }
+          toast(note);
+        })();
+        break;
+      case "bridge_hook":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 6);
+          var note = "斷橋抓鉤：敏＋" + (def.agi || 6);
+          if (hasField("wet") || hasField("mud")) {
+            combat.pierceNext = true;
+            var d = dealToEnemy(def.dmg || 12);
+            note += "、濕／泥中穿甲傷 " + d;
           }
           toast(note);
         })();
