@@ -9,6 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="tq-build" content="combat-right-202610310153">
+<!-- tq-build: combat-right-202610310153 | combat buttons right column -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1256,19 +1258,26 @@
     min-height: 120px;
   }
 
-  /* ---- B 戰鬥防移位＋右欄操作（左日誌／狀態｜右固定按鈕） ---- */
+  /* ---- B 戰鬥防移位＋右欄操作（左日誌／狀態｜右固定按鈕） build:combat-right-202610310153 ---- */
+  #screen-combat .combat-battle-row,
   .combat-battle-row {
-    display: flex;
-    flex-direction: row;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: stretch;
+    justify-content: space-between;
     gap: 8px;
     margin-top: 4px;
     flex: 1 1 auto;
     min-height: 292px; /* 右欄 5 掣 + 繼續列；固定高度防移位 */
+    width: 100%;
   }
+  #screen-combat .combat-battle-left,
   .combat-battle-left {
-    flex: 1 1 auto;
+    flex: 1 1 auto !important;
     min-width: 0;
+    max-width: calc(100% - 120px);
+    order: 1;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -1282,33 +1291,39 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
+  #screen-combat .battle-actions-wrap,
   .battle-actions-wrap {
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 6px;
     margin-top: 0;
-    flex: 0 0 112px;
-    width: 112px;
-    min-width: 112px;
-    max-width: 112px;
+    margin-left: auto !important; /* 明顯靠右 */
+    order: 2;
+    flex: 0 0 112px !important;
+    width: 112px !important;
+    min-width: 112px !important;
+    max-width: 112px !important;
     min-height: 292px; /* 動作區 + 繼續列預留，防推擠 */
+    align-self: stretch;
   }
-  .battle-actions,
-  #combat-actions.battle-actions {
-    display: grid;
-    grid-template-columns: 1fr; /* 右欄直排 */
+  #screen-combat #combat-actions.battle-actions,
+  #combat-actions.battle-actions,
+  #screen-combat .battle-actions.btn-grid,
+  .battle-actions.btn-grid,
+  .battle-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important; /* 右欄直排；蓋過 .btn-grid 雙欄 */
     grid-template-rows: repeat(5, 48px);
     gap: 6px;
     min-height: 264px; /* 5×48 + 4×6 */
     flex: 0 0 auto;
+    width: 100%;
   }
-  .battle-actions.btn-grid {
-    grid-template-columns: 1fr;
-  }
-  .battle-actions button,
-  #combat-actions.battle-actions button {
-    height: 48px;
-    min-height: 48px;
+  #screen-combat #combat-actions.battle-actions button,
+  #combat-actions.battle-actions button,
+  .battle-actions button {
+    height: 48px !important;
+    min-height: 48px !important;
     max-height: 48px;
     padding: 6px 4px;
     font-size: 0.82rem;
@@ -1317,21 +1332,25 @@
     white-space: normal;
     word-break: keep-all;
   }
-  .battle-actions button:disabled,
-  #combat-actions.battle-actions button:disabled {
+  #screen-combat #combat-actions.battle-actions button:disabled,
+  #combat-actions.battle-actions button:disabled,
+  .battle-actions button:disabled {
     opacity: 0.55;
     border-color: #444;
     color: #777;
     cursor: not-allowed;
   }
   /* 冷卻／結束：唔用 display:none，改 visibility 保位 */
+  #screen-combat #combat-next-wrap,
   #combat-next-wrap {
     min-height: 48px;
     flex: 0 0 48px;
   }
+  #screen-combat #combat-next-wrap.btn-grid,
+  #screen-combat #combat-next-wrap.btn-grid.one,
   #combat-next-wrap.btn-grid,
   #combat-next-wrap.btn-grid.one {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
   #combat-next-wrap.soft-hidden {
     visibility: hidden;
@@ -1340,6 +1359,32 @@
   #combat-actions.soft-hidden {
     /* 保留格子高度，按鈕改 disabled；唔整塊消失 */
     opacity: 1;
+  }
+  /* 手機／窄屏：仍保持右欄，略縮欄寬避免被舊規則改成直排 */
+  @media (max-width: 419px) {
+    #screen-combat .combat-battle-row,
+    .combat-battle-row {
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      gap: 6px;
+    }
+    #screen-combat .combat-battle-left,
+    .combat-battle-left {
+      max-width: calc(100% - 100px);
+    }
+    #screen-combat .battle-actions-wrap,
+    .battle-actions-wrap {
+      flex: 0 0 96px !important;
+      width: 96px !important;
+      min-width: 96px !important;
+      max-width: 96px !important;
+      margin-left: auto !important;
+    }
+    #screen-combat #combat-actions.battle-actions button,
+    #combat-actions.battle-actions button {
+      font-size: 0.74rem;
+      padding: 4px 2px;
+    }
   }
   #hp-you-n, #hp-enemy-n {
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -1678,6 +1723,7 @@
       <button type="button" id="btn-spd-2" title="自動普攻（較快）">2x</button>
       <button type="button" id="btn-spd-skip" title="即時結算本任務戰鬥">跳過戰鬥</button>
     </div>
+    <!-- tq-build:combat-right-202610310153 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
