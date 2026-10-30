@@ -574,7 +574,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=1 LEVEL=5 OF=5  （格蘭起程·節末完成；pausedAwaitingUser — 等用戶再開 section 2）
+  // Progress: SECTION=2 LEVEL=1 OF=5  （西林影潮·第1關已加；接格蘭／夏嵐西向）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -1194,7 +1194,8 @@
     s1_l2:   { xp: 65, gold: 48, itemChance: 0.45 },
     s1_l3:   { xp: 80, gold: 58, itemChance: 0.48 },
     s1_l4:   { xp: 95, gold: 70, itemChance: 0.5 },
-    s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 }
+    s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 },
+    s2_l1:   { xp: 135, gold: 100, itemChance: 0.52 }
   };
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "dry_agent", "tar_bomb", "copper_dust"];
@@ -1259,6 +1260,15 @@
       greenChance: 0.26,
       blueChance: 0.12,
       fragChance: 0.6
+    },
+    s2_l1: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "rage_mark", "slime_core", "web_bind"],
+      blue: ["cloak_shade", "shadow_step", "venom_blade", "blade_dance"],
+      whiteChance: 0.32,
+      greenChance: 0.24,
+      blueChance: 0.08,
+      fragChance: 0.55
     }
   };
 
@@ -1444,7 +1454,37 @@
         }
       ],
       need: "s1_l4",
-      clearText: "披風塌成一灘冷煙，只剩一縷可握嘅影緒。格蘭公會接待員蓋落大红章：「第一節·格蘭起程——完。」佢壓低聲：「更深嘅林仲有動靜，但下一節委託……要等上面批。你而家可以休息、鍛鍊詞條；等通知再開。」"
+      clearText: "披風塌成一灘冷煙，只剩一縷可握嘅影緒。格蘭公會接待員蓋落大红章：「第一節·格蘭起程——完。」西峽餘煙未散，影潮仍向西滲。上面終於批咗第二節·西林影潮——下一張委託紙，就喺西峽清殘。"
+    },
+    {
+      id: "s2_l1",
+      name: "西峽餘煙·清殘",
+      desc: "第二節·西林影潮開章。格蘭公會委託：返夏嵐西面峽口，清走黑影披風潰散後殘留嘅冷煙同影絲，順便標記影潮向西滲透嘅方向。",
+      startField: { fog: 6, night: 6 },
+      stages: [
+        {
+          name: "餘煙影絲",
+          hp: 68, atk: 15, def: 3,
+          flavor: "峽口平台仲留住一灘冷煙。煙絲自行扭成細線，勒住碎石——似係披風撕落嘅邊角，仲未肯散。"
+        },
+        {
+          name: "峽壁夜蝠",
+          hp: 88, atk: 18, def: 4,
+          flavor: "石壁縫裡撲出灰黑夜蝠，翼膜映住極夜冷光。濃霧令腳步聲鈍掉；遠處西面林梢，似有更深嘅影潮在呼吸。"
+        },
+        {
+          name: "冷煙披侍",
+          hp: 112, atk: 20, def: 5,
+          flavor: "半截斗篷從煙裡站起，冇面具、冇身軀，只有兩隻抓刀嘅影手。「披風走咗……我哋仲守住呢度。」——語氣似複讀，又似有人遙控。"
+        },
+        {
+          name: "西峽影殘",
+          hp: 132, atk: 22, def: 6,
+          flavor: "清殘最核心：一團比披風稀薄、卻更執拗嘅影殘盤踞裂縫。擊敗佢時，西向林霧裂開一瞬——霧沼哨站嘅舊燈火，隱約閃咗一下。"
+        }
+      ],
+      need: "s1_l5",
+      clearText: "影殘散成灰藍餘燼。你喺裂縫邊釘低公會標記，抄低西向霧沼方向。接待員蓋章：「西林影潮·第1關——清殘完成。下一個委託：霧沼哨站探路。影潮仲未停。」"
     }
   ];
 
@@ -2770,6 +2810,18 @@
     $("combat-next-wrap").classList.add("hidden");
     updateBars();
     appendLog($("combat-log"), stage.flavor);
+    // 關卡預設戰場 tag（節章氛圍）；唔清玩家技設置嘅既有 tag，只補／刷新
+    if (combat.stage === 0 && q.startField) {
+      Object.keys(q.startField).forEach(function (k) {
+        setFieldTag(k, q.startField[k]);
+      });
+      appendLog($("combat-log"), "戰場氛圍生效（關卡預設）。", "sys");
+    }
+    if (stage.fieldTags) {
+      Object.keys(stage.fieldTags).forEach(function (k) {
+        setFieldTag(k, stage.fieldTags[k]);
+      });
+    }
     updateFieldTagsUI();
     var st0 = calcStats();
     var buffMsg = [];
@@ -2803,6 +2855,12 @@
       state.hp -= drain;
       appendLog($("combat-log"), combat.enemy.name + "展開影噬，額外吞走 " + drain + " HP！", "dmg");
       eatk = eatk + 2;
+    }
+    // 西林影潮·清殘：冷煙偶發吸力
+    if (combat.quest.id === "s2_l1" && /影|披侍|冷煙/.test(combat.enemy.name) && Math.random() < 0.22) {
+      var siphon = 2 + Math.floor(Math.random() * 3);
+      state.hp -= siphon;
+      appendLog($("combat-log"), combat.enemy.name + "捲起冷煙，吸走 " + siphon + " HP！", "dmg");
     }
     return eatk;
   }
