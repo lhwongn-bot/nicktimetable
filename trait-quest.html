@@ -221,7 +221,7 @@
   <!-- TITLE -->
   <div id="screen-title" class="screen active">
     <h1>詞條冒險</h1>
-    <img class="game-art" src="trait-quest-art/hero.png" alt="" onerror="this.style.display='none'">
+    <img class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
     <p class="sub">黑木森林邊陲 · 底層冒險者嘅故事</p>
     <div class="panel mb">
       <p>你係公會最底層嘅新人。喺呢片森林，擊敗魔物有機會攞到「詞條」——一種刻喺靈魂上面嘅能力碎片。</p>
@@ -239,7 +239,7 @@
   <!-- INTRO -->
   <div id="screen-intro" class="screen">
     <h2>序章</h2>
-    <img class="game-art" src="trait-quest-art/hero.png" alt="" onerror="this.style.display='none'">
+    <img class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="log" id="intro-log"></div>
     <button class="primary" id="btn-intro-next">進入城鎮</button>
   </div>
@@ -247,7 +247,7 @@
   <!-- TOWN -->
   <div id="screen-town" class="screen">
     <h2>邊陲小鎮 · 冒險者公會</h2>
-    <img class="game-art" src="trait-quest-art/town.png" alt="" onerror="this.style.display='none'">
+    <img class="game-art" src="trait-quest-art/town.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="statline" id="town-stats"></div>
     <div class="panel" id="town-flavor"></div>
     <div class="btn-grid">
@@ -266,7 +266,7 @@
   <!-- STATUS -->
   <div id="screen-status" class="screen">
     <h2>狀態</h2>
-    <img class="game-art" src="trait-quest-art/trait.png" alt="" onerror="this.style.display='none'">
+    <img class="game-art" src="trait-quest-art/trait.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="panel" id="status-panel"></div>
     <h3>裝備詞條槽</h3>
     <div id="equip-slots"></div>
@@ -280,7 +280,7 @@
   <!-- FUSE -->
   <div id="screen-fuse" class="screen">
     <h2>詞條融合</h2>
-    <img class="game-art" src="trait-quest-art/trait.png" alt="" onerror="this.style.display='none'">
+    <img class="game-art" src="trait-quest-art/trait.png?v=manga1" alt="" onerror="this.style.display='none'">
     <p class="statline mb">揀兩隻相容詞條融合。消耗兩隻，產出更高稀有度。</p>
     <div class="panel mb">
       <strong>已知配方（示範）</strong>
@@ -304,7 +304,7 @@
   <!-- COMBAT -->
   <div id="screen-combat" class="screen">
     <h2 id="combat-title">戰鬥</h2>
-    <img id="combat-art" class="game-art" src="trait-quest-art/hero.png" alt="" onerror="this.style.display='none'">
+    <img id="combat-art" class="game-art" src="trait-quest-art/hero.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="bar-row"><span>你</span><div class="bar"><span id="hp-you"></span></div><span id="hp-you-n"></span></div>
     <div class="bar-row"><span>敵</span><div class="bar"><span id="hp-enemy"></span></div><span id="hp-enemy-n"></span></div>
     <p class="statline" id="enemy-name"></p>
@@ -354,7 +354,7 @@
   <!-- SHOP -->
   <div id="screen-shop" class="screen">
     <h2>雜貨商店</h2>
-    <img class="game-art" src="trait-quest-art/shop.png" alt="" onerror="this.style.display='none'">
+    <img class="game-art" src="trait-quest-art/shop.png?v=manga1" alt="" onerror="this.style.display='none'">
     <div class="statline mb" id="shop-gold"></div>
     <div class="shop-tabs">
       <button type="button" id="tab-buy" class="active">買入</button>
@@ -398,7 +398,7 @@
 (function () {
   "use strict";
 
-  // Progress: SECTION=1 LEVEL=4 OF=5  （格蘭起程；完成第5關後 full check+debug，暫停等用戶）
+  // Progress: SECTION=1 LEVEL=5 OF=5  （格蘭起程·節末完成；pausedAwaitingUser — 等用戶再開 section 2）
   var SAVE_KEY = "traitQuest_v1";
 
   // ---------- Trait catalog ----------
@@ -500,6 +500,18 @@
       desc: "均衡強化；技能：森之守護",
       atk: 4, hp: 20, agi: 3, con: 3, defBonus: 3,
       skill: { name: "森之守護", cost: 0, desc: "本回合大幅減傷並回 10", type: "guard_heal", val: 10 }
+    },
+    cloak_shade: {
+      id: "cloak_shade", name: "影披殘緒", rarity: "blue",
+      desc: "敏捷 +4；攻擊 +2；技能：影吞",
+      agi: 4, atk: 2,
+      skill: { name: "影吞", cost: 0, desc: "造成傷害並令敵人中毒 2 回合（每回 3）", type: "poison_strike", val: 2, dmg: 3 }
+    },
+    night_cloak: {
+      id: "night_cloak", name: "夜幕披風", rarity: "purple",
+      desc: "防禦 +4；敏捷 +4；最大生命 +18；技能：匿影一閃",
+      defBonus: 4, agi: 4, hp: 18, atk: 2,
+      skill: { name: "匿影一閃", cost: 0, desc: "1.6 倍傷害並束縛 1 回合，自身回 8", type: "cloak_strike", mult: 1.6, stun: 1, heal: 8 }
     }
   };
 
@@ -512,7 +524,9 @@
     { a: "rage_mark", b: "blade_dance", out: "berserk_heart", hint: "狂怒印 + 刃舞 → 狂心" },
     { a: "stone_body", b: "shadow_step", out: "forest_warden", hint: "石身 + 影步 → 森衛" },
     { a: "web_bind", b: "venom_fang", out: "venom_blade", hint: "蛛網縛 + 毒牙 → 毒刃" },
-    { a: "goblin_blood", b: "rage_mark", out: "berserk_heart", hint: "哥布林血 + 狂怒印 → 狂心（需先有綠）" }
+    { a: "goblin_blood", b: "rage_mark", out: "berserk_heart", hint: "哥布林血 + 狂怒印 → 狂心（需先有綠）" },
+    { a: "cloak_shade", b: "shadow_step", out: "night_cloak", hint: "影披殘緒 + 影步 → 夜幕披風" },
+    { a: "cloak_shade", b: "forest_warden", out: "night_cloak", hint: "影披殘緒 + 森衛 → 夜幕披風" }
   ];
 
 
@@ -581,7 +595,8 @@
     s1_l1:   { xp: 50, gold: 38, itemChance: 0.42 },
     s1_l2:   { xp: 65, gold: 48, itemChance: 0.45 },
     s1_l3:   { xp: 80, gold: 58, itemChance: 0.48 },
-    s1_l4:   { xp: 95, gold: 70, itemChance: 0.5 }
+    s1_l4:   { xp: 95, gold: 70, itemChance: 0.5 },
+    s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 }
   };
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion"];
@@ -637,6 +652,15 @@
       whiteChance: 0.34,
       greenChance: 0.24,
       fragChance: 0.56
+    },
+    s1_l5: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "web_bind", "slime_core", "rage_mark"],
+      blue: ["cloak_shade", "shadow_step", "venom_blade", "blade_dance"],
+      whiteChance: 0.3,
+      greenChance: 0.26,
+      blueChance: 0.12,
+      fragChance: 0.6
     }
   };
 
@@ -794,6 +818,35 @@
       ],
       need: "s1_l3",
       clearText: "影遺散成煙絲。你抄低祭台符文同西向足跡，返格蘭交差。接待員臉色一沉：「痕跡指向節末——黑影披風。公會會再出委託紙；今次唔再係普通清場。」"
+    },
+    {
+      id: "s1_l5",
+      name: "節末·黑影披風",
+      desc: "格蘭公會正式委託：沿夏嵐西向足跡，喺節末峽口對上「黑影披風」。今次係節章頭目——唔係清場，係截停影源。",
+      stages: [
+        {
+          name: "峽口影哨",
+          hp: 62, atk: 14, def: 3,
+          flavor: "夏嵐西面峽口風割面。石壁上掛住半截黑布，布紋會自己郁。影哨從裂縫踏出，刀尖無反光——似係影铸成嘅。"
+        },
+        {
+          name: "雙層披影",
+          hp: 88, atk: 17, def: 4,
+          flavor: "通道轉彎，兩層斗篷重疊站起。外層係布，內層係濃煙。恰達村長講過嘅「唔係布，似係影」——而家近距離睇，果然。"
+        },
+        {
+          name: "夜梟執刀",
+          hp: 110, atk: 20, def: 5,
+          flavor: "峽口平台中央，戴鳥喙面具嘅執刀者轉身。面具後冇眼，只有兩點冷光。「格蘭……北窟……恰達……夏嵐——你跟足晒啲足跡。正正就係我想你嚟嘅路。」"
+        },
+        {
+          name: "黑影披風",
+          hp: 145, atk: 23, def: 6,
+          flavor: "夜梟面具碎落，斗篷自行鼓起——入面無人。黑影披風張開如翼，峽口瞬間變夜。北窟閃過嘅黑布、廢墟低語「披風還未到」、西向足跡——全部係佢撕落嚟嘅誘餌。節末頭目就係呢件會走嘅影。"
+        }
+      ],
+      need: "s1_l4",
+      clearText: "披風塌成一灘冷煙，只剩一縷可握嘅影緒。格蘭公會接待員蓋落大红章：「第一節·格蘭起程——完。」佢壓低聲：「更深嘅林仲有動靜，但下一節委託……要等上面批。你而家可以休息、鍛鍊詞條；等通知再開。」"
     }
   ];
 
@@ -940,11 +993,11 @@
 
   function enemyArtSrc(name) {
     var n = name || "";
-    if (/影|披風|頭目/.test(n)) return "trait-quest-art/boss-shadow.png";
-    if (/哥布林/.test(n)) return "trait-quest-art/enemy-goblin.png";
-    if (/蛛/.test(n)) return "trait-quest-art/enemy-spider.png";
-    if (/史萊姆|slime/i.test(n)) return "trait-quest-art/enemy-slime.png";
-    return "trait-quest-art/hero.png";
+    if (/影|披風|頭目/.test(n)) return "trait-quest-art/boss-shadow.png?v=manga1";
+    if (/哥布林/.test(n)) return "trait-quest-art/enemy-goblin.png?v=manga1";
+    if (/蛛/.test(n)) return "trait-quest-art/enemy-spider.png?v=manga1";
+    if (/史萊姆|slime/i.test(n)) return "trait-quest-art/enemy-slime.png?v=manga1";
+    return "trait-quest-art/hero.png?v=manga1";
   }
 
   function setCombatArt(name) {
@@ -1614,6 +1667,23 @@
     }
   }
 
+
+  function applyEnemyOnHitExtras(eatk) {
+    // returns possibly modified eatk after side effects logged
+    if (combat.quest.id === "spider" && Math.random() < 0.25) {
+      combat.playerPoison = Math.max(combat.playerPoison, 2);
+      appendLog($("combat-log"), combat.enemy.name + "的攻擊帶毒！", "sys");
+    }
+    // 節末頭目：影噬——額外固定傷／偶發束縛玩家（以降防代表：本下防禦無效一回合用 defending false + bonus dmg）
+    if (combat.quest.id === "s1_l5" && /黑影披風|夜梟|披影/.test(combat.enemy.name) && Math.random() < 0.3) {
+      var drain = 3 + Math.floor(Math.random() * 3);
+      state.hp -= drain;
+      appendLog($("combat-log"), combat.enemy.name + "展開影噬，額外吞走 " + drain + " HP！", "dmg");
+      eatk = eatk + 2;
+    }
+    return eatk;
+  }
+
   function enemyStrikeOnly() {
     if (!combat || combat.over) return;
     if (combat.enemyStun > 0) {
@@ -1622,11 +1692,7 @@
       updateBars();
       return;
     }
-    var eatk = combat.enemy.atk + Math.floor(Math.random() * 3);
-    if (combat.quest.id === "spider" && Math.random() < 0.25) {
-      combat.playerPoison = Math.max(combat.playerPoison, 2);
-      appendLog($("combat-log"), combat.enemy.name + "的攻擊帶毒！", "sys");
-    }
+    var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
     var dmg = dealToPlayer(eatk);
     appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。", "dmg");
     if (combat.playerPoison > 0) {
@@ -1709,12 +1775,7 @@
       updateBars();
       return;
     }
-    var eatk = combat.enemy.atk + Math.floor(Math.random() * 3);
-    // spider poison chance
-    if (combat.quest.id === "spider" && Math.random() < 0.25) {
-      combat.playerPoison = Math.max(combat.playerPoison, 2);
-      appendLog($("combat-log"), combat.enemy.name + "的攻擊帶毒！", "sys");
-    }
+    var eatk = applyEnemyOnHitExtras(combat.enemy.atk + Math.floor(Math.random() * 3));
     var dmg = dealToPlayer(eatk);
     appendLog($("combat-log"), combat.enemy.name + "攻擊你，造成 " + dmg + " 傷害。" +
       (combat.defending ? "（防禦減傷）" : ""), "dmg");
@@ -1739,7 +1800,11 @@
     var pool = DROP_POOLS[combat.quest.id];
     var drops = [];
     if (pool) {
-      if (Math.random() < pool.greenChance) {
+      if (pool.blue && pool.blueChance && Math.random() < pool.blueChance) {
+        var bl = pool.blue[Math.floor(Math.random() * pool.blue.length)];
+        addTrait(bl);
+        drops.push("藍詞條「" + TRAITS[bl].name + "」");
+      } else if (Math.random() < pool.greenChance) {
         var g = pool.green[Math.floor(Math.random() * pool.green.length)];
         addTrait(g);
         drops.push("綠詞條「" + TRAITS[g].name + "」");
@@ -1802,6 +1867,11 @@
         itemGot = randomRewardItem();
         addItem(itemGot, 1);
       }
+      var bonusTrait = null;
+      if (!replay && qid === "s1_l5") {
+        bonusTrait = "cloak_shade";
+        addTrait(bonusTrait);
+      }
 
       showScreen("screen-result");
       $("result-title").textContent = "任務完成：" + qname;
@@ -1809,10 +1879,15 @@
       appendLog($("result-log"), clearText);
       var rewardLine = "報酬：經驗 +" + gainedXp + "　金錢 +" + gainedGold;
       if (itemGot) rewardLine += "　道具「" + ITEMS[itemGot].name + "」×1";
+      if (bonusTrait && TRAITS[bonusTrait]) rewardLine += "　詞條「" + TRAITS[bonusTrait].name + "」";
       if (replay) rewardLine += "（再通關減半）";
       appendLog($("result-log"), rewardLine, "loot");
-      appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、去商店，或接下一個委託。", "sys");
-      toast("+" + gainedXp + "XP　+" + gainedGold + "金" + (itemGot ? "　" + ITEMS[itemGot].name : ""));
+      if (qid === "s1_l5") {
+        appendLog($("result-log"), "【第一節·格蘭起程】完結。你可以繼續喺鎮上鍛鍊、商店同重刷；下一節要等通知再開。", "sys");
+      } else {
+        appendLog($("result-log"), "HP 稍微回復。可以返鎮休息、去商店，或接下一個委託。", "sys");
+      }
+      toast("+" + gainedXp + "XP　+" + gainedGold + "金" + (itemGot ? "　" + ITEMS[itemGot].name : "") + (bonusTrait ? "　" + TRAITS[bonusTrait].name : ""));
 
       $("btn-result-ok").onclick = function () {
         toast("完成：「" + qname + "」");
@@ -1958,6 +2033,14 @@
         combat.defending = true;
         combat.guardHeal = true;
         appendLog($("combat-log"), "展開守護。", "sys");
+        break;
+      case "cloak_strike":
+        var dCloak = dealToEnemy(Math.floor(playerAttackPower() * (skill.mult || 1.6)));
+        if (skill.stun) combat.enemyStun = Math.max(combat.enemyStun || 0, skill.stun);
+        if (skill.heal) state.hp = Math.min(st.maxHp, state.hp + skill.heal);
+        appendLog($("combat-log"), "匿影一閃造成 " + dCloak + " 傷害！" +
+          (skill.stun ? "敵人被影縛住！" : "") +
+          (skill.heal ? "你回復 " + skill.heal + " HP。" : ""), "loot");
         break;
       default:
         appendLog($("combat-log"), "技能無效。", "sys");
