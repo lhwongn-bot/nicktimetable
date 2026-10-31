@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop15-void-prism-202610311124 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop15-rift-latch-202610311517 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3102,9 +3102,9 @@
     },
     void_prism: {
       id: "void_prism", name: "虛空裂晶",
-      desc: "真實傷 13；本戰攻＋4。對影／虛空敵再真實傷 10。節末虛空殘影裂影用。",
+      desc: "真實傷 13；本戰攻＋4。對影／虛空敵再真實傷 10。已移出貨架（節末後裂隙門閂輪換優先）。",
       buy: 58, sell: 23, use: "void_prism", town: false, combat: true, dmg: 13, atk: 4, bonus: 10,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     void_ember: {
       id: "void_ember", name: "虛空餘燼瓶",
@@ -3194,6 +3194,12 @@
       id: "rift_pin", name: "裂隙銷釘",
       desc: "真實傷 12；束縛敵 1 回合。對影／虛空敵再回 18 HP。節末後裂隙銷影整備。",
       buy: 71, sell: 28, use: "rift_pin", town: false, combat: true, dmg: 12, val: 18,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_latch: {
+      id: "rift_latch", name: "裂隙門閂",
+      desc: "真實傷 13；本戰敵攻－5、護甲＋8。對影／虛空敵再回 16 HP。節末後裂隙閂影整備。",
+      buy: 72, sell: 29, use: "rift_latch", town: false, combat: true, dmg: 13, atkDown: 5, def: 8, val: 16,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -7740,6 +7746,28 @@
           var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
           if (voidish) {
             var heal = def.val || 18;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + heal);
+            note += "、影／虛空敵再回 " + (state.hp - before) + " HP";
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_latch":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 13);
+          var down = def.atkDown || 5;
+          combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, down);
+          var arm = def.def || 8;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "裂隙門閂：真實傷 " + d + "、敵攻－" + down + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var heal = def.val || 16;
             var before = state.hp;
             state.hp = Math.min(st.maxHp, state.hp + heal);
             note += "、影／虛空敵再回 " + (state.hp - before) + " HP";
