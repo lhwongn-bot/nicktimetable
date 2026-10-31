@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="gear-slots-202610310333">
-<!-- tq-build: gear-slots-202610310333 | gear weapon/armor/accessory + shop/drop + retune; AP/def/party keep -->
+<meta name="tq-build" content="stoneguard-202610311003">
+<!-- tq-build: stoneguard-202610311003 | enemy-stoneguard art for 石衛/stoneguard/廢堡石; gear slots keep -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build:gear-slots-202610310333 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build:stoneguard-202610311003 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -4813,6 +4813,8 @@
 
   function enemyArtSrc(name) {
     var n = name || "";
+    if (/石衛|stoneguard|廢堡石/i.test(n)) return "trait-quest-art/enemy-stoneguard.png?v=stone1";
+    if (/石傀|廢堡守|ruinward/i.test(n)) return "trait-quest-art/enemy-ruinward.png?v=ruinward1";
     if (/霧鰻|鰻|misteel/i.test(n)) return "trait-quest-art/enemy-misteel.png?v=misteel1";
     if (/蝠|影蟲/.test(n)) return "trait-quest-art/enemy-nightbat.png?v=bat1";
     if (/影|披風|頭目|哨魂/.test(n)) return "trait-quest-art/boss-shadow.png?v=manga1";
