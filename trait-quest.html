@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-coldsmokeneedle-202610311839">
-<!-- tq-build: shop-coldsmokeneedle-202610311839| shop15: coldsmoke_needle(#96) in; rift_spike out; TARGET=10 -->
+<meta name="tq-build" content="shop-coldsmokephial-202610311853">
+<!-- tq-build: shop-coldsmokephial-202610311853| shop15: coldsmoke_phial(#97) in; rift_rivet out; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-coldsmokeneedle-202610311839 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-coldsmokephial-202610311853 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3189,6 +3189,7 @@
       id: "rift_rivet", name: "裂隙鉚釘",
       desc: "真實傷 13；令下次攻擊穿甲。對影／虛空敵再護甲＋10。節末後裂隙鉚影整備。",
       buy: 70, sell: 28, use: "rift_rivet", town: false, combat: true, dmg: 13, def: 10,
+      shop: false,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     rift_pin: {
@@ -3273,6 +3274,12 @@ rift_clip: {
       id: "coldsmoke_needle", name: "冷煙細針",
       desc: "真實傷 17；本戰敏＋4、暴擊＋6。對影／虛空／煙敵再敵攻－5。西林冷煙披侍穿刺整備。",
       buy: 84, sell: 34, use: "coldsmoke_needle", town: false, combat: true, dmg: 17, agi: 4, crit: 6, atkDown: 5,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    coldsmoke_phial: {
+      id: "coldsmoke_phial", name: "冷煙小瓶",
+      desc: "回 40 HP；本戰攻＋5。對影／虛空／煙敵再真實傷 15。西林冷煙披侍應急藥劑。",
+      buy: 85, sell: 34, use: "coldsmoke_phial", town: false, combat: true, val: 40, atk: 5, dmg: 15,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
             // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3417,7 +3424,7 @@ rift_clip: {
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -8099,6 +8106,26 @@ case "rift_clip":
             var down = def.atkDown || 5;
             combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, down);
             note += "、影／虛空／煙敵再敵攻－" + down;
+          }
+          toast(note);
+        })();
+        break;
+      case "coldsmoke_phial":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var heal = def.val || 40;
+          var before = state.hp;
+          state.hp = Math.min(st.maxHp, state.hp + heal);
+          var atk = def.atk || 5;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          var note = "冷煙小瓶：回復 " + (state.hp - before) + " HP、攻＋" + atk;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗|煙|冷煙|披侍/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit|smoke|cold/i.test(String(t)); });
+          if (voidish) {
+            var d2 = dealTrueToEnemy(def.dmg || 15);
+            note += "、影／虛空／煙敵再真實 " + d2;
           }
           toast(note);
         })();
