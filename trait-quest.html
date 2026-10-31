@@ -10,7 +10,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="tq-build" content="shop15-rifttether-202610311247">
-<!-- tq-build: shop15-rifttether-202610311247 | shop15: rift_tether in, echo_bell out; TARGET=10 -->
+<!-- tq-build: shop15-riftshard-202610311305 | shop15: rift_shard in, void_anchor out; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3078,9 +3078,9 @@
     },
     void_anchor: {
       id: "void_anchor", name: "虛空錨釘",
-      desc: "真實傷 14；本戰護甲＋8。對影／虛空敵再暈 1。節末虛空殘影鎮影用。",
+      desc: "真實傷 14；本戰護甲＋8。對影／虛空敵再暈 1。已移出貨架（節末後裂隙碎核輪換優先）。",
       buy: 56, sell: 22, use: "void_anchor", town: false, combat: true, dmg: 14, val: 8,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     shade_wax: {
       id: "shade_wax", name: "殘影封蠟",
@@ -3140,6 +3140,12 @@
       id: "rift_tether", name: "裂隙導索",
       desc: "本戰敵攻－5、敏＋3。對影／虛空敵再真實傷 14。節末後裂隙縛影整備。",
       buy: 63, sell: 25, use: "rift_tether", town: false, combat: true, atkDown: 5, agi: 3, dmg: 14,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_shard: {
+      id: "rift_shard", name: "裂隙碎核",
+      desc: "真實傷 15；本戰攻＋4。對影／虛空敵再護甲＋10。節末後裂隙碎核整備。",
+      buy: 64, sell: 25, use: "rift_shard", town: false, combat: true, dmg: 15, atk: 4, def: 10,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3284,7 +3290,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7522,6 +7528,24 @@
           if (voidish) {
             var d = dealTrueToEnemy(def.dmg || 14);
             note += "、影／虛空敵再真實 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_shard":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 15);
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (def.atk || 4);
+          var note = "裂隙碎核：真實傷 " + d + "、攻＋" + (def.atk || 4);
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var arm = def.def || 10;
+            combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+            note += "、影／虛空敵再護甲＋" + arm;
           }
           toast(note);
         })();
