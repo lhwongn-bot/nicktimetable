@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-falsecry-202610311308">
-<!-- tq-build: art-falsecry-202610311308 | hourly art: enemy-falsecry.png (求援偽聲) ?v=falsecry1 -->
+<meta name="tq-build" content="shop15-rift-lens-202610311318">
+<!-- tq-build: shop15-rift-lens-202610311318 | shop15: +rift_lens(#76) shelf; shade_wax shop:false; TARGET=10
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3086,7 +3086,7 @@
       id: "shade_wax", name: "殘影封蠟",
       desc: "清毒；本戰敵攻－5。對影／虛空敵再真實傷 12。節末虛空殘影封影用。",
       buy: 56, sell: 22, use: "shade_wax", town: false, combat: true, debuff: 5, dmg: 12,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     phantom_clamp: {
       id: "phantom_clamp", name: "殘影魂箝",
@@ -3146,6 +3146,12 @@
       id: "rift_shard", name: "裂隙碎核",
       desc: "真實傷 15；本戰攻＋4。對影／虛空敵再護甲＋10。節末後裂隙碎核整備。",
       buy: 64, sell: 25, use: "rift_shard", town: false, combat: true, dmg: 15, atk: 4, def: 10,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_lens: {
+      id: "rift_lens", name: "裂隙折光片",
+      desc: "本戰敏＋4、護甲＋5。對影／虛空敵再真實傷 15。節末後裂隙折光整備。",
+      buy: 65, sell: 26, use: "rift_lens", town: false, combat: true, agi: 4, def: 5, dmg: 15,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -7547,6 +7553,24 @@
             var arm = def.def || 10;
             combat.overhealArmor = (combat.overhealArmor || 0) + arm;
             note += "、影／虛空敵再護甲＋" + arm;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_lens":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 4);
+          var arm = def.def || 5;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "裂隙折光片：敏＋" + (def.agi || 4) + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d = dealTrueToEnemy(def.dmg || 15);
+            note += "、影／虛空敵再真實 " + d;
           }
           toast(note);
         })();
