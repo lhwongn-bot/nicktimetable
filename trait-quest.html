@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="s2l4-ruin-assault-202610311022">
-<!-- tq-build: s2l4-ruin-assault-202610311022 | S2 L4 影潮廢堡·突入; stoneguard/ruinward art keep -->
+<meta name="tq-build" content="shop15-phantom-clamp-202610311050">
+<!-- tq-build: shop15-phantom-clamp-202610311050 | S2 L4 影潮廢堡·突入; stoneguard/ruinward art keep -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build:s2l4-ruin-assault-202610311022 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build:shop15-phantom-clamp-202610311050 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3003,9 +3003,9 @@
     },
     bridge_coil: {
       id: "bridge_coil", name: "斷橋錨索",
-      desc: "束縛敵：本戰敵攻－4；濕潤／濃霧再暈 1。斷橋求援用得著。",
+      desc: "束縛敵：本戰敵攻－4；濕潤／濃霧再暈 1。已移出貨架（節末輪換優先虛空貨）。",
       buy: 50, sell: 20, use: "bridge_coil", town: false, combat: true, val: 4,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rescue_beacon: {
       id: "rescue_beacon", name: "求援烽火",
@@ -3078,6 +3078,12 @@
       id: "shade_wax", name: "殘影封蠟",
       desc: "清毒；本戰敵攻－5。對影／虛空敵再真實傷 12。節末虛空殘影封影用。",
       buy: 56, sell: 22, use: "shade_wax", town: false, combat: true, debuff: 5, dmg: 12,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    phantom_clamp: {
+      id: "phantom_clamp", name: "殘影魂箝",
+      desc: "本戰敏＋5、下次穿甲。對影／虛空敵再真實傷 15。節末虛空殘影夾影用。",
+      buy: 58, sell: 23, use: "phantom_clamp", town: false, combat: true, agi: 5, dmg: 15,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3221,7 +3227,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7243,6 +7249,23 @@
           var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
           if (voidish) {
             var d = dealToEnemy(def.dmg || 12);
+            note += "、影／虛空敵傷 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "phantom_clamp":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 5);
+          combat.pierceNext = true;
+          var note = "殘影魂箝：敏＋" + (def.agi || 5) + "、下次穿甲";
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d = dealToEnemy(def.dmg || 15);
             note += "、影／虛空敵傷 " + d;
           }
           toast(note);
