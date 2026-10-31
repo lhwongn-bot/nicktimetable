@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop15-phantom-clamp-202610311050">
-<!-- tq-build: shop15-phantom-clamp-202610311050 | S2 L4 影潮廢堡·突入; stoneguard/ruinward art keep -->
+<meta name="tq-build" content="shop15-phantom-balm-202610311103">
+<!-- tq-build: shop15-phantom-balm-202610311103 | S2 finale void residual shelf; phantom_balm in rescue_beacon out -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3009,9 +3009,9 @@
     },
     rescue_beacon: {
       id: "rescue_beacon", name: "求援烽火",
-      desc: "清霧 1 層、回 22 HP，本戰攻＋4；濕潤再暈敵 1。斷橋求援信號。",
+      desc: "清霧 1 層、回 22 HP，本戰攻＋4；濕潤再暈敵 1。已移出貨架（節末虛空輪換優先殘影貨）。",
       buy: 52, sell: 20, use: "rescue_beacon", town: false, combat: true, val: 22, atk: 4,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     span_spike: {
       id: "span_spike", name: "橋隙拒釘",
@@ -3084,6 +3084,12 @@
       id: "phantom_clamp", name: "殘影魂箝",
       desc: "本戰敏＋5、下次穿甲。對影／虛空敵再真實傷 15。節末虛空殘影夾影用。",
       buy: 58, sell: 23, use: "phantom_clamp", town: false, combat: true, agi: 5, dmg: 15,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    phantom_balm: {
+      id: "phantom_balm", name: "殘影癒膏",
+      desc: "回 30 HP、清毒；對影／虛空敵再真實傷 14。節末虛空殘影養傷用。",
+      buy: 58, sell: 23, use: "phantom_balm", town: false, combat: true, val: 30, dmg: 14,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -7266,6 +7272,25 @@
           var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
           if (voidish) {
             var d = dealToEnemy(def.dmg || 15);
+            note += "、影／虛空敵傷 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "phantom_balm":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.playerPoison = 0;
+          var heal = def.val || 30;
+          var before = state.hp;
+          state.hp = Math.min(st.maxHp, state.hp + heal);
+          var note = "殘影癒膏：清毒、回復 " + (state.hp - before) + " HP";
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d = dealToEnemy(def.dmg || 14);
             note += "、影／虛空敵傷 " + d;
           }
           toast(note);
