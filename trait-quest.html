@@ -3040,9 +3040,9 @@
     },
     bridge_hook: {
       id: "bridge_hook", name: "斷橋抓鉤",
-      desc: "本戰敏＋6；濕潤／泥沼中下次穿甲並造成約 12 物傷。斷橋求援跨縫用。",
+      desc: "本戰敏＋6；濕潤／泥沼中下次穿甲並造成約 12 物傷。斷橋求援跨縫用。已移出貨架（節末輪換優先虛空貨）。",
       buy: 50, sell: 20, use: "bridge_hook", town: false, combat: true, agi: 6, dmg: 12,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rescue_ladder: {
       id: "rescue_ladder", name: "求援纜梯",
@@ -3067,8 +3067,13 @@
       desc: "本戰護甲＋13；霧／夜中再敵攻－4。影潮廢堡石廳劃界鎮魂粉。",
       buy: 54, sell: 21, use: "ruin_chalk", town: false, combat: true, val: 13, debuff: 4,
       minSection: 2, rarity: 2, staple: false, weight: 9
-    }
-    ,
+    },
+    void_anchor: {
+      id: "void_anchor", name: "虛空錨釘",
+      desc: "真實傷 14；本戰護甲＋8。對影／虛空敵再暈 1。節末虛空殘影鎮影用。",
+      buy: 56, sell: 22, use: "void_anchor", town: false, combat: true, dmg: 14, val: 8,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
     rusty_blade: {
       id: "rusty_blade", name: "生鏽短刃",
@@ -3210,7 +3215,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7197,6 +7202,24 @@
             var pen = def.debuff || 4;
             combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, pen);
             note += "、霧／夜中敵攻－" + pen;
+          }
+          toast(note);
+        })();
+        break;
+      case "void_anchor":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealToEnemy(def.dmg || 14);
+          var arm = def.val || 8;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "虛空錨釘：真實傷 " + d + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            combat.enemyStun = (combat.enemyStun || 0) + 1;
+            note += "、影／虛空敵暈 1";
           }
           toast(note);
         })();
