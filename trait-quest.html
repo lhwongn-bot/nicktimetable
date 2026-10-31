@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop15-riftclamp-202610311204">
-<!-- tq-build: shop15-riftclamp-202610311204 | shop15: rift_clamp in, west_flare_dust out; TARGET=10 -->
+<meta name="tq-build" content="shop15-riftawl-202610311216">
+<!-- tq-build: shop15-riftawl-202610311216 | shop15: rift_awl in, west_mist_silk out; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3036,9 +3036,9 @@
     },
     west_mist_silk: {
       id: "west_mist_silk", name: "西霧繭絲",
-      desc: "本戰敏＋5；若有霧則清霧 1 層。影潮織女抽嘅霧絲。",
+      desc: "本戰敏＋5；若有霧則清霧 1 層。影潮織女抽嘅霧絲。已移出貨架（節末裂隙輪換優先錐釘）。",
       buy: 46, sell: 18, use: "west_mist_silk", town: false, combat: true, agi: 5,
-      minSection: 2, rarity: 2, staple: false, weight: 8
+      minSection: 2, rarity: 2, staple: false, weight: 8, shop: false
     },
     span_board: {
       id: "span_board", name: "斷橋踏板",
@@ -3122,6 +3122,12 @@
       id: "rift_clamp", name: "裂隙鎖環",
       desc: "本戰敵攻－6；護甲＋7。對影／虛空敵再真實傷 13。節末後裂隙鎖影整備。",
       buy: 60, sell: 24, use: "rift_clamp", town: false, combat: true, atkDown: 6, def: 7, dmg: 13,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_awl: {
+      id: "rift_awl", name: "裂隙錐釘",
+      desc: "下次攻擊破甲（無視防禦）並＋8 傷；即時真實傷 12。對影／虛空敵再真實傷 8。節末後裂隙鑽影整備。",
+      buy: 61, sell: 24, use: "rift_awl", town: false, combat: true, dmg: 12, val: 8, bonus: 8,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3266,7 +3272,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7451,6 +7457,24 @@
           if (voidish) {
             var d = dealTrueToEnemy(def.dmg || 13);
             note += "、影／虛空敵再真實 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_awl":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.pierceNext = true;
+          combat.pierceBonus = Math.max(combat.pierceBonus || 0, def.val || 8);
+          var d = dealTrueToEnemy(def.dmg || 12);
+          var note = "裂隙錐釘：下次破甲＋" + (def.val || 8) + "、真實傷 " + d;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d2 = dealTrueToEnemy(def.bonus || 8);
+            note += "、影／虛空敵再真實 " + d2;
           }
           toast(note);
         })();
