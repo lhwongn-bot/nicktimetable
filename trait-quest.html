@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop15-riftward-202610311236">
-<!-- tq-build: shop15-riftward-202610311236 | shop15: rift_ward in, moon_dew out; TARGET=10 -->
+<meta name="tq-build" content="shop15-rifttether-202610311247">
+<!-- tq-build: shop15-rifttether-202610311247 | shop15: rift_tether in, echo_bell out; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -2965,7 +2965,7 @@
       id: "echo_bell", name: "峽谷回聲鈴",
       desc: "霧中：真實傷 14＋暈；否則 12 普傷。",
       buy: 48, sell: 19, use: "echo_bell", town: false, combat: true, val: 12, fogVal: 14,
-      minSection: 2, rarity: 2, staple: false, weight: 8
+      minSection: 2, rarity: 2, staple: false, weight: 8, shop: false
     },
     veil_oil: {
       id: "veil_oil", name: "夜幕塗油",
@@ -3134,6 +3134,12 @@
       id: "rift_ward", name: "裂隙護障",
       desc: "本戰防＋5、護甲＋8。對影／虛空敵再真實傷 11。節末後裂隙護影整備。",
       buy: 62, sell: 24, use: "rift_ward", town: false, combat: true, deff: 5, def: 8, dmg: 11,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_tether: {
+      id: "rift_tether", name: "裂隙導索",
+      desc: "本戰敵攻－5、敏＋3。對影／虛空敵再真實傷 14。節末後裂隙縛影整備。",
+      buy: 63, sell: 25, use: "rift_tether", town: false, combat: true, atkDown: 5, agi: 3, dmg: 14,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -7498,6 +7504,23 @@
           var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
           if (voidish) {
             var d = dealTrueToEnemy(def.dmg || 11);
+            note += "、影／虛空敵再真實 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_tether":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.enemyAtkPenalty = (combat.enemyAtkPenalty || 0) + (def.atkDown || 5);
+          combat.battleAgi = (combat.battleAgi || 0) + (def.agi || 3);
+          var note = "裂隙導索：敵攻－" + (def.atkDown || 5) + "、敏＋" + (def.agi || 3);
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d = dealTrueToEnemy(def.dmg || 14);
             note += "、影／虛空敵再真實 " + d;
           }
           toast(note);
