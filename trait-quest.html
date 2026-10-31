@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-riftwasher-202610311639">
-<!-- tq-build: shop-riftwasher-202610311639| +enemy-ruinfane 廢堡影祀 -->
+<meta name="tq-build" content="shop-riftclip-202610311705">
+<!-- tq-build: shop-riftclip-202610311705| +enemy-owlblade 夜梟執刀 | +rift_clip -rift_chime shelf -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-riftshim-202610311645 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=art-owlblade-202610311702 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3165,7 +3165,7 @@
       id: "rift_chime", name: "裂隙鳴環",
       desc: "真實傷 12、本戰暴擊＋10。對影／虛空敵再護甲＋10。節末後裂隙鳴波整備。",
       buy: 65, sell: 26, use: "rift_chime", town: false, combat: true, dmg: 12, crit: 10, def: 10,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      shop: false, minSection: 2, rarity: 2, staple: false, weight: 9
     },
     rift_barb: {
       id: "rift_barb", name: "裂隙倒刺",
@@ -3239,7 +3239,13 @@ rift_shim: {
       buy: 78, sell: 31, use: "rift_shim", town: false, combat: true, dmg: 16, atk: 4, def: 8, bonus: 12,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
-        // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
+rift_clip: {
+      id: "rift_clip", name: "裂隙卡簧",
+      desc: "真實傷 15；本戰暴擊＋8、護甲＋7。對影／虛空敵再真實傷 13。節末裂隙鎖固用。",
+      buy: 79, sell: 32, use: "rift_clip", town: false, combat: true, dmg: 15, crit: 8, def: 7, bonus: 13,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+            // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
     rusty_blade: {
       id: "rusty_blade", name: "生鏽短刃",
       desc: "武器。攻擊 +2。公會鐵匠清倉貨，新人起步刃。",
@@ -3381,7 +3387,7 @@ rift_shim: {
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -5079,6 +5085,7 @@ rift_shim: {
     if (/斷橋潮影|潮影|bridgetide/i.test(n)) return "trait-quest-art/enemy-bridgetide.png?v=bridge1";
     if (/稻草怨偶|怨偶|strawdoll/i.test(n)) return "trait-quest-art/enemy-strawdoll.png?v=straw1";
     if (/廢堡影祀|影祀|ruinfane/i.test(n)) return "trait-quest-art/enemy-ruinfane.png?v=ruinfane1";
+    if (/夜梟執刀|夜梟|owlblade/i.test(n)) return "trait-quest-art/enemy-owlblade.png?v=owl1";
     if (/影|披風|頭目|哨魂/.test(n)) return "trait-quest-art/boss-shadow.png?v=manga1";
     if (/哥布林/.test(n)) return "trait-quest-art/enemy-goblin.png?v=manga1";
     if (/蛛/.test(n)) return "trait-quest-art/enemy-spider.png?v=manga1";
@@ -7940,7 +7947,27 @@ case "rift_shim":
           toast(note);
         })();
         break;
-            default:
+case "rift_clip":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 15);
+          var cr = def.crit || 8;
+          combat.battleCrit = (combat.battleCrit || 0) + cr;
+          var arm = def.def || 7;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "裂隙卡簧：真實傷 " + d + "、暴擊＋" + cr + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d2 = dealTrueToEnemy(def.bonus || 13);
+            note += "、影／虛空敵再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+                        default:
         toast("無效道具");
         addItem(id, 1);
         return false;
