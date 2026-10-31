@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop15-rift-hasp-202610311537 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-riftbolt-202610311553 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3120,9 +3120,9 @@
     },
     rift_clamp: {
       id: "rift_clamp", name: "裂隙鎖環",
-      desc: "本戰敵攻－6；護甲＋7。對影／虛空敵再真實傷 13。節末後裂隙鎖影整備。",
+      desc: "本戰敵攻－6；護甲＋7。對影／虛空敵再真實傷 13。已移出貨架（節末後裂隙螺栓輪換優先）。",
       buy: 60, sell: 24, use: "rift_clamp", town: false, combat: true, atkDown: 6, def: 7, dmg: 13,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rift_awl: {
       id: "rift_awl", name: "裂隙錐釘",
@@ -3206,6 +3206,12 @@
       id: "rift_hasp", name: "裂隙搭扣",
       desc: "真實傷 14；本戰敏＋4、護甲＋7。對影／虛空敵再清毒並回 14 HP。節末後裂隙搭影整備。",
       buy: 73, sell: 29, use: "rift_hasp", town: false, combat: true, dmg: 14, agi: 4, def: 7, val: 14,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_bolt: {
+      id: "rift_bolt", name: "裂隙螺栓",
+      desc: "真實傷 15；本戰暴擊＋6、護甲＋6。對影／虛空敵再敵攻－4並回 16 HP。節末裂隙鎖固用。",
+      buy: 74, sell: 30, use: "rift_bolt", town: false, combat: true, dmg: 15, crit: 6, def: 6, atkDown: 4, val: 16,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3350,7 +3356,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7800,6 +7806,30 @@
             var before = state.hp;
             state.hp = Math.min(st.maxHp, state.hp + heal);
             note += "、影／虛空敵再清毒並回 " + (state.hp - before) + " HP";
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_bolt":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 15);
+          var cr = def.crit || 6;
+          combat.battleCrit = (combat.battleCrit || 0) + cr;
+          var arm = def.def || 6;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "裂隙螺栓：真實傷 " + d + "、暴擊＋" + cr + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var down = def.atkDown || 4;
+            combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, down);
+            var heal = def.val || 16;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + heal);
+            note += "、影／虛空敵再敵攻－" + down + "並回 " + (state.hp - before) + " HP";
           }
           toast(note);
         })();
