@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-riftnut-202610311608 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-riftscrew-202610311619 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3132,9 +3132,9 @@
     },
     rift_ward: {
       id: "rift_ward", name: "裂隙護障",
-      desc: "本戰防＋5、護甲＋8。對影／虛空敵再真實傷 11。節末後裂隙護影整備。",
+      desc: "本戰防＋5、護甲＋8。對影／虛空敵再真實傷 11。已移出貨架（節末後裂隙螺釘輪換優先）。",
       buy: 62, sell: 24, use: "rift_ward", town: false, combat: true, deff: 5, def: 8, dmg: 11,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rift_tether: {
       id: "rift_tether", name: "裂隙導索",
@@ -3218,6 +3218,12 @@
       id: "rift_nut", name: "裂隙螺帽",
       desc: "真實傷 14；本戰防＋5、護甲＋9。對影／虛空敵再真實傷 12。節末裂隙鎖固用。",
       buy: 75, sell: 30, use: "rift_nut", town: false, combat: true, dmg: 14, deff: 5, def: 9, bonus: 12,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_screw: {
+      id: "rift_screw", name: "裂隙螺釘",
+      desc: "真實傷 15；下次穿甲並＋7 傷。對影／虛空敵再回 20 HP。節末裂隙鎖固用。",
+      buy: 76, sell: 30, use: "rift_screw", town: false, combat: true, dmg: 15, val: 7, bonus: 20,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3362,7 +3368,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7857,6 +7863,26 @@
           if (voidish) {
             var d2 = dealTrueToEnemy(def.bonus || 12);
             note += "、影／虛空敵再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_screw":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          combat.pierceNext = true;
+          combat.pierceBonus = Math.max(combat.pierceBonus || 0, def.val || 7);
+          var d = dealTrueToEnemy(def.dmg || 15);
+          var note = "裂隙螺釘：下次破甲＋" + (def.val || 7) + "、真實傷 " + d;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var heal = def.bonus || 20;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + heal);
+            note += "、影／虛空敵再回 " + (state.hp - before) + " HP";
           }
           toast(note);
         })();
