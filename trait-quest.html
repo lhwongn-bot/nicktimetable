@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="s2-l5-voidshade-202610311116">
-<!-- tq-build: s2-l5-voidshade-202610311116 | S2 L5 節末·虛空殘影 quest + void_echo bonus + section pause -->
+<meta name="tq-build" content="shop15-void-ember-202610311138">
+<!-- tq-build: shop15-void-ember-202610311138 | shop15: void_ember in, ruin_torch out; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build:shop15-phantom-clamp-202610311050 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop15-void-prism-202610311124 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -2489,7 +2489,7 @@
     var healish = {
       heal: 1, antidote: 1, lotus_soup: 1, pork_congee: 1, calm_pill: 1,
       xp: 1, moon_dew: 1, gorge_jerky: 1, overheal_chip: 1, purge: 1,
-      repair_kit: 1, shadow_salve: 1, holy_spray: 1
+      repair_kit: 1, shadow_salve: 1, holy_spray: 1, void_ember: 1
     };
     if (healish[u]) return "consume";
     var buffish = {
@@ -2502,6 +2502,7 @@
       west_mist_silk: 1, bat_whistle: 1, bee_hive: 1, slime_cap: 1,
       vine_seed: 1, grav_disk: 1, antigrav_bag: 1, dry_agent: 1,
       echo_bell: 1, time_hourglass: 1, tide_mirror: 1, void_shard: 1,
+      void_prism: 1,
       void_thread: 1, spirit_core: 1, unchain: 1
     };
     if (buffish[u] || (it.combat && !healish[u])) return "battle";
@@ -3059,15 +3060,15 @@
     },
     ruin_wedge: {
       id: "ruin_wedge", name: "廢堡破門楔",
-      desc: "本戰攻＋5、下次穿甲；霧／夜中再造成約 15 物傷。影潮廢堡突入用。",
+      desc: "本戰攻＋5、下次穿甲；霧／夜中再造成約 15 物傷。已移出貨架（節末虛空輪換優先裂晶）。",
       buy: 54, sell: 22, use: "ruin_wedge", town: false, combat: true, atk: 5, dmg: 15,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     ruin_torch: {
       id: "ruin_torch", name: "廢堡引火炬",
-      desc: "清霧 1 層、本戰攻＋4；霧／夜中再造成約 16 物傷。影潮廢堡突入照明。",
+      desc: "清霧 1 層、本戰攻＋4；霧／夜中再造成約 16 物傷。影潮廢堡突入照明。已移出貨架（節末虛空輪換優先餘燼）。",
       buy: 54, sell: 21, use: "ruin_torch", town: false, combat: true, atk: 4, dmg: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     ruin_chalk: {
       id: "ruin_chalk", name: "廢堡護界粉",
@@ -3097,6 +3098,18 @@
       id: "phantom_balm", name: "殘影癒膏",
       desc: "回 30 HP、清毒；對影／虛空敵再真實傷 14。節末虛空殘影養傷用。",
       buy: 58, sell: 23, use: "phantom_balm", town: false, combat: true, val: 30, dmg: 14,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    void_prism: {
+      id: "void_prism", name: "虛空裂晶",
+      desc: "真實傷 13；本戰攻＋4。對影／虛空敵再真實傷 10。節末虛空殘影裂影用。",
+      buy: 58, sell: 23, use: "void_prism", town: false, combat: true, dmg: 13, atk: 4, bonus: 10,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    void_ember: {
+      id: "void_ember", name: "虛空餘燼瓶",
+      desc: "回 40 HP；本戰護甲＋6。對影／虛空敵再真實傷 12。節末後虛空餘燼整備。",
+      buy: 60, sell: 24, use: "void_ember", town: true, combat: true, val: 40, def: 6, dmg: 12,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -7347,6 +7360,45 @@
           if (voidish) {
             var d = dealToEnemy(def.dmg || 14);
             note += "、影／虛空敵傷 " + d;
+          }
+          toast(note);
+        })();
+        break;
+      case "void_prism":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 13);
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + (def.atk || 4);
+          var note = "虛空裂晶：真實傷 " + d + "、攻＋" + (def.atk || 4);
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d2 = dealTrueToEnemy(def.bonus || 10);
+            note += "、影／虛空敵再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "void_ember":
+        (function () {
+          var heal = def.val || 40;
+          var before = state.hp;
+          state.hp = Math.min(st.maxHp, state.hp + heal);
+          var note = "虛空餘燼瓶：回復 " + (state.hp - before) + " HP";
+          if (fromCombat && combat) {
+            var arm = def.def || 6;
+            combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+            note += "、護甲＋" + arm;
+            var en = combat.enemy || {};
+            var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+            var name = (en.name || "") + "";
+            var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+            if (voidish) {
+              var d = dealTrueToEnemy(def.dmg || 12);
+              note += "、影／虛空敵再真實 " + d;
+            }
           }
           toast(note);
         })();
