@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-miresoulvial-202610311908 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-owlbladeoil-202610311920 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3202,7 +3202,7 @@
       id: "rift_latch", name: "裂隙門閂",
       desc: "真實傷 13；本戰敵攻－5、護甲＋8。對影／虛空敵再回 16 HP。節末後裂隙閂影整備。",
       buy: 72, sell: 29, use: "rift_latch", town: false, combat: true, dmg: 13, atkDown: 5, def: 8, val: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rift_hasp: {
       id: "rift_hasp", name: "裂隙搭扣",
@@ -3288,7 +3288,13 @@
       buy: 86, sell: 35, use: "miresoul_vial", town: false, combat: true, val: 38, dmg: 18,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
-            // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
+    owlblade_oil: {
+      id: "owlblade_oil", name: "梟刃夜油",
+      desc: "真實傷 17；本戰暴擊＋7、敏＋3。對夜梟／執刀／影／虛空再真實傷 16。西林夜梟執刀刃油。",
+      buy: 87, sell: 35, use: "owlblade_oil", town: false, combat: true, dmg: 17, crit: 7, agi: 3, bonus: 16,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+                // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
     rusty_blade: {
       id: "rusty_blade", name: "生鏽短刃",
       desc: "武器。攻擊 +2。公會鐵匠清倉貨，新人起步刃。",
@@ -8153,6 +8159,26 @@ case "rift_clip":
           if (voidish) {
             var d2 = dealTrueToEnemy(def.dmg || 18);
             note += "、影／虛空／沼／哨魂再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "owlblade_oil":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 17);
+          var crit = def.crit || 7;
+          var agi = def.agi || 3;
+          combat.battleCrit = (combat.battleCrit || 0) + crit;
+          combat.battleAgi = (combat.battleAgi || 0) + agi;
+          var note = "梟刃夜油：真實傷 " + d + "、暴擊＋" + crit + "、敏＋" + agi;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var owlish = /夜梟|執刀|影|虛空|殘影|暗|梟/.test(name) || tags.some(function (t) { return /owl|blade|shadow|void|dark|spirit/i.test(String(t)); });
+          if (owlish) {
+            var d2 = dealTrueToEnemy(def.bonus || 16);
+            note += "、夜梟／影／虛空再真實 " + d2;
           }
           toast(note);
         })();
