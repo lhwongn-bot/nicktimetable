@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-riftstud-202610311739">
-<!-- tq-build: shop-riftstud-202610311739| +rift_stud -rift_knot shelf -->
+<meta name="tq-build" content="shop-riftsleeve-202610311756">
+<!-- tq-build: shop-riftsleeve-202610311756| +rift_sleeve -rift_tether shelf -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3138,9 +3138,9 @@
     },
     rift_tether: {
       id: "rift_tether", name: "裂隙導索",
-      desc: "本戰敵攻－5、敏＋3。對影／虛空敵再真實傷 14。節末後裂隙縛影整備。",
+      desc: "本戰敵攻－5、敏＋3。對影／虛空敵再真實傷 14。已移出貨架（節末後裂隙套筒輪換優先）。",
       buy: 63, sell: 25, use: "rift_tether", town: false, combat: true, atkDown: 5, agi: 3, dmg: 14,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rift_shard: {
       id: "rift_shard", name: "裂隙碎核",
@@ -3255,6 +3255,12 @@ rift_clip: {
       id: "rift_stud", name: "裂隙螺柱",
       desc: "真實傷 17；本戰攻＋2、敏＋4。對影／虛空敵再敵攻－5。節末裂隙鎖固用。",
       buy: 81, sell: 33, use: "rift_stud", town: false, combat: true, dmg: 17, atk: 2, agi: 4, atkDown: 5,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_sleeve: {
+      id: "rift_sleeve", name: "裂隙套筒",
+      desc: "真實傷 16；本戰護甲＋10、防＋3。對影／虛空敵再敵攻－5並回 15 HP。節末裂隙鎖固用。",
+      buy: 82, sell: 33, use: "rift_sleeve", town: false, combat: true, dmg: 16, def: 10, deff: 3, atkDown: 5, val: 15,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
             // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3399,7 +3405,7 @@ rift_clip: {
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -8016,6 +8022,30 @@ case "rift_clip":
             var down = def.atkDown || 5;
             combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, down);
             note += "、影／虛空敵再敵攻－" + down;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_sleeve":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 16);
+          var df = def.deff || 3;
+          combat.battleBuffDef = (combat.battleBuffDef || 0) + df;
+          var arm = def.def || 10;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "裂隙套筒：真實傷 " + d + "、防＋" + df + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var down = def.atkDown || 5;
+            combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, down);
+            var heal = def.val || 15;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + heal);
+            note += "、影／虛空敵再敵攻－" + down + "並回 " + (state.hp - before) + " HP";
           }
           toast(note);
         })();
