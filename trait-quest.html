@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-mireshadeclamp-202610312124">
-<!-- tq-build: shop-mireshadeclamp-202610312124| shop15: +mireshade_clamp(#107) -rift_clip; TARGET=10; art mireshade kept -->
+<meta name="tq-build" content="shop-fogshadepin-202610312138">
+<!-- tq-build: shop-fogshadepin-202610312138| shop15: +fogshade_pin(#108) -rift_cotter; TARGET=10; art mireshade kept -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3248,9 +3248,9 @@
     },
     rift_cotter: {
       id: "rift_cotter", name: "裂隙開口銷",
-      desc: "真實傷 16；本戰攻＋3、暴擊＋7。對影／虛空敵再真實傷 14。節末裂隙鎖固用。",
+      desc: "真實傷 16；本戰攻＋3、暴擊＋7。對影／虛空敵再真實傷 14。節末裂隙鎖固用。已移出貨架（霧影銷針輪換優先）。",
       buy: 80, sell: 32, use: "rift_cotter", town: false, combat: true, dmg: 16, atk: 3, crit: 7, bonus: 14,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rift_stud: {
       id: "rift_stud", name: "裂隙螺柱",
@@ -3342,7 +3342,13 @@
       buy: 93, sell: 37, use: "mireshade_clamp", town: false, combat: true, dmg: 21, atk: 4, agi: 4, bonus: 17,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
-                // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
+fogshade_pin: {
+      id: "fogshade_pin", name: "霧影銷針",
+      desc: "真實傷 22；本戰暴擊＋8、敏＋3。對霧／影／巡影／泥沼再真實傷 16。西林霧沼巡影整備。",
+      buy: 94, sell: 38, use: "fogshade_pin", town: false, combat: true, dmg: 22, crit: 8, agi: 3, bonus: 16,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+                                // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
     rusty_blade: {
       id: "rusty_blade", name: "生鏽短刃",
       desc: "武器。攻擊 +2。公會鐵匠清倉貨，新人起步刃。",
@@ -8369,6 +8375,26 @@ case "rift_clip":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 17);
             note += "、巡影／泥沼／影／虛空再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "fogshade_pin":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 22);
+          var cr = def.crit || 8;
+          var agi = def.agi || 3;
+          combat.battleCrit = (combat.battleCrit || 0) + cr;
+          combat.battleAgi = (combat.battleAgi || 0) + agi;
+          var note = "霧影銷針：真實傷 " + d + "、暴擊＋" + cr + "、敏＋" + agi;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var hit = /霧|影|巡影|泥沼|沼|殘影|fog|shade|mire|marsh|swamp|patrol/.test(name) || tags.some(function (t) { return /霧|影|巡影|泥沼|沼|殘影|fog|shade|mire|marsh|swamp|patrol|spirit/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 16);
+            note += "、霧／影／巡影／泥沼再真實 " + d2;
           }
           toast(note);
         })();
