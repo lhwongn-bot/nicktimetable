@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop15-void-ember-202610311138">
-<!-- tq-build: shop15-void-ember-202610311138 | shop15: void_ember in, ruin_torch out; TARGET=10 -->
+<meta name="tq-build" content="shop15-void-pulse-202610311154">
+<!-- tq-build: shop15-void-pulse-202610311154 | shop15: void_pulse in, ruin_chalk out; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3072,9 +3072,9 @@
     },
     ruin_chalk: {
       id: "ruin_chalk", name: "廢堡護界粉",
-      desc: "本戰護甲＋13；霧／夜中再敵攻－4。影潮廢堡石廳劃界鎮魂粉。",
-      buy: 54, sell: 21, use: "ruin_chalk", town: false, combat: true, val: 13, debuff: 4,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      desc: "本戰護甲＋13；霧／夜中敵攻－4。影潮廢堡護界用。已移出貨架（節末虛空輪換優先脈動）。",
+      buy: 52, sell: 20, use: "ruin_chalk", town: false, combat: true, val: 13, debuff: 4,
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     void_anchor: {
       id: "void_anchor", name: "虛空錨釘",
@@ -3111,7 +3111,13 @@
       desc: "回 40 HP；本戰護甲＋6。對影／虛空敵再真實傷 12。節末後虛空餘燼整備。",
       buy: 60, sell: 24, use: "void_ember", town: true, combat: true, val: 40, def: 6, dmg: 12,
       minSection: 2, rarity: 2, staple: false, weight: 9
-    },
+    },,
+    void_pulse: {
+      id: "void_pulse", name: "虛空脈動芯",
+      desc: "真實傷 11；本戰暴擊＋8。對影／虛空敵再回 18 HP。節末後虛空脈動整備。",
+      buy: 59, sell: 23, use: "void_pulse", town: false, combat: true, dmg: 11, crit: 8, val: 18,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    }
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
     rusty_blade: {
       id: "rusty_blade", name: "生鏽短刃",
@@ -7399,6 +7405,26 @@
               var d = dealTrueToEnemy(def.dmg || 12);
               note += "、影／虛空敵再真實 " + d;
             }
+          }
+          toast(note);
+        })();
+        break;
+
+      case "void_pulse":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 11);
+          combat.battleCrit = (combat.battleCrit || 0) + (def.crit || 8);
+          var note = "虛空脈動芯：真實傷 " + d + "、暴擊＋" + (def.crit || 8);
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var heal = def.val || 18;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + heal);
+            note += "、影／虛空敵再回 " + (state.hp - before) + " HP";
           }
           toast(note);
         })();
