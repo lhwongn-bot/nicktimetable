@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="stoneguard-202610311003">
-<!-- tq-build: stoneguard-202610311003 | enemy-stoneguard art for 石衛/stoneguard/廢堡石; gear slots keep -->
+<meta name="tq-build" content="s2l4-ruin-assault-202610311022">
+<!-- tq-build: s2l4-ruin-assault-202610311022 | S2 L4 影潮廢堡·突入; stoneguard/ruinward art keep -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build:stoneguard-202610311003 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build:s2l4-ruin-assault-202610311022 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3204,7 +3204,8 @@
     s1_l5:   { xp: 120, gold: 90, itemChance: 0.55 },
     s2_l1:   { xp: 135, gold: 100, itemChance: 0.52 },
     s2_l2:   { xp: 150, gold: 112, itemChance: 0.54 },
-    s2_l3:   { xp: 165, gold: 125, itemChance: 0.56 }
+    s2_l3:   { xp: 165, gold: 125, itemChance: 0.56 },
+    s2_l4:   { xp: 180, gold: 138, itemChance: 0.58 }
   };
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
@@ -3298,6 +3299,15 @@
       greenChance: 0.26,
       blueChance: 0.1,
       fragChance: 0.57
+    },
+    s2_l4: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "rage_mark", "slime_core", "web_bind"],
+      blue: ["cloak_shade", "shadow_step", "venom_blade", "blade_dance"],
+      whiteChance: 0.29,
+      greenChance: 0.27,
+      blueChance: 0.11,
+      fragChance: 0.58
     }
   };
 
@@ -3315,7 +3325,8 @@
     s1_l5:   { ids: ["iron_saber", "iron_plate", "night_iris", "shadow_edge"], chance: 0.34 },
     s2_l1:   { ids: ["shadow_edge", "mist_cloak_armor", "spirit_seal", "night_iris"], chance: 0.3 },
     s2_l2:   { ids: ["shadow_edge", "mist_cloak_armor", "spirit_seal", "tide_carapace"], chance: 0.32 },
-    s2_l3:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge"], chance: 0.34 }
+    s2_l3:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge"], chance: 0.34 },
+    s2_l4:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge", "iron_plate"], chance: 0.36 }
   };
 
   var QUESTS = [
@@ -3611,6 +3622,28 @@
       ],
       need: "s2_l2",
       clearText: "潮影散成水霧與鐘聲。你在橋柱釘低第三枚公會標記，接走幾戶鎮民過橋，抄低廢堡方向。接待員蓋章：「西林影潮·第3關——求援完成。下一個委託：影潮廢堡突入。影潮已在廢墓肚裡聚。」"
+    },
+    {
+      id: "s2_l4",
+      name: "影潮廢堡·突入",
+      desc: "第二節·西林影潮其四。格蘭公會委託：由斷橋南向突入影潮廢堡破門，清石廳守影，查清影潮喺廢堡肚裡聚成咩，並為節末對決開路。",
+      startField: { fog: 6, night: 7 },
+      stages: [
+        { name: "破門碎影", hp: 171, atk: 27, def: 4,
+          pack: 2, ai: "assassin", pierce: 0.2,
+          flavor: "廢堡大門半塌，門楣缺口漏出冷霧。兩團碎影從斷門鉸鏈縫鑽出，像把破門當刀鞘——踏近一步，碎石就跟住響。" },
+        { name: "廢堡石衛", hp: 223, atk: 31, def: 5,
+          pack: 1, ai: "brute", pierce: 0.2,
+          flavor: "石廳走廊立住半身石衛，護腕刻褪色家徽。石衛每踏一步，廳頂就落一層白灰；影潮在佢背後像披風一樣顫。" },
+        { name: "廳心石傀", hp: 274, atk: 34, def: 6,
+          pack: 1, ai: "control", pierce: 0.3,
+          flavor: "大廳正中，廳心石傀撐住塌半邊嘅拱門。傀身裂縫滲出夜色；指節一彈，四周碎影就聽令圍攏，像把廳心當祭壇。" },
+        { name: "廢堡影祀", hp: 321, atk: 36, def: 7,
+          pack: 1, ai: "aoe", pierce: 0.35,
+          flavor: "石廳最深處，影潮聚成一團影祀輪廓，口裏複讀廢堡舊主名冊。「斷橋……你來遲。虛空殘影……已在節末等。」清掉它後，廢堡深處裂開一道虛空縫——節末對決嘅路開咗。" }
+      ],
+      need: "s2_l3",
+      clearText: "影祀散成石塵與冷霧。你在廢堡石廳釘低第四枚公會標記，抄低虛空縫方位。接待員蓋章：「西林影潮·第4關——突入完成。下一個委託：節末·虛空殘影。影潮已在廢堡最深聚成節末之影。」"
     }
   ];
 
@@ -7937,6 +7970,13 @@
       var sway = 2 + Math.floor(Math.random() * 4);
       state.hp -= sway;
       appendLog($("combat-log"), combat.enemy.name + "震動橋面，你站不穩，額外 " + sway + " 傷害！", "dmg");
+      eatk = eatk + 1;
+    }
+    // 西林影潮·廢堡突入：廢堡碎石崩落（石塵偶發額外傷）
+    if (combat.quest.id === "s2_l4" && /廢堡|石衛|石傀|影祀|碎影/.test(combat.enemy.name) && Math.random() < 0.26) {
+      var rubble = 2 + Math.floor(Math.random() * 4);
+      state.hp -= rubble;
+      appendLog($("combat-log"), "廢堡碎石崩落，額外 " + rubble + " 傷害！", "dmg");
       eatk = eatk + 1;
     }
     return eatk;
