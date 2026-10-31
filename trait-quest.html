@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-boss-voidshade-202610311108">
-<!-- tq-build: art-boss-voidshade-202610311108 | S2 finale boss art: boss-voidshade.png for 虛空殘影/voidshade/節末·虛空 -->
+<meta name="tq-build" content="s2-l5-voidshade-202610311116">
+<!-- tq-build: s2-l5-voidshade-202610311116 | S2 L5 節末·虛空殘影 quest + void_echo bonus + section pause -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -2068,6 +2068,12 @@
       agi: 4, atk: 2,
       skill: { name: "影吞", cost: 0, desc: "造成傷害並令敵人中毒 2 回合（每回 3）", type: "poison_strike", val: 2, dmg: 3 }
     },
+    void_echo: {
+      id: "void_echo", name: "虛空回響", rarity: "blue",
+      desc: "攻擊 +3；敏捷 +3；技能：虛空噬回",
+      atk: 3, agi: 3,
+      skill: { name: "虛空噬回", cost: 0, desc: "1.4 倍傷害並回 10", type: "cloak_strike", mult: 1.4, stun: 0, heal: 10 }
+    },
     night_cloak: {
       id: "night_cloak", name: "夜幕披風", rarity: "purple",
       desc: "防禦 +4；敏捷 +4；最大生命 +18；技能：匿影一閃",
@@ -2348,6 +2354,7 @@
     berserk_heart: ["beast", "fire"],
     forest_warden: ["beast", "shadow"],
     cloak_shade: ["shadow"],
+    void_echo: ["shadow"],
     night_cloak: ["shadow"],
     rain_cloud: ["fire"],
     static_thunder: ["fire"],
@@ -3228,12 +3235,13 @@
     s2_l1:   { xp: 135, gold: 100, itemChance: 0.52 },
     s2_l2:   { xp: 150, gold: 112, itemChance: 0.54 },
     s2_l3:   { xp: 165, gold: 125, itemChance: 0.56 },
-    s2_l4:   { xp: 180, gold: 138, itemChance: 0.58 }
+    s2_l4:   { xp: 180, gold: 138, itemChance: 0.58 },
+    s2_l5:   { xp: 210, gold: 160, itemChance: 0.62 }
   };
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -3331,6 +3339,17 @@
       greenChance: 0.27,
       blueChance: 0.11,
       fragChance: 0.58
+    },
+    s2_l5: {
+      white: ["sharp_claw", "tough_hide", "quick_step", "goblin_blood", "sticky_mucus"],
+      green: ["venom_fang", "night_eye", "iron_bone", "rage_mark", "slime_core", "web_bind"],
+      blue: ["cloak_shade", "void_echo", "shadow_step", "venom_blade", "blade_dance"],
+      purple: ["night_cloak", "berserk_heart", "unyielding"],
+      whiteChance: 0.28,
+      greenChance: 0.28,
+      blueChance: 0.14,
+      purpleChance: 0.06,
+      fragChance: 0.62
     }
   };
 
@@ -3349,7 +3368,8 @@
     s2_l1:   { ids: ["shadow_edge", "mist_cloak_armor", "spirit_seal", "night_iris"], chance: 0.3 },
     s2_l2:   { ids: ["shadow_edge", "mist_cloak_armor", "spirit_seal", "tide_carapace"], chance: 0.32 },
     s2_l3:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge"], chance: 0.34 },
-    s2_l4:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge", "iron_plate"], chance: 0.36 }
+    s2_l4:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge", "iron_plate"], chance: 0.36 },
+    s2_l5:   { ids: ["void_fang", "tide_carapace", "spirit_seal", "shadow_edge", "iron_plate", "night_iris"], chance: 0.4 }
   };
 
   var QUESTS = [
@@ -3667,6 +3687,40 @@
       ],
       need: "s2_l3",
       clearText: "影祀散成石塵與冷霧。你在廢堡石廳釘低第四枚公會標記，抄低虛空縫方位。接待員蓋章：「西林影潮·第4關——突入完成。下一個委託：節末·虛空殘影。影潮已在廢堡最深聚成節末之影。」"
+    },
+    {
+      id: "s2_l5",
+      name: "節末·虛空殘影",
+      desc: "第二節·西林影潮節末。格蘭公會正式委託：沿廢堡虛空縫切入節末影淵，截停「虛空殘影」。今次係節章頭目——唔係清場，係截停影潮源核。",
+      startField: { fog: 8, night: 8 },
+      stages: [
+        {
+          name: "縫口殘影絲",
+          hp: 185, atk: 29, def: 4,
+          pack: 2, ai: "assassin", pierce: 0.25,
+          flavor: "廢堡最深處虛空縫裂開一指寬。細長殘影絲從縫口吐出，勒住碎石同舊燈架——西峽冷煙、霧沼濕氣、斷橋鐘聲，全喺絲上顫一下。"
+        },
+        {
+          name: "雙層殘影侍",
+          hp: 245, atk: 33, def: 5,
+          pack: 1, ai: "assassin", pierce: 0.3,
+          flavor: "兩層殘影侍重疊站喺縫前，外層複讀廢堡影祀嘅舊主名冊，內層卻用更空嘅嗓音改口：「……源核……未醒……」刀尖無反光，只有虛空。"
+        },
+        {
+          name: "虛空影祭",
+          hp: 310, atk: 37, def: 6,
+          pack: 1, ai: "control", pierce: 0.35,
+          flavor: "影淵祭壇前，虛空影祭撐開一道黑環。西峽餘煙、霧沼哨燈、斷橋求援偽聲、廢堡碎石——四段路途嘅殘響被吸進環心，像替源核開路。"
+        },
+        {
+          name: "虛空殘影",
+          hp: 385, atk: 41, def: 8,
+          pack: 1, ai: "aoe", pierce: 0.4,
+          flavor: "環心塌開，虛空殘影自行鼓起——無人無面，只有會走嘅影核。西峽誘餌、霧沼燈火、斷橋鐘聲、廢堡影祀，全係佢撕落嚟嘅路標。節末頭目就係呢團要截停嘅影潮源核。"
+        }
+      ],
+      need: "s2_l4",
+      clearText: "殘影塌成可握嘅虛空絲。格蘭公會接待員蓋大红章：「第二節·西林影潮——完。」影潮西滲暫歇。下節未批——等公會／上頭再開。"
     }
   ];
 
@@ -8075,6 +8129,13 @@
       appendLog($("combat-log"), "廢堡碎石崩落，額外 " + rubble + " 傷害！", "dmg");
       eatk = eatk + 1;
     }
+    // 西林影潮·節末：虛空噬／裂縫撕扯
+    if (combat.quest.id === "s2_l5" && /虛空|殘影|影祭|縫口/.test(combat.enemy.name) && Math.random() < 0.3) {
+      var voidDrain = 3 + Math.floor(Math.random() * 4);
+      state.hp -= voidDrain;
+      appendLog($("combat-log"), "虛空裂縫撕扯，額外吞走 " + voidDrain + " HP！", "dmg");
+      eatk = eatk + 2;
+    }
     return eatk;
   }
 
@@ -8380,6 +8441,7 @@
     var pool = DROP_POOLS[combat.quest.id];
     var drops = [];
     if (pool) {
+      var purpleChance = pool.purpleChance || 0;
       var blueChance = pool.blueChance || 0;
       var greenChance = pool.greenChance || 0;
       var whiteChance = pool.whiteChance || 0;
@@ -8388,7 +8450,11 @@
         greenChance = Math.max(greenChance, 0.4);
         whiteChance = Math.min(whiteChance, 0.2);
       }
-      if (pool.blue && blueChance && Math.random() < blueChance) {
+      if (pool.purple && purpleChance && Math.random() < purpleChance) {
+        var pr = pool.purple[Math.floor(Math.random() * pool.purple.length)];
+        addTrait(pr);
+        drops.push("紫詞條「" + TRAITS[pr].name + "」");
+      } else if (pool.blue && blueChance && Math.random() < blueChance) {
         var bl = pool.blue[Math.floor(Math.random() * pool.blue.length)];
         addTrait(bl);
         drops.push("藍詞條「" + TRAITS[bl].name + "」");
@@ -8473,6 +8539,9 @@
       if (!replay && qid === "s1_l5") {
         bonusTrait = "cloak_shade";
         addTrait(bonusTrait);
+      } else if (!replay && qid === "s2_l5") {
+        bonusTrait = "void_echo";
+        addTrait(bonusTrait);
       }
       var wasEvent = !!combat.isEvent;
       var eventTrait = null;
@@ -8501,6 +8570,9 @@
       if (qid === "s1_l5" && !wasEvent) {
         refreshShopShelf(true);
         appendLog($("result-log"), "【第一節·格蘭起程】完結。西林影潮貨已到店——霧燈、影潮藥膏等專屬道具上架；貨架亦已重整。", "sys");
+      } else if (qid === "s2_l5" && !wasEvent) {
+        refreshShopShelf(true);
+        appendLog($("result-log"), "【第二節·西林影潮】完結。虛空／殘影向道具已到店；貨架重整；下節未開——等公會／上頭指示。", "sys");
       } else if (wasEvent) {
         appendLog($("result-log"), "事件結束。異常標記已從任務板消失。", "sys");
       } else {
