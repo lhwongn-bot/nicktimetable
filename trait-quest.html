@@ -7440,7 +7440,7 @@
         if (!combat) { addItem(id, 1); return false; }
         (function () {
           var down = def.atkDown || 6;
-          combat.enemyAtkMod = (combat.enemyAtkMod || 0) - down;
+          combat.enemyAtkPenalty = Math.max(combat.enemyAtkPenalty || 0, down);
           var arm = def.def || 7;
           combat.overhealArmor = (combat.overhealArmor || 0) + arm;
           var note = "裂隙鎖環：敵攻－" + down + "、護甲＋" + arm;
