@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-stoneguardmortar-202610311934">
-<!-- tq-build: shop-stoneguardmortar-202610311934| shop15: +stoneguard_mortar(#100) -rift_hasp -->
+<meta name="tq-build" content="shop-ruinfaneash-202610311950">
+<!-- tq-build: shop-ruinfaneash-202610311950| shop15: +ruinfane_ash(#101) -rift_bolt -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-stoneguardmortar-202610311934 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-ruinfaneash-202610311950 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3212,9 +3212,9 @@
     },
     rift_bolt: {
       id: "rift_bolt", name: "裂隙螺栓",
-      desc: "真實傷 15；本戰暴擊＋6、護甲＋6。對影／虛空敵再敵攻－4並回 16 HP。節末裂隙鎖固用。",
+      desc: "真實傷 15；本戰暴擊＋6、護甲＋6。對影／虛空敵再敵攻－4並回 16 HP。節末裂隙鎖固用。已移出貨架（廢堡影祀灰封輪換優先）。",
       buy: 74, sell: 30, use: "rift_bolt", town: false, combat: true, dmg: 15, crit: 6, def: 6, atkDown: 4, val: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     rift_nut: {
       id: "rift_nut", name: "裂隙螺帽",
@@ -3298,6 +3298,12 @@
       id: "stoneguard_mortar", name: "石衛封漿",
       desc: "真實傷 16；本戰護甲＋11、防＋3。對石衛／廢堡／影／虛空再真實傷 15。西林廢堡石衛封漿。",
       buy: 88, sell: 35, use: "stoneguard_mortar", town: false, combat: true, dmg: 16, def: 11, deff: 3, bonus: 15,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    ruinfane_ash: {
+      id: "ruinfane_ash", name: "影祀灰封",
+      desc: "真實傷 17；本戰護甲＋10、防＋3。對影祀／廢堡／影／虛空再真實傷 16。西林廢堡影祀灰封。",
+      buy: 89, sell: 36, use: "ruinfane_ash", town: false, combat: true, dmg: 17, def: 10, deff: 3, bonus: 16,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
                 // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3442,7 +3448,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial", "miresoul_vial", "owlblade_oil", "stoneguard_mortar"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial", "miresoul_vial", "owlblade_oil", "stoneguard_mortar", "ruinfane_ash"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -8185,6 +8191,26 @@ case "rift_clip":
           if (guardish) {
             var d2 = dealTrueToEnemy(def.bonus || 15);
             note += "、石衛／廢堡／影／虛空再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "ruinfane_ash":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 17);
+          var df = def.deff || 3;
+          combat.battleBuffDef = (combat.battleBuffDef || 0) + df;
+          var arm = def.def || 10;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "影祀灰封：真實傷 " + d + "、護甲＋" + arm + "、防＋" + df;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var faneish = /影祀|廢堡|石衛|影|虛空|殘影|暗|ruinfane|ruin|shadow|void|dark/.test(name) || tags.some(function (t) { return /影祀|廢堡|石衛|影|虛空|殘影|暗|ruinfane|ruin|shadow|void|dark/i.test(String(t)); });
+          if (faneish) {
+            var d2 = dealTrueToEnemy(def.bonus || 16);
+            note += "、影祀／廢堡／影／虛空再真實 " + d2;
           }
           toast(note);
         })();
