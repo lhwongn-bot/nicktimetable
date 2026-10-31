@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-ruinfane-202610311609">
-<!-- tq-build: art-ruinfane-202610311609 | +enemy-ruinfane 廢堡影祀 -->
+<meta name="tq-build" content="shop-riftwasher-202610311639">
+<!-- tq-build: shop-riftwasher-202610311639| +enemy-ruinfane 廢堡影祀 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-riftscrew-202610311619 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-riftwasher-202610311639 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3152,7 +3152,8 @@
       id: "rift_lens", name: "裂隙折光片",
       desc: "本戰敏＋4、護甲＋5。對影／虛空敵再真實傷 15。節末後裂隙折光整備。",
       buy: 65, sell: 26, use: "rift_lens", town: false, combat: true, agi: 4, def: 5, dmg: 15,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     rift_bloom: {
       id: "rift_bloom", name: "裂隙綻晶",
@@ -3224,6 +3225,12 @@
       id: "rift_screw", name: "裂隙螺釘",
       desc: "真實傷 15；下次穿甲並＋7 傷。對影／虛空敵再回 20 HP。節末裂隙鎖固用。",
       buy: 76, sell: 30, use: "rift_screw", town: false, combat: true, dmg: 15, val: 7, bonus: 20,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_washer: {
+      id: "rift_washer", name: "裂隙墊圈",
+      desc: "真實傷 15；本戰護甲＋11、敏＋3。對影／虛空敵再真實傷 14。節末裂隙鎖固用。",
+      buy: 77, sell: 31, use: "rift_washer", town: false, combat: true, dmg: 15, def: 11, agi: 3, bonus: 14,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -7883,6 +7890,26 @@
             var before = state.hp;
             state.hp = Math.min(st.maxHp, state.hp + heal);
             note += "、影／虛空敵再回 " + (state.hp - before) + " HP";
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_washer":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 15);
+          var agi = def.agi || 3;
+          combat.battleAgi = (combat.battleAgi || 0) + agi;
+          var arm = def.def || 11;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "裂隙墊圈：真實傷 " + d + "、敏＋" + agi + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var d2 = dealTrueToEnemy(def.bonus || 14);
+            note += "、影／虛空敵再真實 " + d2;
           }
           toast(note);
         })();
