@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-voidendpin-202610312211">
-<!-- tq-build: shop-voidendpin-202610312211| shop15: +voidend_pin(#110) -rift_chime; TARGET=10; art bridgemist kept -->
+<meta name="tq-build" content="shop-voidmistring-202610312224">
+<!-- tq-build: shop-voidmistring-202610312224| shop15: +voidmist_ring(#111) -fogshade_pin; TARGET=10; art bridgemist kept -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3344,9 +3344,9 @@
     },
     fogshade_pin: {
       id: "fogshade_pin", name: "霧影銷針",
-      desc: "真實傷 22；本戰暴擊＋8、敏＋3。對霧／影／巡影／泥沼再真實傷 16。西林霧沼巡影整備。",
+      desc: "真實傷 22；本戰暴擊＋8、敏＋3。對霧／影／巡影／泥沼再真實傷 16。西林霧沼巡影整備。已移出貨架（虛霧錨環輪換優先）。",
       buy: 94, sell: 38, use: "fogshade_pin", town: false, combat: true, dmg: 22, crit: 8, agi: 3, bonus: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     bridgemist_spike: {
       id: "bridgemist_spike", name: "橋霧刺釘",
@@ -3358,6 +3358,12 @@
       id: "voidend_pin", name: "虛末銷針",
       desc: "真實傷 24；本戰暴擊＋7、護甲＋6。對影／虛空／殘影再真實傷 18。西林節末虛空殘影整備。",
       buy: 96, sell: 38, use: "voidend_pin", town: false, combat: true, dmg: 24, crit: 7, def: 6, bonus: 18,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    voidmist_ring: {
+      id: "voidmist_ring", name: "虛霧錨環",
+      desc: "真實傷 25；本戰敏＋3、護甲＋7。對霧／虛空／斷橋／殘影再真實傷 19。西林節末虛霧錨固。",
+      buy: 97, sell: 39, use: "voidmist_ring", town: false, combat: true, dmg: 25, agi: 3, def: 7, bonus: 19,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
                                 // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3502,7 +3508,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial", "miresoul_vial", "owlblade_oil", "stoneguard_mortar", "ruinfane_ash", "westremnant_cinder", "voidremnant_filament", "tideshadow_spike", "voidtide_clasp", "ruinshade_rivet", "mireshade_clamp"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial", "miresoul_vial", "owlblade_oil", "stoneguard_mortar", "ruinfane_ash", "westremnant_cinder", "voidremnant_filament", "tideshadow_spike", "voidtide_clasp", "ruinshade_rivet", "mireshade_clamp", "fogshade_pin", "bridgemist_spike", "voidend_pin", "voidmist_ring"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -8450,6 +8456,27 @@ case "rift_clip":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 18);
             note += "、影／虛空／殘影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "voidmist_ring":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 25);
+          var agi = def.agi || 3;
+          var arm = def.def || 7;
+          combat.battleAgi = (combat.battleAgi || 0) + agi;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "虛霧錨環：真實傷 " + d + "、敏＋" + agi + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /霧|虛空|斷橋|殘影|橋|暗|void|mist|bridge|remnant|shade/.test(name) || /霧|虛空|斷橋|殘影|void|mist|bridge|remnant/i.test(eid) || tags.some(function (t) { return /霧|虛空|斷橋|殘影|shadow|void|mist|bridge|remnant|shade|dark|spirit/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 19);
+            note += "、霧／虛空／斷橋／殘影再真實 " + d2;
           }
           toast(note);
         })();
