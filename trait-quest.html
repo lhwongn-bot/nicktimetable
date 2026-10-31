@@ -3108,9 +3108,9 @@
     },
     void_ember: {
       id: "void_ember", name: "虛空餘燼瓶",
-      desc: "回 40 HP；本戰護甲＋6。對影／虛空敵再真實傷 12。節末後虛空餘燼整備。",
+      desc: "回 40 HP；本戰護甲＋6。對影／虛空敵再真實傷 12。已移出貨架（節末後裂隙銷釘輪換優先）。",
       buy: 60, sell: 24, use: "void_ember", town: true, combat: true, val: 40, def: 6, dmg: 12,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     void_pulse: {
       id: "void_pulse", name: "虛空脈動芯",
@@ -3188,6 +3188,12 @@
       id: "rift_rivet", name: "裂隙鉚釘",
       desc: "真實傷 13；令下次攻擊穿甲。對影／虛空敵再護甲＋10。節末後裂隙鉚影整備。",
       buy: 70, sell: 28, use: "rift_rivet", town: false, combat: true, dmg: 13, def: 10,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    rift_pin: {
+      id: "rift_pin", name: "裂隙銷釘",
+      desc: "真實傷 12；束縛敵 1 回合。對影／虛空敵再回 18 HP。節末後裂隙銷影整備。",
+      buy: 71, sell: 28, use: "rift_pin", town: false, combat: true, dmg: 12, val: 18,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -3332,7 +3338,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -7718,6 +7724,25 @@
             var arm = def.def || 10;
             combat.overhealArmor = (combat.overhealArmor || 0) + arm;
             note += "、影／虛空敵再護甲＋" + arm;
+          }
+          toast(note);
+        })();
+        break;
+      case "rift_pin":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 12);
+          combat.enemyStun = Math.max(combat.enemyStun || 0, 1);
+          var note = "裂隙銷釘：真實傷 " + d + "、束縛敵 1";
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var voidish = /影|虛空|殘影|暗/.test(name) || tags.some(function (t) { return /shadow|void|dark|spirit/i.test(String(t)); });
+          if (voidish) {
+            var heal = def.val || 18;
+            var before = state.hp;
+            state.hp = Math.min(st.maxHp, state.hp + heal);
+            note += "、影／虛空敵再回 " + (state.hp - before) + " HP";
           }
           toast(note);
         })();
