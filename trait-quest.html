@@ -9,7 +9,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-dualremnantspike-202611011506">
+<meta name="tq-build" content="shop-twinvoidspike-202611011524">
 <!-- tq-build: art-voidseam-202611011404| hourly art +enemy-voidseam.png（縫口殘影絲）?v=voidseam1 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
@@ -3426,7 +3426,8 @@
       id: "endvoid_spike", name: "末虛刺釘",
       desc: "真實傷 32；本戰攻擊＋5、護甲＋9。對虛空／殘影／影／廢堡再真實傷 26。西林節末虛空殘影整備。",
       buy: 112, sell: 46, use: "endvoid_spike", town: false, combat: true, dmg: 32, atk: 5, def: 9, bonus: 26,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     voidshroud_pin: {
       id: "voidshroud_pin", name: "虛幕銷針",
@@ -3540,7 +3541,13 @@
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
 
-
+    // #135
+    twinvoid_spike: {
+      id: "twinvoid_spike", name: "雙虛刺釘",
+      desc: "真實傷 48；本戰攻擊＋9、護甲＋15。對雙層／虛空／殘影／影再真實傷 42。西林節末雙虛殘影整備。",
+      buy: 144, sell: 61, use: "twinvoid_spike", town: false, combat: true, dmg: 48, atk: 9, def: 15, bonus: 42,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
 
     
                                 // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
@@ -9181,6 +9188,27 @@ case "owlblade_oil":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 41);
             note += "、雙層／殘影／虛空／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "twinvoid_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 48);
+          var atk = def.atk || 9;
+          var arm = def.def || 15;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "雙虛刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /雙層|虛空|殘影|影|暗|雙|twin|void|remnant|shade|shadow|dark|dual|twinvoid|dualremnant/.test(name) || /雙層|虛空|殘影|影|暗|雙|twin|void|remnant|shade|shadow|dark|dual|twinvoid|dualremnant/i.test(eid) || tags.some(function (t) { return /雙層|虛空|殘影|影|暗|雙|twin|void|remnant|shade|shadow|dark|dual|twinvoid|dualremnant/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 42);
+            note += "、雙層／虛空／殘影／影再真實 " + d2;
           }
           toast(note);
         })();
