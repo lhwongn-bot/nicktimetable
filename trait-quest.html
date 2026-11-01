@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-fortstone-202611011207">
-<!-- tq-build: art-fortstone-202611011207| hourly art +enemy-fortstone.png（廢堡石衛）?v=fortstone1 -->
+<meta name="tq-build" content="shop-fortstonespike-202611011236">
+<!-- tq-build: shop-fortstonespike-202611011236| shop15 +fortstone_spike(#124) -bridgemist_spike -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3358,9 +3358,10 @@
     },
     bridgemist_spike: {
       id: "bridgemist_spike", name: "橋霧刺釘",
-      desc: "真實傷 23；本戰攻擊＋4、命中＋6。對橋／斷橋／霧／潮影再真實傷 17。西林斷橋霧潮整備。",
+      desc: "真實傷 23；本戰攻擊＋4、命中＋6。對橋／斷橋／霧／潮影再真實傷 17。西林斷橋霧潮整備。已移出貨架（堡石刺釘輪換優先）。",
       buy: 95, sell: 38, use: "bridgemist_spike", town: false, combat: true, dmg: 23, atk: 4, hit: 6, bonus: 17,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     voidend_pin: {
       id: "voidend_pin", name: "虛末銷針",
@@ -3445,6 +3446,13 @@
       id: "echovoid_spike", name: "迴虛刺釘",
       desc: "真實傷 36；本戰攻擊＋5、護甲＋11。對虛空／殘影／迴響／影再真實傷 30。西林節末虛空殘影／迴虛整備。",
       buy: 120, sell: 49, use: "echovoid_spike", town: false, combat: true, dmg: 36, atk: 5, def: 11, bonus: 30,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+
+    fortstone_spike: {
+      id: "fortstone_spike", name: "堡石刺釘",
+      desc: "真實傷 37；本戰攻擊＋5、護甲＋12。對廢堡／石衛／殘影／虛空再真實傷 31。西林影潮廢堡石衛整備。",
+      buy: 122, sell: 50, use: "fortstone_spike", town: false, combat: true, dmg: 37, atk: 5, def: 12, bonus: 31,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     
@@ -8823,6 +8831,28 @@ case "climbshade_pin":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 30);
             note += "、虛空／殘影／迴響／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
+      case "fortstone_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 37);
+          var atk = def.atk || 5;
+          var arm = def.def || 12;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "堡石刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /廢堡|石衛|堡石|殘影|虛空|影|暗|fortstone|stoneguard|ruin|void|remnant|shade|shadow|dark/.test(name) || /廢堡|石衛|堡石|殘影|虛空|影|暗|fortstone|stoneguard|ruin|void|remnant|shade|shadow|dark/i.test(eid) || tags.some(function (t) { return /廢堡|石衛|堡石|殘影|虛空|影|暗|fortstone|stoneguard|ruin|void|remnant|shade|shadow|dark/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 31);
+            note += "、廢堡／石衛／殘影／虛空再真實 " + d2;
           }
           toast(note);
         })();
