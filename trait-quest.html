@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-doorshard-202611011104">
-<!-- tq-build: art-doorshard-202611011104| hourly art +enemy-doorshard.png（破門碎影）?v=doorshard1 -->
+<meta name="tq-build" content="shop-doorshardspike-202611011109">
+<!-- tq-build: shop-doorshardspike-202611011109| shop15 +doorshard_spike(#118) -ruinfane_ash; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3304,9 +3304,10 @@
     },
     ruinfane_ash: {
       id: "ruinfane_ash", name: "影祀灰封",
-      desc: "真實傷 17；本戰護甲＋10、防＋3。對影祀／廢堡／影／虛空再真實傷 16。西林廢堡影祀灰封。",
+      desc: "真實傷 17；本戰護甲＋10、防＋3。對影祀／廢堡／影／虛空再真實傷 16。西林廢堡影祀灰封。已移出貨架（破門碎釘輪換優先）。",
       buy: 89, sell: 36, use: "ruinfane_ash", town: false, combat: true, dmg: 17, def: 10, deff: 3, bonus: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     westremnant_cinder: {
       id: "westremnant_cinder", name: "影殘餘燼",
@@ -3402,6 +3403,12 @@
       id: "shadowfort_spike", name: "影堡刺釘",
       desc: "真實傷 30；本戰攻擊＋4、護甲＋9。對廢堡／影潮／殘影／虛空再真實傷 24。西林影潮廢堡突入整備。",
       buy: 108, sell: 44, use: "shadowfort_spike", town: false, combat: true, dmg: 30, atk: 4, def: 9, bonus: 24,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    doorshard_spike: {
+      id: "doorshard_spike", name: "破門碎釘",
+      desc: "真實傷 31；本戰攻擊＋5、護甲＋8。對碎影／破門／殘影／虛空再真實傷 25。西林破門碎影突入整備。",
+      buy: 110, sell: 45, use: "doorshard_spike", town: false, combat: true, dmg: 31, atk: 5, def: 8, bonus: 25,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     
@@ -8645,6 +8652,28 @@ case "climbshade_pin":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 24);
             note += "、廢堡／影潮／殘影／虛空再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
+      case "doorshard_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 31);
+          var atk = def.atk || 5;
+          var arm = def.def || 8;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "破門碎釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /碎影|破門|殘影|虛空|影|暗|門|door|shard|remnant|void|shade|shadow|dark|doorshard/.test(name) || /碎影|破門|殘影|虛空|door|shard|remnant|void|shade|doorshard|shadow/i.test(eid) || tags.some(function (t) { return /碎影|破門|殘影|虛空|door|shard|remnant|void|shade|shadow|dark|spirit|doorshard/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 25);
+            note += "、碎影／破門／殘影／虛空再真實 " + d2;
           }
           toast(note);
         })();
