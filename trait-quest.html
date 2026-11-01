@@ -9,7 +9,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-dualremnant-202611011500">
+<meta name="tq-build" content="shop-dualremnantspike-202611011506">
 <!-- tq-build: art-voidseam-202611011404| hourly art +enemy-voidseam.png（縫口殘影絲）?v=voidseam1 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
@@ -3419,7 +3419,8 @@
       id: "doorshard_spike", name: "破門碎釘",
       desc: "真實傷 31；本戰攻擊＋5、護甲＋8。對碎影／破門／殘影／虛空再真實傷 25。西林破門碎影突入整備。",
       buy: 110, sell: 45, use: "doorshard_spike", town: false, combat: true, dmg: 31, atk: 5, def: 8, bonus: 25,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     endvoid_spike: {
       id: "endvoid_spike", name: "末虛刺釘",
@@ -3528,6 +3529,14 @@
       id: "voidseam_spike", name: "虛縫刺釘",
       desc: "真實傷 46；本戰攻擊＋8、護甲＋14。對縫口／殘影絲／虛空／影再真實傷 40。西林節末縫口殘影絲整備。",
       buy: 140, sell: 59, use: "voidseam_spike", town: false, combat: true, dmg: 46, atk: 8, def: 14, bonus: 40,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+
+    // #134
+    dualremnant_spike: {
+      id: "dualremnant_spike", name: "雙殘刺釘",
+      desc: "真實傷 47；本戰攻擊＋8、護甲＋15。對雙層／殘影／虛空／影再真實傷 41。西林節末雙層殘影侍整備。",
+      buy: 142, sell: 60, use: "dualremnant_spike", town: false, combat: true, dmg: 47, atk: 8, def: 15, bonus: 41,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
 
@@ -3676,7 +3685,7 @@
 
   var ITEM_REWARD_POOL = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm"];
   var ITEM_REWARD_POOL_S1 = ["potion", "ration", "antidote", "smoke", "whetstone", "amulet", "xp_scroll", "hi_potion", "sand_bag", "glow_dust", "toxin_cap", "tar_bomb", "copper_dust", "holy_spray", "rusty_blade", "cloth_vest", "copper_band", "hunter_knife", "leather_guard", "wolf_fang_charm", "iron_saber", "vitality_bead"];
-  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial", "miresoul_vial", "owlblade_oil", "stoneguard_mortar", "ruinfane_ash", "westremnant_cinder", "voidremnant_filament", "tideshadow_spike", "voidtide_clasp", "ruinshade_rivet", "mireshade_clamp", "fogshade_pin", "bridgemist_spike", "voidend_pin", "voidmist_ring", "ruinvoid_spike", "remnantshade_spike", "endshade_anchor", "climbshade_pin", "voidfort_pin", "shadowfort_spike", "doorshard_spike", "endvoid_spike", "voidshroud_pin", "veilvoid_spike", "remnantveil_spike", "echovoid_spike", "fortstone_spike", "riftvoid_spike", "voidash_spike", "hallvoid_spike", "shadeheart_pin", "voidremnant_spike", "echoremnant_spike", "seamsilk_spike", "silkvoid_spike", "voidseam_spike"];
+  var ITEM_REWARD_POOL_S2 = ["potion", "hi_potion", "antidote", "mist_lantern", "shadow_salve", "gorge_jerky", "echo_bell", "west_flare_dust", "holy_spray", "glow_dust", "veil_oil", "ash_charm", "bridge_coil", "mire_sight", "rescue_beacon", "west_mist_silk", "span_board", "span_spike", "bridge_hook", "rescue_ladder", "ruin_wedge", "ruin_torch", "ruin_chalk", "void_anchor", "shade_wax", "phantom_clamp", "phantom_balm", "shadow_edge", "mist_cloak_armor", "spirit_seal", "void_fang", "tide_carapace", "night_iris", "iron_saber", "iron_plate", "void_ember", "void_pulse", "rift_clamp", "rift_awl", "rift_ward", "rift_tether", "rift_shard", "rift_lens", "rift_bloom", "rift_chime", "rift_barb", "rift_knot", "rift_spike", "rift_rivet", "rift_pin", "rift_latch", "rift_hasp", "rift_bolt", "rift_nut", "rift_screw", "rift_washer", "rift_shim", "rift_clip", "rift_cotter", "rift_stud", "rift_sleeve", "coldsmoke_filter", "coldsmoke_needle", "coldsmoke_phial", "miresoul_vial", "owlblade_oil", "stoneguard_mortar", "ruinfane_ash", "westremnant_cinder", "voidremnant_filament", "tideshadow_spike", "voidtide_clasp", "ruinshade_rivet", "mireshade_clamp", "fogshade_pin", "bridgemist_spike", "voidend_pin", "voidmist_ring", "ruinvoid_spike", "remnantshade_spike", "endshade_anchor", "climbshade_pin", "voidfort_pin", "shadowfort_spike", "doorshard_spike", "endvoid_spike", "voidshroud_pin", "veilvoid_spike", "remnantveil_spike", "echovoid_spike", "fortstone_spike", "riftvoid_spike", "voidash_spike", "hallvoid_spike", "shadeheart_pin", "voidremnant_spike", "echoremnant_spike", "seamsilk_spike", "silkvoid_spike", "voidseam_spike", "dualremnant_spike"];
 
   // Drop tables by quest
   var DROP_POOLS = {
@@ -9151,6 +9160,27 @@ case "owlblade_oil":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 40);
             note += "、縫口／殘影絲／虛空／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+      case "dualremnant_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 47);
+          var atk = def.atk || 8;
+          var arm = def.def || 15;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "雙殘刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /雙層|殘影|虛空|影|暗|雙|dual|twin|remnant|void|shade|shadow|dark|dualremnant|twinremnant/.test(name) || /雙層|殘影|虛空|影|暗|雙|dual|twin|remnant|void|shade|shadow|dark|dualremnant|twinremnant/i.test(eid) || tags.some(function (t) { return /雙層|殘影|虛空|影|暗|雙|dual|twin|remnant|void|shade|shadow|dark|dualremnant|twinremnant/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 41);
+            note += "、雙層／殘影／虛空／影再真實 " + d2;
           }
           toast(note);
         })();
