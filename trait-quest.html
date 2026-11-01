@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="art-crackclimb-202611011009">
-<!-- tq-build: shop-climbshadepin-202611011023| shop15: +climbshade_pin(#115) 攀影銷針; miresoul_vial shop:false; TARGET=10| hourly art: +enemy-crackclimb.png（裂柱攀影）?v=crackclimb1 -->
+<meta name="tq-build" content="shop-voidfortpin-202611011033">
+<!-- tq-build: shop-voidfortpin-202611011033| shop15: +voidfort_pin(#116) 虛堡銷針; owlblade_oil shop:false; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3290,9 +3290,10 @@
     },
     owlblade_oil: {
       id: "owlblade_oil", name: "梟刃夜油",
-      desc: "真實傷 17；本戰暴擊＋7、敏＋3。對夜梟／執刀／影／虛空再真實傷 16。西林夜梟執刀刃油。",
+      desc: "真實傷 17；本戰暴擊＋7、敏＋3。對夜梟／執刀／影／虛空再真實傷 16。西林夜梟執刀刃油。已移出貨架（虛堡銷針輪換優先）。",
       buy: 87, sell: 35, use: "owlblade_oil", town: false, combat: true, dmg: 17, crit: 7, agi: 3, bonus: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     stoneguard_mortar: {
       id: "stoneguard_mortar", name: "石衛封漿",
@@ -3388,6 +3389,12 @@
       id: "climbshade_pin", name: "攀影銷針",
       desc: "真實傷 28；本戰敏＋4、命中＋5。對攀影／裂柱／殘影／虛空再真實傷 22。西林裂柱攀影攀附整備。",
       buy: 104, sell: 42, use: "climbshade_pin", town: false, combat: true, dmg: 28, agi: 4, hit: 5, bonus: 22,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    voidfort_pin: {
+      id: "voidfort_pin", name: "虛堡銷針",
+      desc: "真實傷 29；本戰攻擊＋5、護甲＋8。對廢堡／虛空／殘影／影再真實傷 23。西林影潮廢堡虛空整備。",
+      buy: 106, sell: 43, use: "voidfort_pin", town: false, combat: true, dmg: 29, atk: 5, def: 8, bonus: 23,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     
@@ -8591,6 +8598,28 @@ case "climbshade_pin":
           toast(note);
         })();
         break;
+      case "voidfort_pin":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 29);
+          var atk = def.atk || 5;
+          var arm = def.def || 8;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "虛堡銷針：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /廢堡|虛空|殘影|影|暗|堡|fort|void|remnant|shade|ruin|shadow|dark/.test(name) || /廢堡|虛空|殘影|fort|void|remnant|shade|ruin/i.test(eid) || tags.some(function (t) { return /廢堡|虛空|殘影|fort|void|remnant|shade|ruin|shadow|dark|spirit/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 23);
+            note += "、廢堡／虛空／殘影／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
       
       case "owlblade_oil":
         if (!combat) { addItem(id, 1); return false; }
