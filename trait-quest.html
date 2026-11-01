@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-riftvoidspike-202611011248">
-<!-- tq-build: shop-riftvoidspike-202611011248| shop15 +riftvoid_spike(#125) -mireshade_clamp -->
+<meta name="tq-build" content="shop-voidashspike-202611011300">
+<!-- tq-build: shop-voidashspike-202611011300| shop15 +voidash_spike(#126) -voidend_pin -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3368,7 +3368,7 @@
       id: "voidend_pin", name: "虛末銷針",
       desc: "真實傷 24；本戰暴擊＋7、護甲＋6。對影／虛空／殘影再真實傷 18。西林節末虛空殘影整備。",
       buy: 96, sell: 38, use: "voidend_pin", town: false, combat: true, dmg: 24, crit: 7, def: 6, bonus: 18,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9, shop: false
     },
     voidmist_ring: {
       id: "voidmist_ring", name: "虛霧錨環",
@@ -3461,6 +3461,14 @@
       id: "riftvoid_spike", name: "隙虛刺釘",
       desc: "真實傷 38；本戰攻擊＋5、護甲＋12。對虛空／殘影／裂隙／影再真實傷 32。西林節末虛空殘影／隙虛整備。",
       buy: 124, sell: 51, use: "riftvoid_spike", town: false, combat: true, dmg: 38, atk: 5, def: 12, bonus: 32,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+
+    // #126
+    voidash_spike: {
+      id: "voidash_spike", name: "虛灰刺釘",
+      desc: "真實傷 39；本戰攻擊＋5、護甲＋13。對虛空／殘影／灰燼／影再真實傷 33。西林節末虛空殘影／虛灰整備。",
+      buy: 126, sell: 52, use: "voidash_spike", town: false, combat: true, dmg: 39, atk: 5, def: 13, bonus: 33,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     
@@ -8883,6 +8891,28 @@ case "climbshade_pin":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 32);
             note += "、虛空／殘影／裂隙／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
+      case "voidash_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 39);
+          var atk = def.atk || 5;
+          var arm = def.def || 13;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "虛灰刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /虛空|殘影|灰燼|虛灰|影|暗|ash|void|remnant|shade|shadow|dark|voidash|cinder/.test(name) || /虛空|殘影|灰燼|虛灰|影|暗|ash|void|remnant|shade|shadow|dark|voidash|cinder/i.test(eid) || tags.some(function (t) { return /虛空|殘影|灰燼|虛灰|影|暗|ash|void|remnant|shade|shadow|dark|voidash|cinder/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 33);
+            note += "、虛空／殘影／灰燼／影再真實 " + d2;
           }
           toast(note);
         })();
