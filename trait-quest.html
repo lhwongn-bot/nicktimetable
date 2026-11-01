@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-voidfortpin-202611011033">
-<!-- tq-build: shop-voidfortpin-202611011033| shop15: +voidfort_pin(#116) 虛堡銷針; owlblade_oil shop:false; TARGET=10 -->
+<meta name="tq-build" content="shop-shadowfortspike-202611011047">
+<!-- tq-build: shop-shadowfortspike-202611011047| shop15: +shadowfort_spike(#117) 影堡刺釘; stoneguard_mortar shop:false; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3297,9 +3297,10 @@
     },
     stoneguard_mortar: {
       id: "stoneguard_mortar", name: "石衛封漿",
-      desc: "真實傷 16；本戰護甲＋11、防＋3。對石衛／廢堡／影／虛空再真實傷 15。西林廢堡石衛封漿。",
+      desc: "真實傷 16；本戰護甲＋11、防＋3。對石衛／廢堡／影／虛空再真實傷 15。西林廢堡石衛封漿。已移出貨架（影堡刺釘輪換優先）。",
       buy: 88, sell: 35, use: "stoneguard_mortar", town: false, combat: true, dmg: 16, def: 11, deff: 3, bonus: 15,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     ruinfane_ash: {
       id: "ruinfane_ash", name: "影祀灰封",
@@ -3395,6 +3396,12 @@
       id: "voidfort_pin", name: "虛堡銷針",
       desc: "真實傷 29；本戰攻擊＋5、護甲＋8。對廢堡／虛空／殘影／影再真實傷 23。西林影潮廢堡虛空整備。",
       buy: 106, sell: 43, use: "voidfort_pin", town: false, combat: true, dmg: 29, atk: 5, def: 8, bonus: 23,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    shadowfort_spike: {
+      id: "shadowfort_spike", name: "影堡刺釘",
+      desc: "真實傷 30；本戰攻擊＋4、護甲＋9。對廢堡／影潮／殘影／虛空再真實傷 24。西林影潮廢堡突入整備。",
+      buy: 108, sell: 44, use: "shadowfort_spike", town: false, combat: true, dmg: 30, atk: 4, def: 9, bonus: 24,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     
@@ -8615,6 +8622,28 @@ case "climbshade_pin":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 23);
             note += "、廢堡／虛空／殘影／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
+      case "shadowfort_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 30);
+          var atk = def.atk || 4;
+          var arm = def.def || 9;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "影堡刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /廢堡|影潮|殘影|虛空|影|暗|堡|fort|tide|remnant|void|shade|ruin|shadow|dark/.test(name) || /廢堡|影潮|殘影|虛空|fort|tide|remnant|void|shade|ruin|shadowfort/i.test(eid) || tags.some(function (t) { return /廢堡|影潮|殘影|虛空|fort|tide|remnant|void|shade|ruin|shadow|dark|spirit/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 24);
+            note += "、廢堡／影潮／殘影／虛空再真實 " + d2;
           }
           toast(note);
         })();
