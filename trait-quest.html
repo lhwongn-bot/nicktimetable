@@ -1771,7 +1771,7 @@
     <p class="statline" id="enemy-name"></p>
     <p class="statline" id="field-tags">戰場：無</p>
     <!-- 戰鬥速度／跳過列已移除；空間撥畀右欄操作掣 -->
-    <!-- tq-build=shop-westremnantcinder-202610312010 combat-battle-row: left=log | right=#combat-actions -->
+    <!-- tq-build=shop-echovoidspike-202611011218 combat-battle-row: left=log | right=#combat-actions -->
     <div class="combat-battle-row">
       <div class="combat-battle-left">
         <p class="statline" id="combat-status-hint">狀態：無</p>
@@ -3339,9 +3339,10 @@
     },
     ruinshade_rivet: {
       id: "ruinshade_rivet", name: "廢影鉚釘",
-      desc: "真實傷 20；本戰攻＋5、護甲＋9。對廢堡／影潮／虛空／殘影再真實傷 16。西林影潮廢堡突入整備。",
+      desc: "真實傷 20；本戰攻＋5、護甲＋9。對廢堡／影潮／虛空／殘影再真實傷 16。西林影潮廢堡突入整備。已移出貨架（迴虛刺釘輪換優先）。",
       buy: 92, sell: 37, use: "ruinshade_rivet", town: false, combat: true, dmg: 20, atk: 5, def: 9, bonus: 16,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     mireshade_clamp: {
       id: "mireshade_clamp", name: "巡影夾扣",
@@ -3440,6 +3441,13 @@
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
 
+    echovoid_spike: {
+      id: "echovoid_spike", name: "迴虛刺釘",
+      desc: "真實傷 36；本戰攻擊＋5、護甲＋11。對虛空／殘影／迴響／影再真實傷 30。西林節末虛空殘影／迴虛整備。",
+      buy: 120, sell: 49, use: "echovoid_spike", town: false, combat: true, dmg: 36, atk: 5, def: 11, bonus: 30,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    
                                 // ---- 裝備：武器／護甲／裝飾品（永久屬性；鎮內裝備／卸下）----
     rusty_blade: {
       id: "rusty_blade", name: "生鏽短刃",
@@ -8793,6 +8801,28 @@ case "climbshade_pin":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 29);
             note += "、殘影／帷幕／虛空／影再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
+      case "echovoid_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 36);
+          var atk = def.atk || 5;
+          var arm = def.def || 11;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "迴虛刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /虛空|殘影|迴響|迴虛|影|暗|echo|void|remnant|shade|shadow|dark|echovoid/.test(name) || /虛空|殘影|迴響|迴虛|影|暗|echo|void|remnant|shade|shadow|dark|echovoid/i.test(eid) || tags.some(function (t) { return /虛空|殘影|迴響|迴虛|影|暗|echo|void|remnant|shade|shadow|dark|echovoid/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 30);
+            note += "、虛空／殘影／迴響／影再真實 " + d2;
           }
           toast(note);
         })();
