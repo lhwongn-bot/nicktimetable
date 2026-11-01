@@ -9,8 +9,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="tq-build" content="shop-doorshardspike-202611011109">
-<!-- tq-build: shop-doorshardspike-202611011109| shop15 +doorshard_spike(#118) -ruinfane_ash; TARGET=10 -->
+<meta name="tq-build" content="shop-endvoidspike-202611011117">
+<!-- tq-build: shop-endvoidspike-202611011117| shop15 +endvoid_spike(#119) -westremnant_cinder; TARGET=10 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>二元戰紀：精神波動</title>
 <style>
@@ -3311,9 +3311,10 @@
     },
     westremnant_cinder: {
       id: "westremnant_cinder", name: "影殘餘燼",
-      desc: "真實傷 18；本戰攻＋4、暴擊＋5。對影殘／餘煙／影／虛空再真實傷 17。西林西峽影殘餘燼。",
+      desc: "真實傷 18；本戰攻＋4、暴擊＋5。對影殘／餘煙／影／虛空再真實傷 17。西林西峽影殘餘燼。已移出貨架（末虛刺釘輪換優先）。",
       buy: 90, sell: 36, use: "westremnant_cinder", town: false, combat: true, dmg: 18, atk: 4, crit: 5, bonus: 17,
-      minSection: 2, rarity: 2, staple: false, weight: 9
+      minSection: 2, rarity: 2, staple: false, weight: 9,
+      shop: false
     },
     voidremnant_filament: {
       id: "voidremnant_filament", name: "殘影縫絲",
@@ -3409,6 +3410,12 @@
       id: "doorshard_spike", name: "破門碎釘",
       desc: "真實傷 31；本戰攻擊＋5、護甲＋8。對碎影／破門／殘影／虛空再真實傷 25。西林破門碎影突入整備。",
       buy: 110, sell: 45, use: "doorshard_spike", town: false, combat: true, dmg: 31, atk: 5, def: 8, bonus: 25,
+      minSection: 2, rarity: 2, staple: false, weight: 9
+    },
+    endvoid_spike: {
+      id: "endvoid_spike", name: "末虛刺釘",
+      desc: "真實傷 32；本戰攻擊＋5、護甲＋9。對虛空／殘影／影／廢堡再真實傷 26。西林節末虛空殘影整備。",
+      buy: 112, sell: 46, use: "endvoid_spike", town: false, combat: true, dmg: 32, atk: 5, def: 9, bonus: 26,
       minSection: 2, rarity: 2, staple: false, weight: 9
     },
     
@@ -8674,6 +8681,28 @@ case "climbshade_pin":
           if (hit) {
             var d2 = dealTrueToEnemy(def.bonus || 25);
             note += "、碎影／破門／殘影／虛空再真實 " + d2;
+          }
+          toast(note);
+        })();
+        break;
+
+      case "endvoid_spike":
+        if (!combat) { addItem(id, 1); return false; }
+        (function () {
+          var d = dealTrueToEnemy(def.dmg || 32);
+          var atk = def.atk || 5;
+          var arm = def.def || 9;
+          combat.battleBuffAtk = (combat.battleBuffAtk || 0) + atk;
+          combat.overhealArmor = (combat.overhealArmor || 0) + arm;
+          var note = "末虛刺釘：真實傷 " + d + "、攻＋" + atk + "、護甲＋" + arm;
+          var en = combat.enemy || {};
+          var tags = (en.tags || []).concat(en.type ? [en.type] : []);
+          var name = (en.name || "") + "";
+          var eid = (en.id || "") + "";
+          var hit = /虛空|殘影|影|廢堡|暗|void|remnant|shade|shadow|dark|ruin|fort|endvoid/.test(name) || /虛空|殘影|影|廢堡|暗|void|remnant|shade|shadow|dark|ruin|fort|endvoid/i.test(eid) || tags.some(function (t) { return /虛空|殘影|影|廢堡|暗|void|remnant|shade|shadow|dark|ruin|fort|endvoid/i.test(String(t)); });
+          if (hit) {
+            var d2 = dealTrueToEnemy(def.bonus || 26);
+            note += "、虛空／殘影／影／廢堡再真實 " + d2;
           }
           toast(note);
         })();
