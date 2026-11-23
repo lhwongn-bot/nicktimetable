@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="家人日曆">
+<meta name="theme-color" content="#1a1a1a">
+<title>家人日曆</title>
+<!--
+  家人專用日曆（個人／家庭用途）。
+  活動資料存放喺 GitHub 倉入面嘅 family-calendar-events.json，
+  用 GitHub Contents API 讀寫，俾屋企人一齊新增、修改、刪除活動。
+  請用 Safari 打開（「檔案」App 預覽可能冇 JavaScript，會睇到頂部提示）。
+  GitHub Personal Access Token 只會存在你部裝置嘅 localStorage，
+  永遠唔會寫入呢個 HTML 或倉入面嘅任何檔案。
+-->
+<style>
+:root {
+  --bg:#f7f7f5; --surface:#fff; --text:#1a1a1a; --muted:#6b6b6b;
+  --border:#e5e5e2; --accent:#1a1a1a; --danger:#b33a3a; --radius:12px; --tap:44px;
+  --today:#2b5a9e; --sun:#a33; --sat:#2a5f8a;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px); --safe-right:env(safe-area-inset-right,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;min-height:100%;
+  padding-left:var(--safe-left);padding-right:var(--safe-right);
+  -webkit-tap-highlight-color:transparent;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{
+  cursor:pointer;border:none;background:none;-webkit-appearance:none;appearance:none;
+  touch-action:manipulation;
+}
+input,textarea,select{-webkit-appearance:none;appearance:none}
+input[type=date],input[type=time]{-webkit-appearance:auto;appearance:auto}
+
+#bootBanner{
+  position:sticky;top:0;z-index:1000;background:#fff3cd;color:#664d03;
+  border-bottom:1px solid #ffecb5;padding:12px 16px;font-size:.9rem;line-height:1.45;
+}
+#bootBanner.error{background:#f8d7da;color:#842029;border-color:#f5c2c7}
+#bootBanner.ok{display:none!important}
+
+#viewBanner{
+  display:none;background:#eef3f9;color:#1e3a5f;border-bottom:1px solid #d5e0ee;
+  padding:10px 16px;font-size:.875rem;line-height:1.45;
+}
+#viewBanner.show{display:block}
+#viewBanner button{
+  color:inherit;font-weight:600;text-decoration:underline;padding:0 2px;
+  min-height:auto;
+}
+
+.header{
+  position:sticky;top:0;z-index:20;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px 12px;
+  padding-top:max(10px,var(--safe-top));
+}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.header h1{font-size:1.2rem;font-weight:700;min-width:0;flex:1}
+.header-actions{display:flex;gap:8px;flex-shrink:0}
+.status-line{
+  margin-top:6px;font-size:.75rem;color:var(--muted);min-height:1.2em;
+}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:var(--tap);min-width:var(--tap);padding:0 14px;border-radius:10px;
+  font-size:.9375rem;font-weight:500;gap:6px;touch-action:manipulation;
+}
+.btn:active{opacity:.75}
+.btn:disabled{opacity:.55;pointer-events:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-text{color:var(--muted);padding:0 8px}
+.btn-small{min-height:36px;min-width:36px;padding:0 10px;font-size:.8125rem}
+
+.main{padding:14px 16px;padding-bottom:calc(28px + var(--safe-bottom));max-width:720px;margin:0 auto}
+
+.month-nav{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-bottom:12px;
+}
+.month-title{font-size:1.125rem;font-weight:700;text-align:center;flex:1}
+.cal-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:8px 6px 10px;overflow:hidden;
+}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{
+  text-align:center;font-size:.75rem;font-weight:600;color:var(--muted);
+  padding:6px 0 8px;
+}
+.cal-dow.sun{color:var(--sun)}
+.cal-dow.sat{color:var(--sat)}
+.cal-cell{
+  min-height:52px;border-radius:10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding:5px 2px 4px;
+  background:transparent;width:100%;touch-action:manipulation;position:relative;
+}
+.cal-cell:active{background:#eee}
+.cal-cell.muted{opacity:.38}
+.cal-cell.today .num{
+  background:var(--today);color:#fff;border-radius:999px;
+}
+.cal-cell.selected{
+  background:#1a1a1a;color:#fff;
+}
+.cal-cell.selected.today .num{background:#fff;color:#1a1a1a}
+.cal-cell.selected .dot{background:#fff}
+.cal-cell .num{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  font-size:.9375rem;font-weight:600;border-radius:999px;line-height:1;
+}
+.cal-cell.sun:not(.selected) .num{color:var(--sun)}
+.cal-cell.sat:not(.selected) .num{color:var(--sat)}
+.cal-cell.today:not(.selected).sun .num,
+.cal-cell.today:not(.selected).sat .num{color:#fff}
+.dots{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;min-height:7px;margin-top:2px}
+.dot{width:5px;height:5px;border-radius:50%;background:#1a1a1a;opacity:.75}
+
+.day-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:18px 0 10px;
+}
+.day-head h2{font-size:1.05rem;font-weight:700;min-width:0}
+.day-head .sub{font-size:.8125rem;color:var(--muted);font-weight:500}
+
+.event-list{display:flex;flex-direction:column;gap:8px}
+.event-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px;text-align:left;width:100%;display:block;touch-action:manipulation;
+}
+.event-card:active{background:#f3f3f1}
+.event-time{font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:2px;letter-spacing:.02em}
+.event-title{font-size:1.0625rem;font-weight:650}
+.event-meta{font-size:.8125rem;color:var(--muted);margin-top:4px;word-break:break-word}
+.empty{
+  text-align:center;padding:28px 16px;color:var(--muted);font-size:.9375rem;
+  background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);
+}
+
+.sheet,.overlay,.confirm-box{
+  display:none!important;pointer-events:none!important;visibility:hidden;
+}
+.sheet.open{
+  display:flex!important;pointer-events:auto!important;visibility:visible;
+}
+.overlay.open,.confirm-box.open{
+  display:block!important;pointer-events:auto!important;visibility:visible;
+}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35)}
+.sheet{
+  position:fixed;left:0;right:0;top:0;bottom:0;width:100%;
+  height:100%;height:100dvh;max-height:100svh;z-index:60;background:var(--surface);
+  flex-direction:column;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);
+  padding-left:var(--safe-left);padding-right:var(--safe-right);max-width:720px;margin:0 auto;
+}
+.sheet-header{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.sheet-header h2{font-size:1.0625rem;font-weight:600;flex:1;text-align:center}
+.sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.sheet-footer{
+  display:flex;gap:10px;padding:12px 16px;padding-bottom:max(12px,var(--safe-bottom));
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.sheet-footer .btn{flex:1}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8125rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+.field .hint{font-size:.75rem;color:var(--muted);margin-top:6px;line-height:1.45}
+.field input,.field textarea,.field select{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
+  background:var(--bg);font-size:1rem;min-height:var(--tap);
+}
+.field textarea{min-height:100px;resize:vertical;line-height:1.55}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:var(--tap);
+}
+.toggle-row span{font-size:.9375rem;font-weight:500}
+.switch{
+  position:relative;width:48px;height:30px;flex-shrink:0;border-radius:999px;
+  background:#d0d0cc;border:none;padding:0;
+}
+.switch.on{background:var(--accent)}
+.switch i{
+  position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+  background:#fff;transition:left .15s ease;pointer-events:none;
+}
+.switch.on i{left:21px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  min-height:36px;padding:0 12px;border-radius:999px;
+  border:1px solid var(--border);background:var(--bg);
+  font-size:.875rem;font-weight:500;touch-action:manipulation;
+}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip .x{
+  min-width:22px;min-height:22px;border-radius:999px;font-size:.85rem;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.add-member{display:flex;gap:8px}
+.add-member input{flex:1;min-width:0}
+
+.help{
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;font-size:.8125rem;color:var(--muted);line-height:1.55;margin-bottom:16px;
+}
+.help strong{color:var(--text);font-weight:650}
+.help a{color:var(--today);word-break:break-all}
+
+.test-result{font-size:.875rem;margin-top:8px;min-height:1.3em;line-height:1.45}
+.test-result.ok{color:#1e6b3a}
+.test-result.err{color:var(--danger)}
+
+#toast{
+  position:fixed;left:50%;bottom:calc(20px + var(--safe-bottom));transform:translateX(-50%) translateY(12px);
+  background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:10px;
+  font-size:.875rem;line-height:1.4;max-width:min(92vw,420px);text-align:center;
+  z-index:80;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  box-shadow:0 6px 20px rgba(0,0,0,.18);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:var(--danger)}
+
+.confirm-box{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:70;background:var(--surface);border-radius:14px;padding:20px 18px 16px;
+  width:min(92vw,360px);box-shadow:0 12px 40px rgba(0,0,0,.2);
+}
+.confirm-box h3{font-size:1.0625rem;margin-bottom:8px}
+.confirm-box p{font-size:.9rem;color:var(--muted);margin-bottom:16px}
+.confirm-actions{display:flex;gap:10px}
+.confirm-actions .btn{flex:1}
+
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+</style>
+</head>
+<body>
+<div id="bootBanner">請用 Safari 打開呢個網頁（喺「檔案」預覽可能冇辦法操作）。如果已經用瀏覽器打開仍然見到呢句，請試下強制重新整理。</div>
+<div id="viewBanner">可以睇，要加改請先喺設定入 token。<button type="button" id="bannerSettingsBtn">開設定</button></div>
+
+<header class="header">
+  <div class="header-row">
+    <h1>家人日曆</h1>
+    <div class="header-actions">
+      <button type="button" class="btn btn-ghost btn-small" id="syncBtn" aria-label="同步">同步</button>
+      <button type="button" class="btn btn-ghost btn-small" id="settingsBtn">設定</button>
+    </div>
+  </div>
+  <div class="status-line" id="statusLine">載入中…</div>
+</header>
+
+<main class="main">
+  <div class="month-nav">
+    <button type="button" class="btn btn-ghost" id="prevMonth" aria-label="上一個月">‹</button>
+    <div class="month-title" id="monthTitle">—</div>
+    <button type="button" class="btn btn-ghost" id="nextMonth" aria-label="下一個月">›</button>
+  </div>
+  <div style="display:flex;justify-content:center;margin:-4px 0 12px">
+    <button type="button" class="btn btn-ghost btn-small" id="todayBtn">今日</button>
+  </div>
+  <div class="cal-card">
+    <div class="cal-grid" id="dowRow"></div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="day-head">
+    <div>
+      <h2 id="dayTitle">—</h2>
+      <div class="sub" id="dayCount"></div>
+    </div>
+    <button type="button" class="btn btn-primary btn-small" id="addBtn">＋ 新增</button>
+  </div>
+  <div class="event-list" id="eventList"></div>
+</main>
+
+<section class="sheet" id="eventSheet" aria-hidden="true">
+  <div class="sheet-header">
+    <button type="button" class="btn btn-text" id="eventCancel">取消</button>
+    <h2 id="eventSheetTitle">新增活動</h2>
+    <button type="button" class="btn btn-text" id="eventSave" style="font-weight:700;color:var(--text)">儲存</button>
+  </div>
+  <div class="sheet-body">
+    <div class="field">
+      <label for="fTitle">標題</label>
+      <input id="fTitle" type="text" maxlength="120" placeholder="例如：晚餐、覆診、旅行" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="fDate">日期</label>
+      <input id="fDate" type="date" required>
+    </div>
+    <div class="field">
+      <div class="toggle-row">
+        <span>全日活動</span>
+        <button type="button" class="switch on" id="fAllDay" aria-pressed="true" aria-label="全日活動"><i></i></button>
+      </div>
+    </div>
+    <div class="field-row" id="timeFields" hidden>
+      <div class="field">
+        <label for="fStart">開始時間</label>
+        <input id="fStart" type="time">
+      </div>
+      <div class="field">
+        <label for="fEnd">結束時間（可留空）</label>
+        <input id="fEnd" type="time">
+      </div>
+    </div>
+    <div class="field">
+      <label>邊個（可選多個，或自己輸入）</label>
+      <div class="chips" id="whoChips"></div>
+      <div class="add-member" style="margin-top:8px">
+        <input id="fWhoCustom" type="text" maxlength="40" placeholder="加入家人名字" autocomplete="off">
+        <button type="button" class="btn btn-ghost btn-small" id="addWhoBtn">加入</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fLocation">地點（可選）</label>
+      <input id="fLocation" type="text" maxlength="120" placeholder="例如：屋企、診所" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="fNotes">備註（可選）</label>
+      <textarea id="fNotes" maxlength="2000" placeholder="其他要記低嘅嘢"></textarea>
+    </div>
+    <p class="hint" id="eventMetaHint" style="font-size:.75rem;color:var(--muted)"></p>
+  </div>
+  <div class="sheet-footer" id="eventFooter" hidden>
+    <button type="button" class="btn btn-danger" id="eventDelete">刪除活動</button>
+  </div>
+</section>
+
+<section class="sheet" id="settingsSheet" aria-hidden="true">
+  <div class="sheet-header">
+    <button type="button" class="btn btn-text" id="settingsClose">關閉</button>
+    <h2>設定</h2>
+    <span style="width:44px"></span>
+  </div>
+  <div class="sheet-body">
+    <div class="help">
+      <strong>點樣同屋企人一齊改日曆？</strong><br>
+      GitHub Pages 本身唔可以喺瀏覽器直接改檔。呢個日曆會把活動寫入倉入面嘅
+      <code>family-calendar-events.json</code>。<br><br>
+      屋企人用<strong>同一個</strong> GitHub Fine-grained token（只開呢一個倉嘅 Contents 讀寫權限）。
+      Token 只會存在你呢部手機／電腦嘅瀏覽器，<strong>唔會</strong>寫入網頁或 GitHub 檔案。
+      冇 token 仍然可以睇公開日曆。
+    </div>
+
+    <div class="field">
+      <label for="sName">你嘅顯示名稱（可選）</label>
+      <input id="sName" type="text" maxlength="40" placeholder="例如：爸爸、小明" autocomplete="name">
+      <p class="hint">儲存活動時會寫入「邊個改過」，只存在呢部裝置。</p>
+    </div>
+
+    <div class="field">
+      <label for="sOwner">GitHub 擁有者</label>
+      <input id="sOwner" type="text" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sRepo">倉名</label>
+      <input id="sRepo" type="text" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sPath">事件檔路徑</label>
+      <input id="sPath" type="text" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sBranch">分支</label>
+      <input id="sBranch" type="text" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sToken">GitHub Fine-grained Personal Access Token</label>
+      <input id="sToken" type="password" spellcheck="false" autocomplete="off" placeholder="只存在呢部裝置">
+      <p class="hint">
+        開法：GitHub → Settings → Developer settings → Fine-grained tokens →
+        新增 token，Repository access 只選 <strong>lhwongn-bot/nicktimetable</strong>，
+        Permissions 入面 Contents 設為 <strong>Read and write</strong>。
+        建議有效期設長啲（例如一年），唔好開其他權限。
+        開好之後把 token 傳俾屋企人（例如面對面／加密訊息），每人喺自己部機嘅設定貼上。
+      </p>
+    </div>
+    <div class="field-row" style="margin-bottom:16px">
+      <button type="button" class="btn btn-ghost" id="testBtn">測試連線</button>
+      <button type="button" class="btn btn-primary" id="saveSettingsBtn">儲存設定</button>
+    </div>
+    <div class="test-result" id="testResult"></div>
+    <p style="margin:4px 0 20px">
+      <button type="button" class="btn btn-text btn-small" id="clearTokenBtn">清除呢部裝置嘅 token</button>
+    </p>
+
+    <h3 style="font-size:1rem;margin-bottom:8px">家人名單（共用）</h3>
+    <p class="hint" style="margin-bottom:10px">呢份名單會同活動一齊存在 GitHub JSON，屋企人都會見到。要儲存名單請先入 token，然後撳「儲存設定」或直接儲存一個活動。</p>
+    <div class="chips" id="memberChips"></div>
+    <div class="add-member" style="margin-top:10px">
+      <input id="sNewMember" type="text" maxlength="40" placeholder="新家人名字" autocomplete="off">
+      <button type="button" class="btn btn-ghost btn-small" id="addMemberBtn">加入</button>
+    </div>
+    <div style="margin-top:12px">
+      <button type="button" class="btn btn-ghost" id="saveMembersBtn">儲存名單到共用日曆</button>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="overlay"></div>
+<div class="confirm-box" id="confirmBox" role="dialog" aria-modal="true">
+  <h3 id="confirmTitle">確認刪除？</h3>
+  <p id="confirmText">刪除後會同步到屋企人嘅日曆。</p>
+  <div class="confirm-actions">
+    <button type="button" class="btn btn-ghost" id="confirmNo">取消</button>
+    <button type="button" class="btn btn-danger" id="confirmYes">刪除</button>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TZ = "Asia/Hong_Kong";
+  var LS_SETTINGS = "familyCalendar.settings.v1";
+  var LS_CACHE = "familyCalendar.cache.v1";
+  var PUBLIC_FILE = "family-calendar-events.json";
+  var DEFAULTS = {
+    owner: "lhwongn-bot",
+    repo: "nicktimetable",
+    path: "family-calendar-events.json",
+    branch: "main",
+    token: "",
+    displayName: ""
+  };
+  var DOW = ["日", "一", "二", "三", "四", "五", "六"];
+
+  var settings = loadSettings();
+  var store = emptyStore();
+  var snapshot = emptyStore();
+  var lastSha = null;
+  var loadedFrom = "";
+  var viewYear, viewMonth, selectedYmd;
+  var editingId = null;
+  var selectedWho = [];
+  var saving = false;
+  var toastTimer = 0;
+  var confirmFn = null;
+  var membersDirty = false;
+
+  var boot = document.getElementById("bootBanner");
+  boot.classList.add("ok");
+
+  function emptyStore() {
+    return { updatedAt: "", members: [], events: [] };
+  }
+
+  function loadSettings() {
+    var s = Object.assign({}, DEFAULTS);
+    try {
+      var raw = localStorage.getItem(LS_SETTINGS);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && typeof p === "object") {
+          ["owner", "repo", "path", "branch", "token", "displayName"].forEach(function (k) {
+            if (typeof p[k] === "string") s[k] = p[k];
+          });
+        }
+      }
+    } catch (e) {}
+    if (!s.owner) s.owner = DEFAULTS.owner;
+    if (!s.repo) s.repo = DEFAULTS.repo;
+    if (!s.path) s.path = DEFAULTS.path;
+    if (!s.branch) s.branch = DEFAULTS.branch;
+    return s;
+  }
+
+  function persistSettings() {
+    var copy = {
+      owner: settings.owner.trim(),
+      repo: settings.repo.trim(),
+      path: settings.path.trim(),
+      branch: settings.branch.trim(),
+      token: settings.token,
+      displayName: settings.displayName.trim()
+    };
+    localStorage.setItem(LS_SETTINGS, JSON.stringify(copy));
+  }
+
+  function cacheStore(data) {
+    try {
+      localStorage.setItem(LS_CACHE, JSON.stringify({
+        savedAt: nowISO(),
+        data: data
+      }));
+    } catch (e) {}
+  }
+
+  function loadCache() {
+    try {
+      var raw = localStorage.getItem(LS_CACHE);
+      if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (p && p.data) return { savedAt: p.savedAt, data: normalizeStore(p.data) };
+    } catch (e) {}
+    return null;
+  }
+
+  function nowISO() {
+    return new Date().toISOString();
+  }
+
+  function hkParts(d) {
+    d = d || new Date();
+    var out = {};
+    var parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    }).formatToParts(d);
+    parts.forEach(function (p) {
+      if (p.type !== "literal") out[p.type] = p.value;
+    });
+    return out;
+  }
+
+  function todayYmd() {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(new Date());
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function ymd(y, m, d) {
+    return y + "-" + pad2(m) + "-" + pad2(d);
+  }
+
+  function parseYmd(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+    if (!m) return null;
+    return { y: +m[1], m: +m[2], d: +m[3] };
+  }
+
+  function weekdayOfYmd(s) {
+    var p = parseYmd(s);
+    if (!p) return 0;
+    // Compute weekday in HK: Date.UTC at 04:00 UTC is 12:00 HK, safe from DST (HK has none)
+    return new Date(Date.UTC(p.y, p.m - 1, p.d, 4, 0, 0)).getUTCDay();
+  }
+
+  function daysInMonth(y, m) {
+    return new Date(Date.UTC(y, m, 0)).getUTCDate();
+  }
+
+  function formatMonthTitle(y, m) {
+    return y + "年" + m + "月";
+  }
+
+  function formatDayTitle(s) {
+    var p = parseYmd(s);
+    if (!p) return s || "—";
+    var w = weekdayOfYmd(s);
+    var extra = s === todayYmd() ? " · 今日" : "";
+    return p.m + "月" + p.d + "日（星期" + DOW[w] + "）" + extra;
+  }
+
+  function formatTimeRange(ev) {
+    if (!ev || ev.allDay || (!ev.start && !ev.end)) return "全日";
+    if (ev.start && ev.end) return ev.start + "–" + ev.end;
+    if (ev.start) return ev.start + " 開始";
+    return ev.end + " 完結";
+  }
+
+  function formatStatusTime(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return new Intl.DateTimeFormat("zh-HK", {
+      timeZone: TZ,
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    }).format(d);
+  }
+
+  function uid() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+    return "e-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  function hasToken() {
+    return !!(settings.token && settings.token.trim());
+  }
+
+  function normalizeStore(raw) {
+    var out = emptyStore();
+    if (!raw || typeof raw !== "object") return out;
+    if (typeof raw.updatedAt === "string") out.updatedAt = raw.updatedAt;
+    if (Array.isArray(raw.members)) {
+      out.members = uniqueNames(raw.members);
+    }
+    if (Array.isArray(raw.events)) {
+      out.events = raw.events.map(normalizeEvent).filter(Boolean);
+    }
+    return out;
+  }
+
+  function normalizeEvent(e) {
+    if (!e || typeof e !== "object") return null;
+    var date = typeof e.date === "string" ? e.date.trim() : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    var title = typeof e.title === "string" ? e.title.trim() : "";
+    if (!title) return null;
+    return {
+      id: typeof e.id === "string" && e.id ? e.id : uid(),
+      title: title,
+      date: date,
+      allDay: !!e.allDay || (!e.start && !e.end),
+      start: normTime(e.start),
+      end: normTime(e.end),
+      who: typeof e.who === "string" ? e.who.trim() : "",
+      notes: typeof e.notes === "string" ? e.notes : "",
+      location: typeof e.location === "string" ? e.location.trim() : "",
+      updatedBy: typeof e.updatedBy === "string" ? e.updatedBy : "",
+      updatedAt: typeof e.updatedAt === "string" ? e.updatedAt : ""
+    };
+  }
+
+  function normTime(t) {
+    if (typeof t !== "string") return "";
+    t = t.trim();
+    var m = /^(\d{1,2}):(\d{2})$/.exec(t);
+    if (!m) return "";
+    var h = +m[1], min = +m[2];
+    if (h > 23 || min > 59) return "";
+    return pad2(h) + ":" + pad2(min);
+  }
+
+  function uniqueNames(arr) {
+    var seen = {};
+    var out = [];
+    (arr || []).forEach(function (n) {
+      if (typeof n !== "string") return;
+      n = n.trim();
+      if (!n || seen[n]) return;
+      seen[n] = true;
+      out.push(n);
+    });
+    return out;
+  }
+
+  function eventTimeKey(ev) {
+    if (!ev.allDay && ev.start) return ev.start;
+    if (!ev.allDay && ev.end) return ev.end;
+    return "99:99";
+  }
+
+  function sortEvents(list) {
+    return list.slice().sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      var ta = eventTimeKey(a), tb = eventTimeKey(b);
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      return (a.title || "").localeCompare(b.title || "", "zh-Hant");
+    });
+  }
+
+  function indexById(list) {
+    var m = Object.create(null);
+    (list || []).forEach(function (e) { if (e && e.id) m[e.id] = e; });
+    return m;
+  }
+
+  function newerEvent(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    var ta = a.updatedAt || "";
+    var tb = b.updatedAt || "";
+    if (ta === tb) return a;
+    return ta > tb ? a : b;
+  }
+
+  function mergeStore(remote, local, base) {
+    remote = normalizeStore(remote);
+    local = normalizeStore(local);
+    base = normalizeStore(base);
+    var rE = indexById(remote.events);
+    var lE = indexById(local.events);
+    var bE = indexById(base.events);
+    var ids = {};
+    Object.keys(rE).concat(Object.keys(lE), Object.keys(bE)).forEach(function (id) { ids[id] = true; });
+    var events = [];
+    Object.keys(ids).forEach(function (id) {
+      var r = rE[id], l = lE[id], b = bE[id];
+      var localDeleted = b && !l;
+      var remoteDeleted = b && !r;
+      if (localDeleted && remoteDeleted) return;
+      if (localDeleted) {
+        if (r && r.updatedAt && b.updatedAt && r.updatedAt > b.updatedAt) events.push(r);
+        return;
+      }
+      if (remoteDeleted) {
+        if (l && l.updatedAt && b.updatedAt && l.updatedAt > b.updatedAt) events.push(l);
+        return;
+      }
+      events.push(newerEvent(l, r));
+    });
+
+    var baseM = {};
+    base.members.forEach(function (n) { baseM[n] = true; });
+    var localM = {};
+    local.members.forEach(function (n) { localM[n] = true; });
+    var set = {};
+    remote.members.forEach(function (n) { set[n] = true; });
+    local.members.forEach(function (n) {
+      if (!baseM[n]) set[n] = true; // locally added
+    });
+    base.members.forEach(function (n) {
+      if (!localM[n]) delete set[n]; // locally removed
+    });
+    var members = Object.keys(set);
+
+    return {
+      updatedAt: nowISO(),
+      members: members,
+      events: sortEvents(events)
+    };
+  }
+
+  function utf8ToB64(str) {
+    var bytes = new TextEncoder().encode(str);
+    var bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function b64ToUtf8(b64) {
+    var clean = String(b64 || "").replace(/\s/g, "");
+    var bin = atob(clean);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function apiHeaders(withAuth) {
+    var h = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+    if (withAuth && hasToken()) h.Authorization = "Bearer " + settings.token.trim();
+    return h;
+  }
+
+  function contentsUrl() {
+    var owner = encodeURIComponent(settings.owner.trim());
+    var repo = encodeURIComponent(settings.repo.trim());
+    var path = settings.path.trim().replace(/^\/+/, "").split("/").map(encodeURIComponent).join("/");
+    var branch = encodeURIComponent(settings.branch.trim() || "main");
+    return "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + path + "?ref=" + branch;
+  }
+
+  async function apiGet() {
+    var res = await fetch(contentsUrl(), {
+      headers: apiHeaders(true),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      var err = new Error(await errorMessage(res));
+      err.status = res.status;
+      throw err;
+    }
+    return res.json();
+  }
+
+  async function apiPut(body) {
+    var url = contentsUrl().replace(/\?ref=[^&]+$/, "");
+    var res = await fetch(url, {
+      method: "PUT",
+      headers: Object.assign(apiHeaders(true), { "Content-Type": "application/json" }),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      var err = new Error(await errorMessage(res));
+      err.status = res.status;
+      throw err;
+    }
+    return res.json();
+  }
+
+  async function errorMessage(res) {
+    var text = "";
+    try {
+      var j = await res.json();
+      text = j.message || JSON.stringify(j);
+    } catch (e) {
+      try { text = await res.text(); } catch (e2) {}
+    }
+    if (res.status === 401) return "Token 無效或已過期，請喺設定重新貼上。";
+    if (res.status === 403) return "冇權限寫入呢個倉，請確認 token 有 Contents 讀寫權限。" + (text ? "（" + text + "）" : "");
+    if (res.status === 404) return "搵唔到倉或檔案，請檢查擁有者／倉名／路徑。";
+    if (res.status === 409) return "檔案剛被其他人改過，正在重新合併…";
+    return "GitHub 回覆 " + res.status + (text ? "：" + text : "");
+  }
+
+  async function fetchPublicJson() {
+    var url = PUBLIC_FILE + "?t=" + Date.now();
+    var res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      // Fallback: GitHub raw (public repo)
+      var raw = "https://raw.githubusercontent.com/" +
+        encodeURIComponent(settings.owner.trim()) + "/" +
+        encodeURIComponent(settings.repo.trim()) + "/" +
+        encodeURIComponent(settings.branch.trim() || "main") + "/" +
+        settings.path.trim().replace(/^\/+/, "") + "?t=" + Date.now();
+      res = await fetch(raw, { cache: "no-store" });
+    }
+    if (!res.ok) throw new Error("載入公開日曆失敗（" + res.status + "）");
+    return normalizeStore(await res.json());
+  }
+
+  function applyLoaded(data, src, sha) {
+    store = normalizeStore(data);
+    store.events = sortEvents(store.events);
+    snapshot = JSON.parse(JSON.stringify(store));
+    lastSha = sha || null;
+    loadedFrom = src;
+    membersDirty = false;
+    cacheStore(store);
+    renderAll();
+    updateBanner();
+  }
+
+  async function refresh(opts) {
+    opts = opts || {};
+    setStatus("同步中…");
+    try {
+      if (hasToken()) {
+        var meta = await apiGet();
+        if (!meta) {
+          applyLoaded(store.events.length || store.members.length ? store : emptyStore(), "api-new", null);
+          setStatus("倉入面未有檔案，儲存時會建立。");
+          if (opts.toast) toast("連線成功，但倉入面未有事件檔，第一次儲存會建立。");
+          return;
+        }
+        var data = normalizeStore(JSON.parse(b64ToUtf8(meta.content)));
+        applyLoaded(data, "api", meta.sha);
+        var when = formatStatusTime(data.updatedAt || nowISO());
+        setStatus("已同步" + (when ? " · " + when : "") + (settings.displayName ? " · " + settings.displayName : ""));
+        if (opts.toast) toast("已同步最新日曆");
+      } else {
+        var pub = await fetchPublicJson();
+        applyLoaded(pub, "public", null);
+        var when2 = formatStatusTime(pub.updatedAt);
+        setStatus("只讀模式" + (when2 ? " · 更新於 " + when2 : " · 來自網上公開檔"));
+        if (opts.toast) toast("已載入公開日曆（只讀）");
+      }
+    } catch (e) {
+      var cache = loadCache();
+      if (cache && !opts.skipCacheFallback) {
+        applyLoaded(cache.data, "cache", null);
+        setStatus("未能連線，顯示本機暫存" + (cache.savedAt ? " · " + formatStatusTime(cache.savedAt) : ""));
+        toast("未能同步，已改用上次暫存。" + (e.message ? " " + e.message : ""), true);
+      } else {
+        setStatus("未能載入日曆");
+        toast(e.message || "載入失敗", true);
+        renderAll();
+        updateBanner();
+      }
+    }
+  }
+
+  async function commit(reason) {
+    if (!hasToken()) {
+      toast("要加改請先喺設定入 token", true);
+      openSettings();
+      throw new Error("no-token");
+    }
+    if (saving) return;
+    saving = true;
+    setStatus("儲存中…");
+    var localNow = normalizeStore(store);
+    var lastErr = null;
+    try {
+      for (var i = 0; i < 3; i++) {
+        try {
+          var meta = await apiGet();
+          var remote = emptyStore();
+          var sha = null;
+          if (meta && meta.content) {
+            sha = meta.sha;
+            remote = normalizeStore(JSON.parse(b64ToUtf8(meta.content)));
+          }
+          var merged = mergeStore(remote, localNow, snapshot);
+          var payload = {
+            message: commitMessage(reason),
+            content: utf8ToB64(JSON.stringify(merged, null, 2) + "\n"),
+            branch: settings.branch.trim() || "main"
+          };
+          if (sha) payload.sha = sha;
+          var put = await apiPut(payload);
+          var didMerge = sha && lastSha && sha !== lastSha;
+          applyLoaded(merged, "api", (put.content && put.content.sha) || sha);
+          setStatus("已儲存 · " + formatStatusTime(merged.updatedAt));
+          toast(didMerge ? "已同最新資料合併後儲存" : "已儲存並同步俾屋企人");
+          return merged;
+        } catch (e) {
+          lastErr = e;
+          if (e.status === 409 || e.status === 412) continue;
+          throw e;
+        }
+      }
+      throw lastErr || new Error("儲存失敗");
+    } catch (e) {
+      setStatus("儲存失敗");
+      toast(e.message || "儲存失敗", true);
+      throw e;
+    } finally {
+      saving = false;
+    }
+  }
+
+  function commitMessage(reason) {
+    var who = settings.displayName.trim();
+    var r = reason || "更新活動";
+    return "calendar: " + r + (who ? " (" + who + ")" : "");
+  }
+
+  function setStatus(t) {
+    document.getElementById("statusLine").textContent = t || "";
+  }
+
+  function toast(msg, isErr) {
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.toggle("err", !!isErr);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 3200);
+  }
+
+  function updateBanner() {
+    var b = document.getElementById("viewBanner");
+    if (hasToken()) b.classList.remove("show");
+    else b.classList.add("show");
+  }
+
+  function eventsOn(ymdStr) {
+    return sortEvents(store.events.filter(function (e) { return e.date === ymdStr; }));
+  }
+
+  function eventCountByDate(y, m) {
+    var map = {};
+    var prefix = y + "-" + pad2(m) + "-";
+    store.events.forEach(function (e) {
+      if (e.date.indexOf(prefix) === 0) map[e.date] = (map[e.date] || 0) + 1;
+    });
+    return map;
+  }
+
+  function renderAll() {
+    renderCalendar();
+    renderDay();
+  }
+
+  function renderCalendar() {
+    document.getElementById("monthTitle").textContent = formatMonthTitle(viewYear, viewMonth);
+    var dow = document.getElementById("dowRow");
+    if (!dow.childElementCount) {
+      DOW.forEach(function (d, i) {
+        var el = document.createElement("div");
+        el.className = "cal-dow" + (i === 0 ? " sun" : i === 6 ? " sat" : "");
+        el.textContent = d;
+        dow.appendChild(el);
+      });
+    }
+    var grid = document.getElementById("calGrid");
+    grid.innerHTML = "";
+    var firstDow = weekdayOfYmd(ymd(viewYear, viewMonth, 1));
+    var dim = daysInMonth(viewYear, viewMonth);
+    var prevM = viewMonth === 1 ? 12 : viewMonth - 1;
+    var prevY = viewMonth === 1 ? viewYear - 1 : viewYear;
+    var prevDim = daysInMonth(prevY, prevM);
+    var counts = eventCountByDate(viewYear, viewMonth);
+    var today = todayYmd();
+    var cells = [];
+    var i;
+    for (i = 0; i < firstDow; i++) {
+      var d = prevDim - firstDow + 1 + i;
+      cells.push({ y: prevY, m: prevM, d: d, muted: true });
+    }
+    for (i = 1; i <= dim; i++) cells.push({ y: viewYear, m: viewMonth, d: i, muted: false });
+    var nextM = viewMonth === 12 ? 1 : viewMonth + 1;
+    var nextY = viewMonth === 12 ? viewYear + 1 : viewYear;
+    var dNext = 1;
+    while (cells.length % 7 !== 0) {
+      cells.push({ y: nextY, m: nextM, d: dNext++, muted: true });
+    }
+    cells.forEach(function (c) {
+      var key = ymd(c.y, c.m, c.d);
+      var dowN = weekdayOfYmd(key);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cal-cell" +
+        (c.muted ? " muted" : "") +
+        (key === today ? " today" : "") +
+        (key === selectedYmd ? " selected" : "") +
+        (dowN === 0 ? " sun" : dowN === 6 ? " sat" : "");
+      btn.setAttribute("aria-label", formatDayTitle(key));
+      btn.innerHTML = "<span class=\"num\">" + c.d + "</span>";
+      var dots = document.createElement("div");
+      dots.className = "dots";
+      var n = c.muted ? 0 : (counts[key] || 0);
+      var show = Math.min(n, 3);
+      for (var k = 0; k < show; k++) {
+        var dot = document.createElement("span");
+        dot.className = "dot";
+        dots.appendChild(dot);
+      }
+      btn.appendChild(dots);
+      btn.addEventListener("click", function () {
+        selectedYmd = key;
+        if (c.muted) {
+          viewYear = c.y;
+          viewMonth = c.m;
+        }
+        renderAll();
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function renderDay() {
+    document.getElementById("dayTitle").textContent = formatDayTitle(selectedYmd);
+    var list = eventsOn(selectedYmd);
+    document.getElementById("dayCount").textContent = list.length ? ("共 " + list.length + " 項活動") : "呢日未有活動";
+    var box = document.getElementById("eventList");
+    box.innerHTML = "";
+    if (!list.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = hasToken() ? "撳「新增」記低呢日要做嘅事。" : "呢日未有活動。要新增請先喺設定入 token。";
+      box.appendChild(empty);
+      return;
+    }
+    list.forEach(function (ev) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "event-card";
+      var meta = [];
+      if (ev.who) meta.push(ev.who);
+      if (ev.location) meta.push(ev.location);
+      btn.innerHTML =
+        "<div class=\"event-time\">" + escapeHtml(formatTimeRange(ev)) + "</div>" +
+        "<div class=\"event-title\">" + escapeHtml(ev.title) + "</div>" +
+        (meta.length ? "<div class=\"event-meta\">" + escapeHtml(meta.join(" · ")) + "</div>" : "") +
+        (ev.notes ? "<div class=\"event-meta\">" + escapeHtml(ev.notes) + "</div>" : "");
+      btn.addEventListener("click", function () { openEvent(ev.id); });
+      box.appendChild(btn);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function canEdit() {
+    if (hasToken()) return true;
+    toast("可以睇，要加改請先喺設定入 token。", true);
+    openSettings();
+    return false;
+  }
+
+  function setEventFormLocked(locked) {
+    ["fTitle","fDate","fStart","fEnd","fLocation","fNotes","fWhoCustom"].forEach(function (id) {
+      document.getElementById(id).disabled = !!locked;
+    });
+    document.getElementById("eventSave").style.visibility = locked ? "hidden" : "visible";
+    document.getElementById("addWhoBtn").disabled = !!locked;
+    document.getElementById("fAllDay").disabled = !!locked;
+  }
+
+  function openEvent(id) {
+    if (!id && !canEdit()) return;
+    var readOnly = !hasToken();
+    editingId = id || null;
+    var ev = id ? store.events.find(function (e) { return e.id === id; }) : null;
+    document.getElementById("eventSheetTitle").textContent = ev ? (readOnly ? "活動詳情" : "編輯活動") : "新增活動";
+    document.getElementById("fTitle").value = ev ? ev.title : "";
+    document.getElementById("fDate").value = ev ? ev.date : selectedYmd;
+    var allDay = ev ? !!ev.allDay : true;
+    setAllDay(allDay);
+    document.getElementById("fStart").value = ev && ev.start ? ev.start : "";
+    document.getElementById("fEnd").value = ev && ev.end ? ev.end : "";
+    document.getElementById("fLocation").value = ev ? ev.location : "";
+    document.getElementById("fNotes").value = ev ? ev.notes : "";
+    selectedWho = ev && ev.who ? ev.who.split(/[、,，]/).map(function (s) { return s.trim(); }).filter(Boolean) : [];
+    renderWhoChips();
+    var hint = "";
+    if (ev && (ev.updatedBy || ev.updatedAt)) {
+      hint = "上次更改" + (ev.updatedBy ? "：" + ev.updatedBy : "") +
+        (ev.updatedAt ? " · " + formatStatusTime(ev.updatedAt) : "");
+    }
+    if (readOnly) hint = (hint ? hint + "。" : "") + "而家係只讀；要改請先喺設定入 token。";
+    document.getElementById("eventMetaHint").textContent = hint;
+    document.getElementById("eventFooter").hidden = !ev || readOnly;
+    setEventFormLocked(readOnly);
+    openSheet("eventSheet");
+    if (!readOnly) setTimeout(function () { document.getElementById("fTitle").focus(); }, 200);
+  }
+
+  function setAllDay(on) {
+    var btn = document.getElementById("fAllDay");
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    document.getElementById("timeFields").hidden = !!on;
+  }
+
+  function isAllDay() {
+    return document.getElementById("fAllDay").classList.contains("on");
+  }
+
+  function renderWhoChips() {
+    var box = document.getElementById("whoChips");
+    box.innerHTML = "";
+    var names = uniqueNames((store.members || []).concat(selectedWho));
+    if (!names.length) {
+      var p = document.createElement("p");
+      p.className = "hint";
+      p.textContent = "未有家人名單，可以下面輸入名字加入。";
+      box.appendChild(p);
+      return;
+    }
+    names.forEach(function (n) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip" + (selectedWho.indexOf(n) >= 0 ? " on" : "");
+      b.textContent = n;
+      b.addEventListener("click", function () {
+        if (document.getElementById("fTitle").disabled) return;
+        var i = selectedWho.indexOf(n);
+        if (i >= 0) selectedWho.splice(i, 1);
+        else selectedWho.push(n);
+        renderWhoChips();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function addCustomWho() {
+    var input = document.getElementById("fWhoCustom");
+    var n = (input.value || "").trim();
+    if (!n) return;
+    if (selectedWho.indexOf(n) < 0) selectedWho.push(n);
+    if (store.members.indexOf(n) < 0) {
+      store.members = uniqueNames(store.members.concat([n]));
+      membersDirty = true;
+    }
+    input.value = "";
+    renderWhoChips();
+  }
+
+  async function saveEvent() {
+    if (!canEdit() || saving) return;
+    var title = document.getElementById("fTitle").value.trim();
+    var date = document.getElementById("fDate").value;
+    if (!title) { toast("請輸入標題", true); document.getElementById("fTitle").focus(); return; }
+    if (!parseYmd(date)) { toast("請選擇日期", true); return; }
+    var allDay = isAllDay();
+    var start = allDay ? "" : normTime(document.getElementById("fStart").value);
+    var end = allDay ? "" : normTime(document.getElementById("fEnd").value);
+    if (!allDay && start && end && end < start) {
+      toast("結束時間早過開始時間，請再檢查。", true);
+      return;
+    }
+    var who = selectedWho.join("、");
+    var ev = {
+      id: editingId || uid(),
+      title: title,
+      date: date,
+      allDay: allDay || (!start && !end),
+      start: start,
+      end: end,
+      who: who,
+      notes: document.getElementById("fNotes").value.trim(),
+      location: document.getElementById("fLocation").value.trim(),
+      updatedBy: settings.displayName.trim(),
+      updatedAt: nowISO()
+    };
+    var list = store.events.slice();
+    var idx = list.findIndex(function (e) { return e.id === ev.id; });
+    if (idx >= 0) list[idx] = ev;
+    else list.push(ev);
+    store.events = sortEvents(list);
+    if (who) {
+      who.split("、").forEach(function (n) {
+        if (n && store.members.indexOf(n) < 0) {
+          store.members.push(n);
+          membersDirty = true;
+        }
+      });
+    }
+    selectedYmd = date;
+    var p = parseYmd(date);
+    viewYear = p.y;
+    viewMonth = p.m;
+    try {
+      await commit(editingId ? "編輯活動" : "新增活動");
+      closeSheet("eventSheet");
+      renderAll();
+    } catch (e) {
+      renderAll();
+    }
+  }
+
+  function deleteEvent() {
+    if (!editingId || !canEdit()) return;
+    askConfirm("確認刪除？", "刪除後會同步到屋企人嘅日曆，呢個動作唔可以還原。", async function () {
+      store.events = store.events.filter(function (e) { return e.id !== editingId; });
+      try {
+        await commit("刪除活動");
+        closeSheet("eventSheet");
+        renderAll();
+      } catch (e) {
+        renderAll();
+      }
+    });
+  }
+
+  function fillSettingsForm() {
+    document.getElementById("sName").value = settings.displayName;
+    document.getElementById("sOwner").value = settings.owner || DEFAULTS.owner;
+    document.getElementById("sRepo").value = settings.repo || DEFAULTS.repo;
+    document.getElementById("sPath").value = settings.path || DEFAULTS.path;
+    document.getElementById("sBranch").value = settings.branch || DEFAULTS.branch;
+    document.getElementById("sToken").value = settings.token;
+    document.getElementById("testResult").textContent = "";
+    document.getElementById("testResult").className = "test-result";
+    renderMemberChips();
+  }
+
+  function readSettingsForm() {
+    settings.displayName = document.getElementById("sName").value.trim();
+    settings.owner = document.getElementById("sOwner").value.trim() || DEFAULTS.owner;
+    settings.repo = document.getElementById("sRepo").value.trim() || DEFAULTS.repo;
+    settings.path = document.getElementById("sPath").value.trim() || DEFAULTS.path;
+    settings.branch = document.getElementById("sBranch").value.trim() || DEFAULTS.branch;
+    settings.token = document.getElementById("sToken").value.trim();
+  }
+
+  function renderMemberChips() {
+    var box = document.getElementById("memberChips");
+    box.innerHTML = "";
+    if (!store.members.length) {
+      var p = document.createElement("p");
+      p.className = "hint";
+      p.textContent = "未有共用名單。";
+      box.appendChild(p);
+      return;
+    }
+    store.members.forEach(function (n) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip on";
+      b.innerHTML = escapeHtml(n) + "<span class=\"x\" aria-label=\"移除\">×</span>";
+      b.addEventListener("click", function () {
+        store.members = store.members.filter(function (x) { return x !== n; });
+        membersDirty = true;
+        renderMemberChips();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function addMemberFromSettings() {
+    var input = document.getElementById("sNewMember");
+    var n = (input.value || "").trim();
+    if (!n) return;
+    if (store.members.indexOf(n) < 0) {
+      store.members.push(n);
+      membersDirty = true;
+    }
+    input.value = "";
+    renderMemberChips();
+  }
+
+  function openSettings() {
+    fillSettingsForm();
+    openSheet("settingsSheet");
+  }
+
+  function openSheet(id) {
+    document.getElementById(id).classList.add("open");
+    document.getElementById(id).setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeSheet(id) {
+    document.getElementById(id).classList.remove("open");
+    document.getElementById(id).setAttribute("aria-hidden", "true");
+    if (!document.querySelector(".sheet.open")) document.body.style.overflow = "";
+  }
+
+  function askConfirm(title, text, fn) {
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmText").textContent = text;
+    confirmFn = fn;
+    document.getElementById("overlay").classList.add("open");
+    document.getElementById("confirmBox").classList.add("open");
+  }
+
+  function closeConfirm() {
+    confirmFn = null;
+    document.getElementById("overlay").classList.remove("open");
+    document.getElementById("confirmBox").classList.remove("open");
+  }
+
+  function bind() {
+    document.getElementById("prevMonth").addEventListener("click", function () {
+      if (viewMonth === 1) { viewMonth = 12; viewYear--; }
+      else viewMonth--;
+      var dim = daysInMonth(viewYear, viewMonth);
+      var p = parseYmd(selectedYmd);
+      selectedYmd = ymd(viewYear, viewMonth, Math.min(p ? p.d : 1, dim));
+      renderAll();
+    });
+    document.getElementById("nextMonth").addEventListener("click", function () {
+      if (viewMonth === 12) { viewMonth = 1; viewYear++; }
+      else viewMonth++;
+      var dim = daysInMonth(viewYear, viewMonth);
+      var p = parseYmd(selectedYmd);
+      selectedYmd = ymd(viewYear, viewMonth, Math.min(p ? p.d : 1, dim));
+      renderAll();
+    });
+    document.getElementById("todayBtn").addEventListener("click", function () {
+      var t = todayYmd();
+      var p = parseYmd(t);
+      viewYear = p.y; viewMonth = p.m; selectedYmd = t;
+      renderAll();
+    });
+    document.getElementById("addBtn").addEventListener("click", function () { openEvent(null); });
+    document.getElementById("syncBtn").addEventListener("click", function () { refresh({ toast: true }); });
+    document.getElementById("settingsBtn").addEventListener("click", openSettings);
+    document.getElementById("bannerSettingsBtn").addEventListener("click", openSettings);
+    document.getElementById("settingsClose").addEventListener("click", function () { closeSheet("settingsSheet"); });
+    document.getElementById("eventCancel").addEventListener("click", function () { closeSheet("eventSheet"); });
+    document.getElementById("eventSave").addEventListener("click", function () { saveEvent(); });
+    document.getElementById("eventDelete").addEventListener("click", deleteEvent);
+    document.getElementById("fAllDay").addEventListener("click", function () { setAllDay(!isAllDay()); });
+    document.getElementById("addWhoBtn").addEventListener("click", addCustomWho);
+    document.getElementById("fWhoCustom").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); addCustomWho(); }
+    });
+    document.getElementById("addMemberBtn").addEventListener("click", addMemberFromSettings);
+    document.getElementById("sNewMember").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); addMemberFromSettings(); }
+    });
+    document.getElementById("saveSettingsBtn").addEventListener("click", async function () {
+      readSettingsForm();
+      persistSettings();
+      updateBanner();
+      toast("設定已存在呢部裝置");
+      try {
+        await refresh({ toast: false, skipCacheFallback: true });
+        if (hasToken() && membersDirty) {
+          await commit("更新家人名單");
+        } else if (hasToken()) {
+          toast("設定已儲存，連線成功");
+        }
+      } catch (e) {}
+    });
+    document.getElementById("saveMembersBtn").addEventListener("click", async function () {
+      if (!canEdit()) return;
+      try { await commit("更新家人名單"); }
+      catch (e) {}
+    });
+    document.getElementById("testBtn").addEventListener("click", async function () {
+      readSettingsForm();
+      var el = document.getElementById("testResult");
+      el.className = "test-result";
+      el.textContent = "測試中…";
+      if (!hasToken()) {
+        try {
+          var pub = await fetchPublicJson();
+          el.classList.add("ok");
+          el.textContent = "冇 token：公開檔可以讀到，共 " + pub.events.length + " 項活動。要加改仍需 token。";
+        } catch (e) {
+          el.classList.add("err");
+          el.textContent = e.message || "讀取公開檔失敗";
+        }
+        return;
+      }
+      try {
+        var meta = await apiGet();
+        el.classList.add("ok");
+        if (!meta) {
+          el.textContent = "連線成功，但倉入面未有呢個檔。第一次儲存活動時會建立。";
+        } else {
+          var data = normalizeStore(JSON.parse(b64ToUtf8(meta.content)));
+          el.textContent = "連線成功。現有 " + data.events.length + " 項活動" +
+            (data.updatedAt ? "，上次更新 " + formatStatusTime(data.updatedAt) : "") + "。";
+        }
+      } catch (e) {
+        el.classList.add("err");
+        el.textContent = e.message || "連線失敗";
+      }
+    });
+    document.getElementById("clearTokenBtn").addEventListener("click", function () {
+      askConfirm("清除 token？", "只會喺呢部裝置刪除 token，唔會改到共用日曆。之後只能睇、唔能改。", function () {
+        settings.token = "";
+        document.getElementById("sToken").value = "";
+        persistSettings();
+        updateBanner();
+        toast("已清除 token");
+        refresh({ toast: false });
+      });
+    });
+    document.getElementById("confirmNo").addEventListener("click", closeConfirm);
+    document.getElementById("overlay").addEventListener("click", closeConfirm);
+    document.getElementById("confirmYes").addEventListener("click", function () {
+      var fn = confirmFn;
+      closeConfirm();
+      if (fn) fn();
+    });
+  }
+
+  async function init() {
+    var t = parseYmd(todayYmd());
+    viewYear = t.y;
+    viewMonth = t.m;
+    selectedYmd = todayYmd();
+    var cache = loadCache();
+    if (cache) {
+      store = cache.data;
+      snapshot = JSON.parse(JSON.stringify(store));
+      loadedFrom = "cache";
+      setStatus("正在載入最新資料…（先顯示暫存）");
+      renderAll();
+    } else {
+      renderAll();
+    }
+    updateBanner();
+    bind();
+    await refresh({ toast: false });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
